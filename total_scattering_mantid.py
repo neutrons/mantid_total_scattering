@@ -561,12 +561,12 @@ def GetIncidentSpectrumFromMonitor(Filename, OutputWorkspace="IncidentWorkspace"
               PreserveEvents=True)
 
     lam = mtd[monitor].readX(IncidentIndex)[:-1] # wavelength in A
-    bm  = mtd[monitor].readY(IncidentIndex)     # neutron counts / microsecond
+    bm  = mtd[monitor].readY(IncidentIndex)      # neutron counts / microsecond
     p = 0.0000794807
-    abs_xs_3He = 5333.0                   # barns for lambda == 1.8 A
-    e0 = abs_xs_3He * lam / 1.8 * 2.43e-5 * p # p is set to give efficiency of 1.03 10^-5 at 1.8 A
-    bmeff = bm / ( 1. - np.exp(-e0))      # neutron counts / microsecond
-    bmeff = bmeff / 10e6                 # neutron counts / second
+    abs_xs_3He = 5333.0                          # barns for lambda == 1.8 A
+    e0 = abs_xs_3He * lam / 1.8 * 2.43e-5 * p    # p is set to give efficiency of 1.03 10^-5 at 1.8 A
+    bmeff = bm / ( 1. - np.exp(-e0))             # neutron counts / microsecond
+    bmeff = bmeff / micro                        # neutron counts / second
 
     CreateWorkspace(DataX=lam, DataY=bmeff,
                     OutputWorkspace=OutputWorkspace, UnitX='Wavelength')
@@ -1097,19 +1097,12 @@ if __name__ == "__main__":
 
     #-----------------------------------------------------------------------------------------#
     # Load Instrument Characterizations
-    '''PDDetermineCharacterizations(InputWorkspace=sam_wksp,
+    PDDetermineCharacterizations(InputWorkspace=sam_wksp,
                                  Characterizations='characterizations',
-                                 ReductionProperties='__snspowderreduction')
-    propMan = PropertyManagerDataService.retrieve('__snspowderreduction')
+                                 ReductionProperties='__powdereduction')
+    propMan = PropertyManagerDataService.retrieve('__powdereduction')
     qmax = 2.*np.pi/propMan['d_min'].value
-    qmin = 2.*np.pi/propMan['d_max'].value'''
-
-
-    #TODO: get d_min, d_max values from Helen and convert to QRange
-    qmin_val = 4.*np.pi
-    qmax_val = 0.2*np.pi
-    qmin = [qmin_val, qmin_val, qmin_val, qmin_val, qmin_val]
-    qmax = [qmax_val, qmax_val, qmax_val, qmax_val, qmax_val]
+    qmin = 2.*np.pi/propMan['d_max'].value
 
     for a,b in zip(qmin, qmax):
         print('Qrange:', a, b)

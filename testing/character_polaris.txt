@@ -9,5 +9,5 @@ L1 14
 #S 1 characterization runs
 #ToDo: correct below values
 #L frequency(Hz) center_wavelength(angstrom) bank_num vanadium_run empty_run vanadium_back d_min(angstrom) d_max(angstrom) wavelength_min wavelength_max
-60 1.4  1 0 0 0 .31,.25,.13,.13,.13 13.66,5.83,3.93,2.09,1.57 300.00 16666 0.1 2.9
-30 2.8  1 0 0 0 .31,.25,.13,.13,.13,.42 27.32,11.66,7.86,4.18,3.14,62.84 300.00 33333 0.1 5.8
+60 1.4  1 0 0 0 1.01,0.42,0.22,0.14,.10 26.82,11.13,5.92,3.70,2.70 300.00 16666 0.1 2.9
+30 2.8  1 0 0 0 1.01,0.42,0.22,0.14,.10 26.82,11.13,5.92,3.70,2.70 300.00 33333 0.1 5.8
