@@ -201,7 +201,7 @@ def save_banks(InputWorkspace, Filename, Title, OutputDir='./', Binning=None):
     print(filename)
     SaveNexusProcessed(InputWorkspace="tmp",
               Filename=Filename,
-              Title=Title, 
+              Title=Title,
               Append=True,
               PreserveEvents=False,
               WorkspaceIndexList=range(mtd["tmp"].getNumberHistograms()) )
@@ -977,8 +977,8 @@ if __name__ == "__main__":
                   EMode="Elastic")
     sample_title="sample_and_container"
     print(os.path.join(output_dir,sample_title+".dat"))
-    save_banks(InputWorkspace=sam_wksp, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=sam_wksp,
+               Filename=nexus_filename,
                Title=sample_title,
                OutputDir=output_dir,
                Binning=binning)
@@ -998,8 +998,8 @@ if __name__ == "__main__":
                  Target="MomentumTransfer",
                  EMode="Elastic")
     container_title="container"
-    save_banks(InputWorkspace=container, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=container,
+               Filename=nexus_filename,
                Title=container_title,
                OutputDir=output_dir,
                Binning=binning)
@@ -1021,8 +1021,8 @@ if __name__ == "__main__":
                  Target="MomentumTransfer",
                  EMode="Elastic")
         container_bg_title="container_background"
-        save_banks(InputWorkspace=container_bg, 
-                   Filename=nexus_filename, 
+        save_banks(InputWorkspace=container_bg,
+                   Filename=nexus_filename,
                    Title=container_bg_title,
                    OutputDir=output_dir,
                    Binning=binning)
@@ -1050,8 +1050,8 @@ if __name__ == "__main__":
                  EMode="Elastic")
     vanadium_title="vanadium_and_background"
 
-    save_banks(InputWorkspace=van_wksp, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=van_wksp,
+               Filename=nexus_filename,
                Title=vanadium_title,
                OutputDir=output_dir,
                Binning=binning)
@@ -1074,8 +1074,8 @@ if __name__ == "__main__":
                  Target="MomentumTransfer",
                  EMode="Elastic")
     vanadium_bg_title="vanadium_background"
-    save_banks(InputWorkspace=van_bg, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=van_bg,
+               Filename=nexus_filename,
                Title=vanadium_bg_title,
                OutputDir=output_dir,
                Binning=binning)
@@ -1118,18 +1118,18 @@ if __name__ == "__main__":
     container_title="container_minus_back"
     vanadium_title="vanadium_minus_back"
     sample_title="sample_minus_back"
-    save_banks(InputWorkspace=container, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=container,
+               Filename=nexus_filename,
                Title=container_title,
                OutputDir=output_dir,
                Binning=binning)
-    save_banks(InputWorkspace=van_wksp, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=van_wksp,
+               Filename=nexus_filename,
                Title=vanadium_title,
                OutputDir=output_dir,
                Binning=binning)
-    save_banks(InputWorkspace=sam_wksp, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=sam_wksp,
+               Filename=nexus_filename,
                Title=sample_title,
                OutputDir=output_dir,
                Binning=binning)
@@ -1169,13 +1169,13 @@ if __name__ == "__main__":
                  Target='MomentumTransfer',
                  EMode='Elastic')
     vanadium_title += "_ms_abs_corrected"
-    save_banks(InputWorkspace=van_corrected, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=van_corrected,
+               Filename=nexus_filename,
                Title=vanadium_title,
                OutputDir=output_dir,
                Binning=binning)
-    save_banks(InputWorkspace=van_corrected, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=van_corrected,
+               Filename=nexus_filename,
                Title=vanadium_title+"_with_peaks",
                OutputDir=output_dir,
                Binning=binning)
@@ -1197,8 +1197,8 @@ if __name__ == "__main__":
                  Target='MomentumTransfer',
                  EMode='Elastic')
     vanadium_title += '_peaks_stripped'
-    save_banks(InputWorkspace=van_corrected, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=van_corrected,
+               Filename=nexus_filename,
                Title=vanadium_title,
                OutputDir=output_dir,
                Binning=binning)
@@ -1218,8 +1218,8 @@ if __name__ == "__main__":
                  Target='MomentumTransfer',
                  EMode='Elastic')
     vanadium_title += '_smoothed'
-    save_banks(InputWorkspace=van_corrected, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=van_corrected,
+               Filename=nexus_filename,
                Title=vanadium_title,
                OutputDir=output_dir,
                Binning=binning)
@@ -1263,8 +1263,8 @@ if __name__ == "__main__":
             Rebin(InputWorkspace=wksp, OutputWorkspace=wksp,
                   Params=binning, PreserveEvents=True)
 
-        save_banks(InputWorkspace=van_placzek, 
-                   Filename=nexus_filename, 
+        save_banks(InputWorkspace=van_placzek,
+                   Filename=nexus_filename,
                    Title="vanadium_placzek",
                    OutputDir=output_dir,
                    Binning=binning)
@@ -1305,8 +1305,8 @@ if __name__ == "__main__":
                          Target='MomentumTransfer',
                          EMode='Elastic')
         vanadium_title += '_placzek_corrected'
-        save_banks(InputWorkspace=van_corrected, 
-                   Filename=nexus_filename, 
+        save_banks(InputWorkspace=van_corrected,
+                   Filename=nexus_filename,
                    Title=vanadium_title,
                    OutputDir=output_dir,
                    Binning=binning)
@@ -1337,13 +1337,13 @@ if __name__ == "__main__":
     Divide(LHSWorkspace=sam_raw, RHSWorkspace=van_corrected, OutputWorkspace=sam_raw)
 
     sample_title += "_normalized"
-    save_banks(InputWorkspace=sam_wksp, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=sam_wksp,
+               Filename=nexus_filename,
                Title=sample_title,
                OutputDir=output_dir,
                Binning=binning)
-    save_banks(InputWorkspace=sam_raw, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=sam_raw,
+               Filename=nexus_filename,
                Title="sample_normalized",
                OutputDir=output_dir,
                Binning=binning)
@@ -1382,29 +1382,29 @@ if __name__ == "__main__":
 
 
     container_title+='_normalized'
-    save_banks(InputWorkspace=container, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=container,
+               Filename=nexus_filename,
                Title=container_title,
                OutputDir=output_dir,
                Binning=binning)
-    save_banks(InputWorkspace=container_raw, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=container_raw,
+               Filename=nexus_filename,
                Title="container_normalized",
                OutputDir=output_dir,
                Binning=binning)
 
     if container_bg is not None:
         container_bg_title += "_normalised"
-        save_banks(InputWorkspace=container_bg, 
-                   Filename=nexus_filename, 
+        save_banks(InputWorkspace=container_bg,
+                   Filename=nexus_filename,
                    Title=container_bg_title,
                    OutputDir=output_dir,
                    Binning=binning)
 
     if van_bg is not None:
         vanadium_bg_title += "_normalized"
-        save_banks(InputWorkspace=van_bg, 
-                   Filename=nexus_filename, 
+        save_banks(InputWorkspace=van_bg,
+                   Filename=nexus_filename,
                    Title=vanadium_bg_title,
                    OutputDir=output_dir,
                    Binning=binning)
@@ -1436,8 +1436,8 @@ if __name__ == "__main__":
         ConvertUnits(InputWorkspace=sam_corrected, OutputWorkspace=sam_corrected,
                      Target='MomentumTransfer', EMode='Elastic')
         sample_title += "_ms_abs_corrected"
-        save_banks(InputWorkspace=sam_corrected, 
-                   Filename=nexus_filename, 
+        save_banks(InputWorkspace=sam_corrected,
+                   Filename=nexus_filename,
                    Title=sample_title,
                    OutputDir=output_dir,
                    Binning=binning)
@@ -1451,8 +1451,8 @@ if __name__ == "__main__":
     ConvertUnits(InputWorkspace=sam_corrected, OutputWorkspace=sam_corrected,
                  Target='MomentumTransfer', EMode='Elastic')
     sample_title += "_norm_by_atoms"
-    save_banks(InputWorkspace=sam_corrected, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=sam_corrected,
+               Filename=nexus_filename,
                Title=sample_title,
                OutputDir=output_dir,
                Binning=binning)
@@ -1464,8 +1464,8 @@ if __name__ == "__main__":
     print("Total scattering cross-section of Vanadium:", sigma_v, " sigma_v / 4*pi:", prefactor)
     mtd[sam_corrected] = prefactor*mtd[sam_corrected]
     sample_title += '_multiply_by_vanSelfScat'
-    save_banks(InputWorkspace=sam_corrected, 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace=sam_corrected,
+               Filename=nexus_filename,
                Title=sample_title,
                OutputDir=output_dir,
                Binning=binning)
@@ -1513,8 +1513,8 @@ if __name__ == "__main__":
             Rebin(InputWorkspace=wksp, OutputWorkspace=wksp,
                   Params=binning, PreserveEvents=True)
 
-        save_banks(InputWorkspace=sam_placzek, 
-                   Filename=nexus_filename, 
+        save_banks(InputWorkspace=sam_placzek,
+                   Filename=nexus_filename,
                    Title="sample_placzek",
                    OutputDir=output_dir,
                    Binning=binning)
@@ -1537,8 +1537,8 @@ if __name__ == "__main__":
                          Target='MomentumTransfer',
                          EMode='Elastic')
         sample_title += '_placzek_corrected'
-        save_banks(InputWorkspace=sam_corrected, 
-                   Filename=nexus_filename, 
+        save_banks(InputWorkspace=sam_corrected,
+                   Filename=nexus_filename,
                    Title=sample_title,
                    OutputDir=output_dir,
                    Binning=binning)
@@ -1568,13 +1568,13 @@ if __name__ == "__main__":
     CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace='SQ_banks_ws')
     SQ_banks =  (1./bcoh_avg_sqrd)*mtd['SQ_banks_ws'] - laue_monotonic_diffuse_scat + 1.
 
-    save_banks(InputWorkspace="FQ_banks_ws", 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace="FQ_banks_ws",
+               Filename=nexus_filename,
                Title="FQ_banks",
                OutputDir=output_dir,
                Binning=binning)
-    save_banks(InputWorkspace="SQ_banks_ws", 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace="SQ_banks_ws",
+               Filename=nexus_filename,
                Title="SQ_banks",
                OutputDir=output_dir,
                Binning=binning)
@@ -1656,13 +1656,13 @@ if __name__ == "__main__":
     #-----------------------------------------------------------------------------------------#
     # Merged S(Q) and F(Q)
 
-    save_banks(InputWorkspace="FQ_banks_ws", 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace="FQ_banks_ws",
+               Filename=nexus_filename,
                Title="FQ_banks",
                OutputDir=output_dir,
                Binning=binning)
-    save_banks(InputWorkspace="SQ_banks_ws", 
-               Filename=nexus_filename, 
+    save_banks(InputWorkspace="SQ_banks_ws",
+               Filename=nexus_filename,
                Title="SQ_banks",
                OutputDir=output_dir,
                Binning=binning)
