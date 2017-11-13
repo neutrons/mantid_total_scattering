@@ -971,7 +971,7 @@ if __name__ == "__main__":
     #alignAndFocusArgs['CropWavelengthMin'] from characterizations file
     #alignAndFocusArgs['CropWavelengthMax'] from characterizations file
     alignAndFocusArgs['Characterizations'] = 'characterizations'
-    alignAndFocusArgs['ReductionProperties'] = '__powdereduction'
+    alignAndFocusArgs['ReductionProperties'] = '__snspowderreduction'
     alignAndFocusArgs['CacheDir'] = cache_dir
 
     # TODO take out the RecalculatePCharge in the future once tested
@@ -1099,11 +1099,10 @@ if __name__ == "__main__":
     # Load Instrument Characterizations
     PDDetermineCharacterizations(InputWorkspace=sam_wksp,
                                  Characterizations='characterizations',
-                                 ReductionProperties='__powdereduction')
-    propMan = PropertyManagerDataService.retrieve('__powdereduction')
+                                 ReductionProperties='__snspowderreduction')
+    propMan = PropertyManagerDataService.retrieve('__snspowderreduction')
     qmax = 2.*np.pi/propMan['d_min'].value
     qmin = 2.*np.pi/propMan['d_max'].value
-
     for a,b in zip(qmin, qmax):
         print('Qrange:', a, b)
     mask_info = generateCropingTable(qmin, qmax)
@@ -1111,6 +1110,7 @@ if __name__ == "__main__":
 
     #-----------------------------------------------------------------------------------------#
     # STEP 1: Subtract Backgrounds
+
     sam_raw='sam_raw'
     CloneWorkspace(InputWorkspace=sam_wksp, OutputWorkspace=sam_raw) # for later
 
