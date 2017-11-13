@@ -23,6 +23,7 @@ if six.PY3:
 else:
     import ConfigParser as configparser
 
+FACILITY_CHARACTER = ''
 
 #import ipdb
 #-----------------------------------------------------------------------------------------#
@@ -137,7 +138,7 @@ class NexusHandler(object):
         scansInfo = dict()
         for scan in scans:
             # convert to format for mantid's file finder
-            filename = '%s%s' % (self.instrument, scan)
+            filename = '%s%s%s' % (self.instrument, FACILITY_CHARACTER, scan)
             # let mantid find the file
             filename = mantid.api.FileFinder.findRuns(filename)[0]
             # get properties specified in the config file
@@ -173,6 +174,7 @@ def save_banks_old(ws,title,binning=None):
         except:
             pass
     filename = os.path.join(os.getcwd(),title)
+    print(filename)
     SaveAscii(InputWorkspace="tmp",
               Filename=filename,
               Separator='Space',
@@ -197,8 +199,9 @@ def save_banks(InputWorkspace, Filename, Title, OutputDir='./', Binning=None):
         except:
             pass
     filename = os.path.join(OutputDir,Filename)
+    print(filename)
     SaveNexusProcessed(InputWorkspace="tmp",
-                       Filename=Filename,
+                       Filename=filename,
                        Title=Title,
                        Append=True,
                        PreserveEvents=False,
@@ -842,6 +845,8 @@ if __name__ == "__main__":
             config = json_loads_byteified(handle.read())
     title = config['Title']
     instr = config['Instrument']
+    if config['Facility'] == "SNS":
+        FACILITY_CHARACTER = '_'
 
     print("create index of runs")
     nf = NexusHandler(instr, options.config)
@@ -872,20 +877,20 @@ if __name__ == "__main__":
     sample['Runs'] = procNumbers(sample['Runs'])
     sample['Background']['Runs'] = procNumbers(sample['Background'].get('Runs', None))
 
-    sam_scans = ','.join(['%s%d' % (instr, num) for num in sample['Runs']])
-    container = ','.join(['%s%d' % (instr, num) for num in sample['Background']["Runs"]])
+    sam_scans = ','.join(['%s%s%d' % (instr, FACILITY_CHARACTER, num) for num in sample['Runs']])
+    container = ','.join(['%s%s%d' % (instr, FACILITY_CHARACTER, num) for num in sample['Background']["Runs"]])
     container_bg = None
     if "Background" in sample['Background']:
         sample['Background']['Background']['Runs'] = procNumbers(sample['Background']['Background']['Runs'])
-        container_bg = ','.join(['%s%d' % (instr, num) for num in sample['Background']['Background']['Runs']])
+        container_bg = ','.join(['%s%s%d' % (instr, FACILITY_CHARACTER, num) for num in sample['Background']['Background']['Runs']])
         if len(container_bg) == 0:
             container_bg = None
 
     van['Runs'] = procNumbers(van['Runs'])
     van['Background']['Runs'] = procNumbers(van['Background']['Runs'])
 
-    van_scans = ','.join(['%s%d' % (instr, num) for num in van['Runs']])
-    van_bg = ','.join(['%s%d' % (instr, num) for num in van['Background']["Runs"]])
+    van_scans = ','.join(['%s%s%d' % (instr, FACILITY_CHARACTER, num) for num in van['Runs']])
+    van_bg = ','.join(['%s%s%d' % (instr, FACILITY_CHARACTER, num) for num in van['Background']["Runs"]])
     if len(van_bg) == 0:
         van_bg = None
 
@@ -1244,7 +1249,7 @@ if __name__ == "__main__":
             van_incident_wksp = 'van_incident_wksp'
             lambda_binning_fit  = van['InelasticCorrection']['LambdaBinningForFit']
             lambda_binning_calc = van['InelasticCorrection']['LambdaBinningForCalc']
-            GetIncidentSpectrumFromMonitor('%s%s' % (instr, str(van_scan)), OutputWorkspace=van_incident_wksp)
+            GetIncidentSpectrumFromMonitor('%s%s%s' % (instr, FACILITY_CHARACTER, str(van_scan)), OutputWorkspace=van_incident_wksp)
 
             fit_type = van['InelasticCorrection']['FitSpectrumWith']
             FitIncidentSpectrum(InputWorkspace=van_incident_wksp,
@@ -1262,7 +1267,7 @@ if __name__ == "__main__":
             CalculatePlaczekSelfScattering(IncidentWorkspace=van_incident_wksp,
                                            ParentWorkspace=van_corrected,
                                            OutputWorkspace=van_placzek,
-                                           L1=14.0,
+                                           L1=alignAndFocusArgs['PrimaryFlightPath'],
                                            L2=alignAndFocusArgs['L2'],
                                            Polar=alignAndFocusArgs['Polar'])
             ConvertToHistogram(InputWorkspace=van_placzek,
@@ -1494,7 +1499,7 @@ if __name__ == "__main__":
             sam_incident_wksp = 'sam_incident_wksp'
             lambda_binning_fit  = sample['InelasticCorrection']['LambdaBinningForFit']
             lambda_binning_calc = sample['InelasticCorrection']['LambdaBinningForCalc']
-            GetIncidentSpectrumFromMonitor('%s%s' % (instr, str(sam_scan)), OutputWorkspace=sam_incident_wksp)
+            GetIncidentSpectrumFromMonitor('%s%s%s' % (instr, FACILITY_CHARACTER, str(sam_scan)), OutputWorkspace=sam_incident_wksp)
 
             fit_type = sample['InelasticCorrection']['FitSpectrumWith']
             FitIncidentSpectrum(InputWorkspace=sam_incident_wksp,
@@ -1569,7 +1574,6 @@ if __name__ == "__main__":
 
     # F(Q) bank-by-bank Section
     CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace='FQ_banks_ws')
-    SaveNexus(InputWorkspace = 'FQ_banks_ws', Filename='C:\\ts_output\\FQ_banks_ws.nxs')
     FQ_banks = 'FQ_banks'
 
     # S(Q) bank-by-bank Section
@@ -1581,8 +1585,6 @@ if __name__ == "__main__":
     laue_monotonic_diffuse_scat = btot_sqrd_avg / bcoh_avg_sqrd
     CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace='SQ_banks_ws')
     SQ_banks =  (1./bcoh_avg_sqrd)*mtd['SQ_banks_ws'] - laue_monotonic_diffuse_scat + 1.
-    SaveNexus(InputWorkspace='SQ_banks_ws', Filename='C:\\ts_output\\SQ_banks_ws.nxs')
-
 
     save_banks(InputWorkspace="FQ_banks_ws", 
                Filename=nexus_filename, 
