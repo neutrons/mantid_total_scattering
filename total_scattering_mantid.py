@@ -23,6 +23,7 @@ if six.PY3:
 else:
     import ConfigParser as configparser
 
+FACILITY_CHARACTER = ''
 
 #import ipdb
 #-----------------------------------------------------------------------------------------#
@@ -137,7 +138,7 @@ class NexusHandler(object):
         scansInfo = dict()
         for scan in scans:
             # convert to format for mantid's file finder
-            filename = '%s_%s' % (self.instrument, scan)
+            filename = '%s%s%s' % (self.instrument, FACILITY_CHARACTER, scan)
             # let mantid find the file
             filename = mantid.api.FileFinder.findRuns(filename)[0]
             # get properties specified in the config file
@@ -200,11 +201,11 @@ def save_banks(InputWorkspace, Filename, Title, OutputDir='./', Binning=None):
     filename = os.path.join(OutputDir,Filename)
     print(filename)
     SaveNexusProcessed(InputWorkspace="tmp",
-              Filename=Filename,
-              Title=Title,
-              Append=True,
-              PreserveEvents=False,
-              WorkspaceIndexList=range(mtd["tmp"].getNumberHistograms()) )
+                       Filename=filename,
+                       Title=Title,
+                       Append=True,
+                       PreserveEvents=False,
+                       WorkspaceIndexList=range(mtd["tmp"].getNumberHistograms()) )
     return
 
 def save_banks_with_fit( title, fitrange_individual, InputWorkspace=None, **kwargs ):
@@ -331,9 +332,22 @@ class GeometryFactory(object):
 
 
 def getAbsScaleInfoFromNexus(scans,ChemicalFormula=None,Geometry=None,PackingFraction=None,BeamWidth=1.8,SampleMassDensity=None):
-    # get necessary properties from Nexus file
-    props = ["formula", "mass", "mass_density", "sample_diameter", "sample_height", "items_id"]
-    info = nf.getNxData(scans,props)
+    ###================================ISIS SPECIFIC====================================###
+    '''ISIS: Not possible as we do not store the same sample informaton (props) in nexus files.
+             As such these can be user specified.
+            SNS Code:
+            # get necessary properties from Nexus file
+            props = ["formula", "mass", "mass_density", "sample_diameter", "sample_height", "items_id"]
+            info = nf.getNxData(scans,props)
+    '''
+
+
+    info = {'formula' : 'Si',
+            'mass' : 5.0, # Need to confirm (mass of element?)
+            'mass_density' : 2.328,
+            'sample_diameter' : 0.597,
+            'sample_height' : 4.0}
+    ###=================================================================================###
     info['sample_diameter'] =  0.1 * info['sample_diameter'] # mm -> cm
 
     for key in info:
@@ -420,7 +434,7 @@ def getAbsScaleInfoFromNexus(scans,ChemicalFormula=None,Geometry=None,PackingFra
     print(info["mass_density"]/ material.relativeMolecularMass() * avogadro / 10**24., "Sample density in form unit / A^3")
 
     print("\n\n#########################################################")
-    print("##############Check levels###########################################")
+    print("##############Check levels###############################")
     print("b bar:", material.cohScatterLengthReal())
     print("sigma:", material.totalScatterXSection())
     print("b: ", np.sqrt(material.totalScatterXSection()/(4.*np.pi)))
@@ -535,8 +549,8 @@ def GetIncidentSpectrumFromMonitor(Filename, OutputWorkspace="IncidentWorkspace"
         LambdaBinning = int(LambdaBinning)
         ResampleX(InputWorkspace=monitor,
                   OutputWorkspace=monitor,
-                  XMin=[lambdaMin, lambdaMin], # TODO change ResampleX
-                  XMax=[lambdaMax, lambdaMax],
+                  #XMin=[lambdaMin, lambdaMin], # TODO change ResampleX
+                  #XMax=[lambdaMax, lambdaMax],
                   NumberBins=abs(LambdaBinning),
                   LogBinning=(LambdaBinning < 0),
                   PreserveEvents=True)
@@ -547,12 +561,12 @@ def GetIncidentSpectrumFromMonitor(Filename, OutputWorkspace="IncidentWorkspace"
               PreserveEvents=True)
 
     lam = mtd[monitor].readX(IncidentIndex)[:-1] # wavelength in A
-    bm  = mtd[monitor].readY(IncidentIndex)     # neutron counts / microsecond
+    bm  = mtd[monitor].readY(IncidentIndex)      # neutron counts / microsecond
     p = 0.0000794807
-    abs_xs_3He = 5333.0                   # barns for lambda == 1.8 A
-    e0 = abs_xs_3He * lam / 1.8 * 2.43e-5 * p # p is set to give efficiency of 1.03 10^-5 at 1.8 A
-    bmeff = bm / ( 1. - np.exp(-e0))      # neutron counts / microsecond
-    bmeff = bmeff / micro                 # neutron counts / second
+    abs_xs_3He = 5333.0                          # barns for lambda == 1.8 A
+    e0 = abs_xs_3He * lam / 1.8 * 2.43e-5 * p    # p is set to give efficiency of 1.03 10^-5 at 1.8 A
+    bmeff = bm / ( 1. - np.exp(-e0))             # neutron counts / microsecond
+    bmeff = bmeff / micro                        # neutron counts / second
 
     CreateWorkspace(DataX=lam, DataY=bmeff,
                     OutputWorkspace=OutputWorkspace, UnitX='Wavelength')
@@ -831,6 +845,8 @@ if __name__ == "__main__":
             config = json_loads_byteified(handle.read())
     title = config['Title']
     instr = config['Instrument']
+    if config['Facility'] == "SNS":
+        FACILITY_CHARACTER = '_'
 
     print("create index of runs")
     nf = NexusHandler(instr, options.config)
@@ -861,20 +877,20 @@ if __name__ == "__main__":
     sample['Runs'] = procNumbers(sample['Runs'])
     sample['Background']['Runs'] = procNumbers(sample['Background'].get('Runs', None))
 
-    sam_scans = ','.join(['%s_%d' % (instr, num) for num in sample['Runs']])
-    container = ','.join(['%s_%d' % (instr, num) for num in sample['Background']["Runs"]])
+    sam_scans = ','.join(['%s%s%d' % (instr, FACILITY_CHARACTER, num) for num in sample['Runs']])
+    container = ','.join(['%s%s%d' % (instr, FACILITY_CHARACTER, num) for num in sample['Background']["Runs"]])
     container_bg = None
     if "Background" in sample['Background']:
         sample['Background']['Background']['Runs'] = procNumbers(sample['Background']['Background']['Runs'])
-        container_bg = ','.join(['%s_%d' % (instr, num) for num in sample['Background']['Background']['Runs']])
+        container_bg = ','.join(['%s%s%d' % (instr, FACILITY_CHARACTER, num) for num in sample['Background']['Background']['Runs']])
         if len(container_bg) == 0:
             container_bg = None
 
     van['Runs'] = procNumbers(van['Runs'])
     van['Background']['Runs'] = procNumbers(van['Background']['Runs'])
 
-    van_scans = ','.join(['%s_%d' % (instr, num) for num in van['Runs']])
-    van_bg = ','.join(['%s_%d' % (instr, num) for num in van['Background']["Runs"]])
+    van_scans = ','.join(['%s%s%d' % (instr, FACILITY_CHARACTER, num) for num in van['Runs']])
+    van_bg = ','.join(['%s%s%d' % (instr, FACILITY_CHARACTER, num) for num in van['Background']["Runs"]])
     if len(van_bg) == 0:
         van_bg = None
 
@@ -889,20 +905,20 @@ if __name__ == "__main__":
     print("# Sample")
     print("#-----------------------------------#")
     natoms, self_scat, sam_info = getAbsScaleInfoFromNexus(sample['Runs'],
-                                                 PackingFraction=sam_packing_fraction,
-                                                 SampleMassDensity=sam_mass_density,
-                                                 Geometry=sam_geometry,
-                                                 ChemicalFormula=sam_material)
+                                                           PackingFraction=sam_packing_fraction,
+                                                           SampleMassDensity=sam_mass_density,
+                                                           Geometry=sam_geometry,
+                                                           ChemicalFormula=sam_material)
 
     print("#-----------------------------------#")
     print("# Vanadium")
     print("#-----------------------------------#")
     van_geo_info = van_geometry.copy()
     nvan_atoms, tmp, van_info = getAbsScaleInfoFromNexus(van['Runs'],
-                                               PackingFraction=1.0,
-                                               SampleMassDensity=van_mass_density,
-                                               Geometry=van_geo_info,
-                                               ChemicalFormula="V")
+                                                         PackingFraction=1.0,
+                                                         SampleMassDensity=van_mass_density,
+                                                         Geometry=van_geo_info,
+                                                         ChemicalFormula="V")
 
     if natoms and nvan_atoms:
         print("Sample natoms:", natoms)
@@ -944,9 +960,9 @@ if __name__ == "__main__":
     #alignAndFocusArgs['GroupFilename'] don't use
     #alignAndFocusArgs['Params'] use resampleX
     alignAndFocusArgs['ResampleX'] = -6000
-    alignAndFocusArgs['Dspacing'] = True
+    alignAndFocusArgs['Dspacing'] = False # Causing a problem for POLARIS (Is it required? - just being converted to Q after)
     #alignAndFocusArgs['PreserveEvents'] = True
-    alignAndFocusArgs['RemovePromptPulseWidth'] = 50
+    #alignAndFocusArgs['RemovePromptPulseWidth'] = 50
     alignAndFocusArgs['MaxChunkSize'] = 8
     #alignAndFocusArgs['CompressTolerance'] use defaults
     #alignAndFocusArgs['UnwrapRef'] POWGEN option
@@ -962,19 +978,18 @@ if __name__ == "__main__":
 
     #-----------------------------------------------------------------------------------------#
     # Load Sample
-    AlignAndFocusPowderFromFiles(OutputWorkspace='sample',
+    sam_wksp = 'sample'
+    AlignAndFocusPowderFromFiles(OutputWorkspace=sam_wksp,
                                  Filename=sam_scans,
                                  Absorption=None,
                                  **alignAndFocusArgs)
-    sam_wksp = 'sample'
     NormaliseByCurrent(InputWorkspace=sam_wksp,
                        OutputWorkspace=sam_wksp,
                        RecalculatePCharge=True)
-
     ConvertUnits(InputWorkspace=sam_wksp,
                  OutputWorkspace=sam_wksp,
                  Target="MomentumTransfer",
-                  EMode="Elastic")
+                 EMode="Elastic")
     sample_title="sample_and_container"
     print(os.path.join(output_dir,sample_title+".dat"))
     save_banks(InputWorkspace=sam_wksp,
@@ -985,6 +1000,9 @@ if __name__ == "__main__":
 
     #-----------------------------------------------------------------------------------------#
     # Load Sample Container
+    #TODO: Seems to have an issue with workspace type
+    #TODO: (attempts CompressEvents causing a bad workspace type - Not EventWorkspace)
+    alignAndFocusArgs['PreserveEvents'] = False
     AlignAndFocusPowderFromFiles(OutputWorkspace='container',
                                  Filename=container,
                                  Absorption=None,
@@ -1006,7 +1024,6 @@ if __name__ == "__main__":
 
     #-----------------------------------------------------------------------------------------#
     # Load Sample Container Background
-
     if container_bg is not None:
         AlignAndFocusPowderFromFiles(OutputWorkspace='container_background',
                                      Filename=container_bg,
@@ -1017,9 +1034,9 @@ if __name__ == "__main__":
                            OutputWorkspace=container_bg,
                            RecalculatePCharge=True)
         ConvertUnits(InputWorkspace=container_bg,
-                 OutputWorkspace=container_bg,
-                 Target="MomentumTransfer",
-                 EMode="Elastic")
+                     OutputWorkspace=container_bg,
+                     Target="MomentumTransfer",
+                     EMode="Elastic")
         container_bg_title="container_background"
         save_banks(InputWorkspace=container_bg,
                    Filename=nexus_filename,
@@ -1056,7 +1073,6 @@ if __name__ == "__main__":
                OutputDir=output_dir,
                Binning=binning)
 
-
     #-----------------------------------------------------------------------------------------#
     # Load Vanadium Background
     if van_bg is not None:
@@ -1064,22 +1080,20 @@ if __name__ == "__main__":
                                      Filename=van_bg,
                                      AbsorptionWorkspace=None,
                                      **alignAndFocusArgs)
-
-    van_bg = 'vanadium_background'
-    NormaliseByCurrent(InputWorkspace=van_bg,
-                       OutputWorkspace=van_bg,
-                       RecalculatePCharge=True)
-    ConvertUnits(InputWorkspace=van_bg,
-                 OutputWorkspace=van_bg,
-                 Target="MomentumTransfer",
-                 EMode="Elastic")
-    vanadium_bg_title="vanadium_background"
-    save_banks(InputWorkspace=van_bg,
-               Filename=nexus_filename,
-               Title=vanadium_bg_title,
-               OutputDir=output_dir,
-               Binning=binning)
-
+        van_bg = 'vanadium_background'
+        NormaliseByCurrent(InputWorkspace=van_bg,
+                           OutputWorkspace=van_bg,
+                           RecalculatePCharge=True)
+        ConvertUnits(InputWorkspace=van_bg,
+                     OutputWorkspace=van_bg,
+                     Target="MomentumTransfer",
+                     EMode="Elastic")
+        vanadium_bg_title="vanadium_background"
+        save_banks(InputWorkspace=van_bg,
+                   Filename=nexus_filename,
+                   Title=vanadium_bg_title,
+                   OutputDir=output_dir,
+                   Binning=binning)
 
 
     #-----------------------------------------------------------------------------------------#
@@ -1138,7 +1152,6 @@ if __name__ == "__main__":
     # STEP 2.0: Prepare vanadium as normalization calibrant
 
     # Multiple-Scattering and Absorption (Steps 2-4) for Vanadium
-
     van_corrected = 'van_corrected'
     ConvertUnits(InputWorkspace=van_wksp,
                  OutputWorkspace=van_corrected,
@@ -1158,7 +1171,7 @@ if __name__ == "__main__":
             else:
                 MayersSampleCorrection(InputWorkspace=van_corrected,
                                        OutputWorkspace=van_corrected,
-                                   MultipleScattering=False)
+                                       MultipleScattering=False)
         else:
             print("NO VANADIUM absorption or multiple scattering!")
     else:
@@ -1230,7 +1243,7 @@ if __name__ == "__main__":
             van_incident_wksp = 'van_incident_wksp'
             lambda_binning_fit  = van['InelasticCorrection']['LambdaBinningForFit']
             lambda_binning_calc = van['InelasticCorrection']['LambdaBinningForCalc']
-            GetIncidentSpectrumFromMonitor('%s_%s' % (instr, str(van_scan)), OutputWorkspace=van_incident_wksp)
+            GetIncidentSpectrumFromMonitor('%s%s%s' % (instr, FACILITY_CHARACTER, str(van_scan)), OutputWorkspace=van_incident_wksp)
 
             fit_type = van['InelasticCorrection']['FitSpectrumWith']
             FitIncidentSpectrum(InputWorkspace=van_incident_wksp,
@@ -1248,7 +1261,7 @@ if __name__ == "__main__":
             CalculatePlaczekSelfScattering(IncidentWorkspace=van_incident_wksp,
                                            ParentWorkspace=van_corrected,
                                            OutputWorkspace=van_placzek,
-                                           L1=19.5,
+                                           L1=alignAndFocusArgs['PrimaryFlightPath'],
                                            L2=alignAndFocusArgs['L2'],
                                            Polar=alignAndFocusArgs['Polar'])
             ConvertToHistogram(InputWorkspace=van_placzek,
@@ -1324,8 +1337,7 @@ if __name__ == "__main__":
     #-----------------------------------------------------------------------------------------#
     # STEP 2.1: Normalize by Vanadium
 
-
-    for name in [sam_wksp, van_corrected]:
+    for name in [sam_wksp, sam_raw, van_corrected]:
         ConvertUnits(InputWorkspace=name, OutputWorkspace=name,
                      Target='MomentumTransfer', EMode='Elastic',ConvertFromPointData=False)
         Rebin(InputWorkspace=name, OutputWorkspace=name,
@@ -1348,7 +1360,7 @@ if __name__ == "__main__":
                OutputDir=output_dir,
                Binning=binning)
 
-    for name in [container, van_corrected]:
+    for name in [container, container_raw, van_bg, container_bg]:
         ConvertUnits(InputWorkspace=name, OutputWorkspace=name,
                      Target='MomentumTransfer', EMode='Elastic',ConvertFromPointData=False)
         Rebin(InputWorkspace=name, OutputWorkspace=name,
@@ -1481,7 +1493,7 @@ if __name__ == "__main__":
             sam_incident_wksp = 'sam_incident_wksp'
             lambda_binning_fit  = sample['InelasticCorrection']['LambdaBinningForFit']
             lambda_binning_calc = sample['InelasticCorrection']['LambdaBinningForCalc']
-            GetIncidentSpectrumFromMonitor('%s_%s' % (instr, str(sam_scan)), OutputWorkspace=sam_incident_wksp)
+            GetIncidentSpectrumFromMonitor('%s%s%s' % (instr, FACILITY_CHARACTER, str(sam_scan)), OutputWorkspace=sam_incident_wksp)
 
             fit_type = sample['InelasticCorrection']['FitSpectrumWith']
             FitIncidentSpectrum(InputWorkspace=sam_incident_wksp,
@@ -1702,3 +1714,4 @@ if __name__ == "__main__":
                     'for merged banks %s: %f + %f * Q' % (','.join([ str(i) for i in wkspIndices]), \
                                                        fitParams.cell('Value', 0), fitParams.cell('Value', 1)) ]
 '''
+                                                                                                                                                                                                                                                                                                                                                                                                        
