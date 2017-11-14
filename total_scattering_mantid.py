@@ -854,8 +854,13 @@ if __name__ == "__main__":
     binning= config['Merging']['QBinning']
     wkspIndices=config['Merging']['SumBanks'] # workspace indices - zero indexed arrays
     # TODO how much of each bank gets merged has info here in the form of {"ID", "Qmin", "QMax"}
-    cache_dir = config.get("CacheDir", os.path.abspath('.'))
-    output_dir = config.get("OutputDir", os.path.abspath('.'))
+    cache_dir = config.get("CacheDir", '.')
+    output_dir = config.get("OutputDir", '.')
+
+
+    # Fix for using relative paths in Mantid
+    cache_dir = os.path.abspath(cache_dir)
+    output_dir = os.path.abspath(output_dir)
 
     # Create Nexus file basenames
     sample['Runs'] = procNumbers(sample['Runs'])
@@ -956,7 +961,7 @@ if __name__ == "__main__":
     #alignAndFocusArgs['CropWavelengthMax'] from characterizations file
     alignAndFocusArgs['Characterizations'] = 'characterizations'
     alignAndFocusArgs['ReductionProperties'] = '__snspowderreduction'
-    alignAndFocusArgs['CacheDir'] = cache_dir
+    alignAndFocusArgs['CacheDir'] = os.path.abspath(cache_dir)
 
     # TODO take out the RecalculatePCharge in the future once tested
 
