@@ -18,5 +18,5 @@ Usage
 
 To launch the total scattering script, complete the input JSON file, and run:
 
-    python total_scattering_mantid.py input.json
+    python mantid_total_scattering.py input.json
 
