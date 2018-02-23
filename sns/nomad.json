@@ -42,6 +42,6 @@
                "SumBanks": [3],
                "Characterizations":{"Filename":"/SNS/NOM/shared/CALIBRATION/2017_1_1B_CAL/NOM_char_2017_04_15-pdf.txt"}
               },
-    "CacheDir" : "/SNS/users/ntm/projects/mantid/mantid_total_scattering/output",
-    "OutputDir" : "/SNS/users/ntm/projects/mantid/mantid_total_scattering/output"
+    "CacheDir" : "./tmp",
+    "OutputDir" : "./output"
 }
