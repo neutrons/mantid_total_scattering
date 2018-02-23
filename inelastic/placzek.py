@@ -188,3 +188,119 @@ def CalculatePlaczekSelfScattering(
 
     return mtd[OutputWorkspace]
 
+#-----------------------------------------------------------------------------------------#
+# Start Placzek calculations
+
+if '__main__' == __name__:
+    #-----------------------------------------------------------------------------------------#
+    # Get input parameters
+    configfile = sys.argv[1]
+    with open(configfile) as handle:
+        config = json_loads_byteified(handle.read())
+
+    # Get sample info
+    sample = config['sam']
+    can = sample['Background']
+
+    # Get normalization info
+    van = config['van']
+    calib = str(config['calib'])
+    charac = str(config['charac'])
+    binning = config['binning']
+    cache_dir = str(config.get("CacheDir", os.path.abspath('.')))
+
+    results = PDLoadCharacterizations(
+        Filename=charac, OutputWorkspace='characterizations')
+    alignAndFocusArgs = dict(PrimaryFlightPath=results[2],
+                             SpectrumIDs=results[3],
+                             L2=results[4],
+                             Polar=results[5],
+                             Azimuthal=results[6])
+
+    #-----------------------------------------------------------------------------------------#
+    # Setup Alignment and Focussing arguments
+    alignAndFocusArgs['CalFilename'] = calib
+    # alignAndFocusArgs['GroupFilename'] don't use
+    # alignAndFocusArgs['Params'] use resampleX
+    alignAndFocusArgs['ResampleX'] = -6000
+    alignAndFocusArgs['Dspacing'] = True
+    #alignAndFocusArgs['PreserveEvents'] = True
+    alignAndFocusArgs['RemovePromptPulseWidth'] = 50
+    alignAndFocusArgs['MaxChunkSize'] = 8
+    # alignAndFocusArgs['CompressTolerance'] use defaults
+    # alignAndFocusArgs['UnwrapRef'] POWGEN option
+    # alignAndFocusArgs['LowResRef'] POWGEN option
+    # alignAndFocusArgs['LowResSpectrumOffset'] POWGEN option
+    # alignAndFocusArgs['CropWavelengthMin'] from characterizations file
+    # alignAndFocusArgs['CropWavelengthMax'] from characterizations file
+    alignAndFocusArgs['Characterizations'] = 'characterizations'
+    alignAndFocusArgs['ReductionProperties'] = '__snspowderreduction'
+    alignAndFocusArgs['CacheDir'] = cache_dir
+
+    #-----------------------------------------------------------------------------------------#
+    # Get incident spectrum
+    print("Processing Scan: ", sample['Runs'])
+
+    incident_ws = 'incident_ws'
+    lam_binning = str(sample['InelasticCorrection']['LambdaBinning'])
+    GetIncidentSpectrumFromMonitor(sample['Runs'],
+                                   OutputWorkspace=incident_ws,
+                                   lam_binning=lam_binning)
+
+    #-----------------------------------------------------------------------------------------#
+    # Fit incident spectrum
+    incident_fit = 'incident_fit'
+    fit_type = str(sample['InelasticCorrection']['FitSpectrumWith'])
+    FitIncidentSpectrum(InputWorkspace=incident_ws,
+                        OutputWorkspace=incident_fit,
+                        FitSpectrumWith=fit_type,
+                        Binning=lam_binning)
+
+    # Set sample info
+    SetSampleMaterial(incident_fit, ChemicalFormula=str(sample['Material']))
+    atom_species = GetSamplePropsForInelasticCorr(incident_fit)
+
+    # Parameters for NOMAD detectors by bank
+    L1 = 19.5
+    banks = collections.OrderedDict()
+    banks[0] = {'L2': 2.01, 'theta': 15.10}
+    banks[1] = {'L2': 1.68, 'theta': 31.00}
+    banks[2] = {'L2': 1.14, 'theta': 65.00}
+    banks[3] = {'L2': 1.11, 'theta': 120.40}
+    banks[4] = {'L2': 0.79, 'theta': 150.10}
+    banks[5] = {'L2': 2.06, 'theta': 8.60}
+
+    L2 = [x['L2'] for bank, x in banks.iteritems()]
+    Polar = [x['theta'] for bank, x in banks.iteritems()]
+
+    CalculatePlaczekSelfScattering(IncidentWorkspace=incident_fit,
+                                   OutputWorkspace='placzek_out',
+                                   L1=19.5,
+                                   L2=L2,
+                                   Polar=Polar)
+
+    import matplotlib.pyplot as plt
+    bank_colors = ['k', 'r', 'b', 'g', 'y', 'c']
+    nbanks = range(mtd['placzek_out'].getNumberHistograms())
+    for bank, theta in zip(nbanks, Polar):
+        q = mtd['placzek_out'].readX(bank)
+        per_bank_placzek = mtd['placzek_out'].readY(bank)
+        label = 'Bank: %d at Theta %d' % (bank, int(theta))
+        plt.plot(
+            q,
+            1. +
+            per_bank_placzek,
+            bank_colors[bank] +
+            '-',
+            label=label)
+
+    material = ' '.join([symbol +
+                         str(int(props['stoich'])) +
+                         ' ' for symbol, props in atom_species.iteritems()])
+    plt.title('Placzek vs. Q for ' + material)
+    plt.xlabel('Q (Angstroms^-1')
+    plt.ylabel('1 - P(Q)')
+    axes = plt.gca()
+    axes.set_ylim([0.96, 1.0])
+    plt.legend()
+    plt.show()
