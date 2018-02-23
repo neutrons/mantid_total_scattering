@@ -284,25 +284,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Absolute normalization PDF generation")
     parser.add_argument('json', help='Input json file')
-    parser.add_argument(
-        '--config',
-        nargs='?',
-        help='Specify the configuration file (default="nomad_config.cfg")',
-        default='nomad_config.cfg')
-
     options = parser.parse_args()
 
     print("loading config from '%s'" % options.json)
     with open(options.json, 'r') as handle:
-        if six.PY3:
-            config = json.load(handle)
-        else:
-            config = json_loads_byteified(handle.read())
+        config = json.load(handle)
     title = config['Title']
     instr = config['Instrument']
-
-    print("create index of runs")
-    nf = NexusHandler(instr, options.config)
 
     # Get sample info
     sample = config['Sample']
