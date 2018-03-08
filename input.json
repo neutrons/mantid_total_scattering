@@ -17,7 +17,8 @@
                                        "Interference" : false,
                                        "FitSpectrumWith" : "GaussConvCubicSpline",
                                        "LambdaBinningForFit"  : "0.16,0.04,2.8",
-                                       "LambdaBinningForCalc" : "0.16,0.0001,2.9"}
+                                       "LambdaBinningForCalc" : "0.16,0.0001,2.9",
+                                       "PlotFittingDiagnostics" : "True"}
             },
     "Vanadium": { "Runs" : "91603",
                   "Background" : { "Runs" : "91607" },

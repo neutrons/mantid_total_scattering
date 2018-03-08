@@ -1,3 +1,5 @@
+from mantid import mtd
+from mantid.simpleapi import *
 
 #-----------------------------------------------------------------------------------------#
 # Functions for fitting the incident spectrum
