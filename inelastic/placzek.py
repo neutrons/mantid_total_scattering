@@ -1,3 +1,10 @@
+import sys
+import json
+from mantid import mtd
+from mantid.simpleapi import *
+
+from inelastic.incident_spectrum import GetIncidentSpectrumFromMonitor, FitIncidentSpectrum
+
 
 #-------------------------------------------------------------------------
 # Placzek - 1st order inelastic correction
@@ -196,65 +203,33 @@ if '__main__' == __name__:
     # Get input parameters
     configfile = sys.argv[1]
     with open(configfile) as handle:
-        config = json_loads_byteified(handle.read())
+        config = json.loads(handle.read())
 
-    # Get sample info
-    sample = config['sam']
-    can = sample['Background']
+    # Get sample and correction info
+    sample = config['Sample']
+    opts = sample['InelasticCorrection']
 
-    # Get normalization info
-    van = config['van']
-    calib = str(config['calib'])
-    charac = str(config['charac'])
-    binning = config['binning']
-    cache_dir = str(config.get("CacheDir", os.path.abspath('.')))
-
-    results = PDLoadCharacterizations(
-        Filename=charac, OutputWorkspace='characterizations')
-    alignAndFocusArgs = dict(PrimaryFlightPath=results[2],
-                             SpectrumIDs=results[3],
-                             L2=results[4],
-                             Polar=results[5],
-                             Azimuthal=results[6])
-
-    #-----------------------------------------------------------------------------------------#
-    # Setup Alignment and Focussing arguments
-    alignAndFocusArgs['CalFilename'] = calib
-    # alignAndFocusArgs['GroupFilename'] don't use
-    # alignAndFocusArgs['Params'] use resampleX
-    alignAndFocusArgs['ResampleX'] = -6000
-    alignAndFocusArgs['Dspacing'] = True
-    #alignAndFocusArgs['PreserveEvents'] = True
-    alignAndFocusArgs['RemovePromptPulseWidth'] = 50
-    alignAndFocusArgs['MaxChunkSize'] = 8
-    # alignAndFocusArgs['CompressTolerance'] use defaults
-    # alignAndFocusArgs['UnwrapRef'] POWGEN option
-    # alignAndFocusArgs['LowResRef'] POWGEN option
-    # alignAndFocusArgs['LowResSpectrumOffset'] POWGEN option
-    # alignAndFocusArgs['CropWavelengthMin'] from characterizations file
-    # alignAndFocusArgs['CropWavelengthMax'] from characterizations file
-    alignAndFocusArgs['Characterizations'] = 'characterizations'
-    alignAndFocusArgs['ReductionProperties'] = '__snspowderreduction'
-    alignAndFocusArgs['CacheDir'] = cache_dir
 
     #-----------------------------------------------------------------------------------------#
     # Get incident spectrum
-    print("Processing Scan: ", sample['Runs'])
+    print("Processing Scan: ", sample['Runs'][0])
 
     incident_ws = 'incident_ws'
-    lam_binning = str(sample['InelasticCorrection']['LambdaBinning'])
-    GetIncidentSpectrumFromMonitor(sample['Runs'],
+    lam_binning = opts['LambdaBinningForFit']
+    GetIncidentSpectrumFromMonitor(sample['Runs'][0],
                                    OutputWorkspace=incident_ws,
-                                   lam_binning=lam_binning)
+                                   LambdaBinning=lam_binning)
 
     #-----------------------------------------------------------------------------------------#
     # Fit incident spectrum
     incident_fit = 'incident_fit'
-    fit_type = str(sample['InelasticCorrection']['FitSpectrumWith'])
+    fit_type = opts['FitSpectrumWith']
     FitIncidentSpectrum(InputWorkspace=incident_ws,
                         OutputWorkspace=incident_fit,
                         FitSpectrumWith=fit_type,
-                        Binning=lam_binning)
+                        BinningForFit=opts['LambdaBinningForFit'],
+                        BinningForCalc=opts['LambdaBinningForCalc'],
+                        PlotDiagnostics=opts['PlotFittingDiagnostics'])
 
     # Set sample info
     SetSampleMaterial(incident_fit, ChemicalFormula=str(sample['Material']))
@@ -279,28 +254,29 @@ if '__main__' == __name__:
                                    L2=L2,
                                    Polar=Polar)
 
-    import matplotlib.pyplot as plt
-    bank_colors = ['k', 'r', 'b', 'g', 'y', 'c']
-    nbanks = range(mtd['placzek_out'].getNumberHistograms())
-    for bank, theta in zip(nbanks, Polar):
-        q = mtd['placzek_out'].readX(bank)
-        per_bank_placzek = mtd['placzek_out'].readY(bank)
-        label = 'Bank: %d at Theta %d' % (bank, int(theta))
-        plt.plot(
-            q,
-            1. +
-            per_bank_placzek,
-            bank_colors[bank] +
-            '-',
-            label=label)
+    if plot:
+        import matplotlib.pyplot as plt
+        bank_colors = ['k', 'r', 'b', 'g', 'y', 'c']
+        nbanks = range(mtd['placzek_out'].getNumberHistograms())
+        for bank, theta in zip(nbanks, Polar):
+            q = mtd['placzek_out'].readX(bank)
+            per_bank_placzek = mtd['placzek_out'].readY(bank)
+            label = 'Bank: %d at Theta %d' % (bank, int(theta))
+            plt.plot(
+                q,
+                1. +
+                per_bank_placzek,
+                bank_colors[bank] +
+                '-',
+                label=label)
 
-    material = ' '.join([symbol +
-                         str(int(props['stoich'])) +
-                         ' ' for symbol, props in atom_species.iteritems()])
-    plt.title('Placzek vs. Q for ' + material)
-    plt.xlabel('Q (Angstroms^-1')
-    plt.ylabel('1 - P(Q)')
-    axes = plt.gca()
-    axes.set_ylim([0.96, 1.0])
-    plt.legend()
-    plt.show()
+        material = ' '.join([symbol +
+                             str(int(props['stoich'])) +
+                             ' ' for symbol, props in atom_species.iteritems()])
+        plt.title('Placzek vs. Q for ' + material)
+        plt.xlabel('Q (Angstroms^-1')
+        plt.ylabel('1 - P(Q)')
+        axes = plt.gca()
+        axes.set_ylim([0.96, 1.0])
+        plt.legend()
+        plt.show()

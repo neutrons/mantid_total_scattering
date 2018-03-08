@@ -24,7 +24,7 @@ else:
     import ConfigParser as configparser
 
 from inelastic.placzek import CalculatePlaczekSelfScattering
-from inelastic.placzek import GetIncidentFromMonitor, FitIncidentSpectrum
+from inelastic.placzek import GetIncidentSpectrumFromMonitor, FitIncidentSpectrum
 
 #-----------------------------------------------------------------------------------------#
 # Utilities
