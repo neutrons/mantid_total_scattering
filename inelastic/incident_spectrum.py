@@ -1,5 +1,8 @@
+import numpy as np
 from mantid import mtd
 from mantid.simpleapi import *
+from scipy import constants, signal, ndimage, interpolate, optimize
+import matplotlib.pyplot as plt
 
 #-----------------------------------------------------------------------------------------#
 # Functions for fitting the incident spectrum
@@ -78,8 +81,8 @@ def fitCubicSplineWithGaussConv(x_fit, y_fit, x, sigma=3):
         return average, var
 
     avg, var = moving_average(y_fit)
-    spline_fit = interpolate.UnivariateSpline(
-        x_fit, y_fit, w=1. / np.sqrt(var))
+    spline_fit = interpolate.UnivariateSpline(x_fit, y_fit, w=1. / np.sqrt(var))
+    print(interpolate.__file__)
     spline_fit_prime = spline_fit.derivative()
     fit = spline_fit(x)
     fit_prime = spline_fit_prime(x)
@@ -112,7 +115,7 @@ def GetIncidentSpectrumFromMonitor(
         OutputWorkspace="IncidentWorkspace",
         IncidentIndex=0,
         TransmissionIndex=1,
-        LambdaBinning="-6000",
+        Binning=".1,-6000,2.9",
         BinType="ResampleX"):
 
     #-------------------------------------------------
@@ -125,20 +128,21 @@ def GetIncidentSpectrumFromMonitor(
     NormaliseByCurrent(InputWorkspace=monitor_raw, OutputWorkspace=monitor)
     ConvertUnits(InputWorkspace=monitor, OutputWorkspace=monitor,
                  Target='Wavelength', EMode='Elastic')
-    lambdaMin, lambdaMax = .1, 2.9
+    lambdaMin, lambdaBinning, lambdaMax = [ float(x) for x in Binning.split(',') ]
+    for x in [lambdaMin, lambdaBinning, lambdaMax]:
+        print(x, type(x))
     if BinType == 'ResampleX':
-        LambdaBinning = int(LambdaBinning)
         ResampleX(InputWorkspace=monitor,
                   OutputWorkspace=monitor,
                   XMin=[lambdaMin, lambdaMin],  # TODO change ResampleX
                   XMax=[lambdaMax, lambdaMax],
-                  NumberBins=abs(LambdaBinning),
-                  LogBinning=(LambdaBinning < 0),
+                  NumberBins=abs(int(lambdaBinning)),
+                  LogBinning=(int(lambdaBinning) < 0),
                   PreserveEvents=True)
     elif BinType == 'Rebin':
         Rebin(InputWorkspace=monitor,
               OutputWorkspace=monitor,
-              Params=[lambdamin, LambdaBinning, lambdaMax],
+              Params=[lambdamin, lambdaBinning, lambdaMax],
               PreserveEvents=True)
 
     lam = mtd[monitor].readX(IncidentIndex)[:-1]  # wavelength in A
@@ -148,7 +152,7 @@ def GetIncidentSpectrumFromMonitor(
     # p is set to give efficiency of 1.03 10^-5 at 1.8 A
     e0 = abs_xs_3He * lam / 1.8 * 2.43e-5 * p
     bmeff = bm / (1. - np.exp(-e0))      # neutron counts / microsecond
-    bmeff = bmeff / micro                 # neutron counts / second
+    bmeff = bmeff / constants.micro      # neutron counts / second
 
     CreateWorkspace(DataX=lam, DataY=bmeff,
                     OutputWorkspace=OutputWorkspace, UnitX='Wavelength')
@@ -160,7 +164,7 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
                         FitSpectrumWith='GaussConvCubicSpline',
                         BinningForFit="0.15,0.05,3.2",
                         BinningForCalc=None,
-                        plot_diagnostics=False):
+                        PlotDiagnostics=False):
 
     incident_ws = mtd[InputWorkspace]
 
@@ -189,7 +193,7 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
 
     if FitSpectrumWith == 'CubicSpline':
         fit, fit_prime = fitCubicSpline(x_fit, y_fit, x, s=1e7)
-        if plot_diagnostics:
+        if PlotDiagnostics:
             plotIncidentSpectrum(
                 x_fit,
                 y_fit,
@@ -201,7 +205,7 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
     elif FitSpectrumWith == 'CubicSplineViaMantid':
         fit, fit_prime = fitCubicSplineViaMantidSplineSmoothing(
             InputWorkspace, Params=BinningForFit, MaxNumberOfBreaks=8)
-        if plot_diagnostics:
+        if PlotDiagnostics:
             plotIncidentSpectrum(
                 x_fit,
                 y_fit,
@@ -212,7 +216,7 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
 
     elif FitSpectrumWith == 'HowellsFunction':
         fit, fit_prime = fitHowellsFunction(x_fit, y_fit, x)
-        if plot_diagnostics:
+        if PlotDiagnostics:
             plotIncidentSpectrum(
                 x_fit,
                 y_fit,
@@ -223,7 +227,7 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
 
     elif FitSpectrumWith == 'GaussConvCubicSpline':
         fit, fit_prime = fitCubicSplineWithGaussConv(x_fit, y_fit, x, sigma=2)
-        if plot_diagnostics:
+        if PlotDiagnostics:
             plotIncidentSpectrum(
                 x_fit,
                 y_fit,

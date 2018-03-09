@@ -1,5 +1,8 @@
 import sys
 import json
+import collections
+import numpy as np
+import scipy
 from mantid import mtd
 from mantid.simpleapi import *
 
@@ -48,7 +51,7 @@ def ConvertQToLambda(q, angle):
     return lam
 
 
-def CalculateElasticSelfScattering(InputWorkspace):
+def GetSampleSpeciesInfo(InputWorkspace):
     # get sample information: mass, total scattering length, and concentration
     # of each species
     total_stoich = 0.0
@@ -67,6 +70,12 @@ def CalculateElasticSelfScattering(InputWorkspace):
     ):  # inefficient in py2, but works with py3
         props['concentration'] = props['stoich'] / total_stoich
 
+    return atom_species
+
+def CalculateElasticSelfScattering(InputWorkspace):
+
+    atom_species = GetSampleSpeciesInfo(InputWorkspace)
+
     # calculate elastic self-scattering term
     elastic_self_term = 0.0
     for species, props in atom_species.items(
@@ -78,35 +87,21 @@ def CalculateElasticSelfScattering(InputWorkspace):
 
 def CalculatePlaczekSelfScattering(
         IncidentWorkspace,
-        ParentWorkspace,
         OutputWorkspace,
         L1,
         L2,
         Polar,
         Azimuthal=None,
-        Detector=None):
+        Detector=None,
+        ParentWorkspace=None):
 
     # constants and conversions
-    neutron_mass = m_n / \
-        physical_constants['atomic mass unit-kilogram relationship'][0]
+    factor  = 1. / scipy.constants.physical_constants['atomic mass unit-kilogram relationship'][0]
+    neutron_mass = factor * scipy.constants.m_n 
 
     # get sample information: mass, total scattering length, and concentration
     # of each species
-    total_stoich = 0.0
-    material = mtd[IncidentWorkspace].sample().getMaterial().chemicalFormula()
-    atom_species = collections.OrderedDict()
-    for atom, stoich in zip(material[0], material[1]):
-        print(atom.neutron()['tot_scatt_length'])
-        b_sqrd_bar = mtd[IncidentWorkspace].sample().getMaterial(
-        ).totalScatterXSection() / (4. * np.pi)  # <b^2> == sigma_s / 4*pi (in barns)
-        atom_species[atom.symbol] = {'mass': atom.mass,
-                                     'stoich': stoich,
-                                     'b_sqrd_bar': b_sqrd_bar}
-        total_stoich += stoich
-
-    for atom, props in atom_species.items(
-    ):  # inefficient in py2, but works with py3
-        props['concentration'] = props['stoich'] / total_stoich
+    atom_species = GetSampleSpeciesInfo(IncidentWorkspace)
 
     # calculate summation term w/ neutron mass over molecular mass ratio
     summation_term = 0.0
@@ -182,14 +177,23 @@ def CalculatePlaczekSelfScattering(
             placzek_correction,
             inelastic_placzek_self_correction)
 
-    CreateWorkspace(
-        DataX=x_lambdas,
-        DataY=placzek_correction,
-        OutputWorkspace=OutputWorkspace,
-        UnitX='Wavelength',
-        NSpec=len(Polar),
-        ParentWorkspace=ParentWorkspace,
-        Distribution=True)
+    if ParentWorkspace:
+        CreateWorkspace(
+            DataX=x_lambdas,
+            DataY=placzek_correction,
+            OutputWorkspace=OutputWorkspace,
+            UnitX='Wavelength',
+            NSpec=len(Polar),
+            ParentWorkspace=ParentWorkspace,
+            Distribution=True)
+    else:
+        CreateWorkspace(
+            DataX=x_lambdas,
+            DataY=placzek_correction,
+            OutputWorkspace=OutputWorkspace,
+            UnitX='Wavelength',
+            NSpec=len(Polar),
+            Distribution=True)
     print("Placzek YUnit:", mtd[OutputWorkspace].YUnit())
     print("Placzek distribution:", mtd[OutputWorkspace].isDistribution())
 
@@ -212,13 +216,13 @@ if '__main__' == __name__:
 
     #-----------------------------------------------------------------------------------------#
     # Get incident spectrum
-    print("Processing Scan: ", sample['Runs'][0])
+    runs = sample["Runs"].split(',')
+    runs = [ "%s_%s" % (config["Instrument"], run) for run in runs ]
+    print("Processing Scan: ", runs[0])
 
     incident_ws = 'incident_ws'
-    lam_binning = opts['LambdaBinningForFit']
-    GetIncidentSpectrumFromMonitor(sample['Runs'][0],
-                                   OutputWorkspace=incident_ws,
-                                   LambdaBinning=lam_binning)
+    GetIncidentSpectrumFromMonitor(runs[0],
+                                   OutputWorkspace=incident_ws)
 
     #-----------------------------------------------------------------------------------------#
     # Fit incident spectrum
@@ -233,7 +237,8 @@ if '__main__' == __name__:
 
     # Set sample info
     SetSampleMaterial(incident_fit, ChemicalFormula=str(sample['Material']))
-    atom_species = GetSamplePropsForInelasticCorr(incident_fit)
+    CalculateElasticSelfScattering(InputWorkspace=incident_fit)
+    atom_species = GetSampleSpeciesInfo(incident_fit)
 
     # Parameters for NOMAD detectors by bank
     L1 = 19.5
@@ -248,19 +253,36 @@ if '__main__' == __name__:
     L2 = [x['L2'] for bank, x in banks.iteritems()]
     Polar = [x['theta'] for bank, x in banks.iteritems()]
 
+
+    parent='parent_ws'
+    placzek='placzek_out'
+    Load(Filename=runs[0], OutputWorkspace=parent )
     CalculatePlaczekSelfScattering(IncidentWorkspace=incident_fit,
-                                   OutputWorkspace='placzek_out',
+                                   OutputWorkspace=placzek,
                                    L1=19.5,
                                    L2=L2,
-                                   Polar=Polar)
+                                   Polar=Polar,
+                                   ParentWorkspace=parent)
 
+    #print(mtd[parent].getNumberHistograms())
+    #print(mtd[placzek].getNumberHistograms())
+    '''
+    ConvertUnits(InputWorkspace=placzek,
+             OutputWorkspace=placzek, 
+             Target='MomentumTransfer',
+             EMode='Elastic')
+    '''
+
+
+    plot = True
     if plot:
         import matplotlib.pyplot as plt
         bank_colors = ['k', 'r', 'b', 'g', 'y', 'c']
-        nbanks = range(mtd['placzek_out'].getNumberHistograms())
+        nbanks = range(mtd[placzek].getNumberHistograms())
         for bank, theta in zip(nbanks, Polar):
-            q = mtd['placzek_out'].readX(bank)
-            per_bank_placzek = mtd['placzek_out'].readY(bank)
+            x_lambda = mtd[placzek].readX(bank)
+            q = ConvertLambdaToQ(x_lambda,theta)
+            per_bank_placzek = mtd[placzek].readY(bank)
             label = 'Bank: %d at Theta %d' % (bank, int(theta))
             plt.plot(
                 q,
@@ -277,6 +299,6 @@ if '__main__' == __name__:
         plt.xlabel('Q (Angstroms^-1')
         plt.ylabel('1 - P(Q)')
         axes = plt.gca()
-        axes.set_ylim([0.96, 1.0])
+        #axes.set_ylim([0.96, 1.0])
         plt.legend()
         plt.show()
