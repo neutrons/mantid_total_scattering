@@ -1,3 +1,5 @@
+import sys
+import json
 import numpy as np
 from mantid import mtd
 from mantid.simpleapi import *
@@ -82,7 +84,6 @@ def fitCubicSplineWithGaussConv(x_fit, y_fit, x, sigma=3):
 
     avg, var = moving_average(y_fit)
     spline_fit = interpolate.UnivariateSpline(x_fit, y_fit, w=1. / np.sqrt(var))
-    print(interpolate.__file__)
     spline_fit_prime = spline_fit.derivative()
     fit = spline_fit(x)
     fit_prime = spline_fit_prime(x)
@@ -115,17 +116,16 @@ def GetIncidentSpectrumFromMonitor(
         OutputWorkspace="IncidentWorkspace",
         IncidentIndex=0,
         TransmissionIndex=1,
-        Binning=".1,-6000,2.9",
+        Binning=".1,6000,2.9",
         BinType="ResampleX"):
 
     #-------------------------------------------------
     # Joerg's read_bm.pro code
 
     # Loop workspaces to get each incident spectrum
-    monitor_raw = 'monitor_raw'
-    LoadNexusMonitors(Filename=Filename, OutputWorkspace=monitor_raw)
     monitor = 'monitor'
-    NormaliseByCurrent(InputWorkspace=monitor_raw, OutputWorkspace=monitor)
+    LoadNexusMonitors(Filename=Filename, OutputWorkspace=monitor)
+    NormaliseByCurrent(InputWorkspace=monitor, OutputWorkspace=monitor)
     ConvertUnits(InputWorkspace=monitor, OutputWorkspace=monitor,
                  Target='Wavelength', EMode='Elastic')
     lambdaMin, lambdaBinning, lambdaMax = [ float(x) for x in Binning.split(',') ]
@@ -144,21 +144,25 @@ def GetIncidentSpectrumFromMonitor(
               OutputWorkspace=monitor,
               Params=[lambdamin, lambdaBinning, lambdaMax],
               PreserveEvents=True)
+    ConvertToPointData(InputWorkspace=monitor, OutputWorkspace=monitor)
 
-    lam = mtd[monitor].readX(IncidentIndex)[:-1]  # wavelength in A
+    lam = mtd[monitor].readX(IncidentIndex)    # wavelength in A
     bm = mtd[monitor].readY(IncidentIndex)     # neutron counts / microsecond
-    p = 0.0000794807
-    abs_xs_3He = 5333.0                   # barns for lambda == 1.8 A
+    p = 0.000794807                       # Pressure (empirically adjusted to match eff.)
+    thickness = .1                        # 1 mm = .1 cm
+    abs_xs_3He = 5333.0                   # barns for lambda == 1.798 A
+    p_to_rho = 2.43e-5                    # pressure to rho (atoms/angstroms^3)
     # p is set to give efficiency of 1.03 10^-5 at 1.8 A
-    e0 = abs_xs_3He * lam / 1.8 * 2.43e-5 * p
+    e0 = abs_xs_3He * lam / 1.798 * p_to_rho * p * thickness
+    print('Efficiency:', 1. - np.exp(-e0))
     bmeff = bm / (1. - np.exp(-e0))      # neutron counts / microsecond
-    bmeff = bmeff / constants.micro      # neutron counts / second
+    print(bmeff)
+    #bmeff = bmeff / constants.micro      # neutron counts / second
 
     CreateWorkspace(DataX=lam, DataY=bmeff,
                     OutputWorkspace=OutputWorkspace, UnitX='Wavelength')
     mtd[OutputWorkspace].setYUnit('Counts')
     return mtd[OutputWorkspace]
-
 
 def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
                         FitSpectrumWith='GaussConvCubicSpline',
@@ -250,4 +254,232 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
         NSpec=2,
         Distribution=False)
     return mtd[OutputWorkspace]
+
+
+if '__main__' == __name__:
+    run_file = True
+    nomad_test = True 
+    if run_file:
+        #-----------------------------------------------------------------------------------------#
+        # Get input parameters
+        configfile = sys.argv[1]
+        with open(configfile) as handle:
+            config = json.loads(handle.read())
+
+
+        sample = config['Sample']
+        opts = sample['InelasticCorrection']
+
+        #-----------------------------------------------------------------------------------------#
+        # Get incident spectrum test for NOMAD
+        runs = sample["Runs"].split(',')
+        runs = [ "%s_%s" % (config["Instrument"], run) for run in runs ]
+
+        binning = "0.05,16000,3.5"
+
+        if nomad_test:
+            runs[0] = "NOM_33943"
+            binning = "0.0212406,15900,3.39828" # matches read_bm.pro for lambda[100:15999]
+        print("Processing Scan: ", runs[0])
+
+        monitor = 'monitor'
+        incident_ws = 'incident_ws'
+
+        fig, (ax_bm, ax_bmeff) = plt.subplots(2, subplot_kw={'projection':'mantid'}, sharex=True)
+
+        # Beam Monitor
+        LoadNexusMonitors(Filename=runs[0], OutputWorkspace=monitor)
+        NormaliseByCurrent(InputWorkspace=monitor, OutputWorkspace=monitor)
+        ConvertUnits(InputWorkspace=monitor, OutputWorkspace=monitor,
+                     Target='Wavelength', EMode='Elastic')
+ 
+        lambdaMin, lambdaBinning, lambdaMax = [ float(x) for x in binning.split(',') ]
+        print(lambdaMin, lambdaBinning, lambdaMax)
+        ResampleX(InputWorkspace=monitor,
+                  OutputWorkspace=monitor,
+                  XMin=[lambdaMin, lambdaMin],
+                  XMax=[lambdaMax, lambdaMax],
+                  NumberBins=abs(int(lambdaBinning)),
+                  LogBinning=(int(lambdaBinning) < 0),
+                  PreserveEvents=True)
+
+        ax_bm.plot(mtd[monitor], '-', wkspIndex=0, label='Monitor')
+        ax_bm.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+
+        # Use sample info
+        CalculateEfficiencyCorrection(InputWorkspace=monitor,
+                                  ChemicalFormula="(He3)",
+                                  DensityType="Number Density",
+                                  Density=1.93138101e-08,
+                                  Thickness=.1,
+                                  OutputWorkspace=incident_ws)
+
+        if not mtd[monitor].isDistribution():
+            ConvertToDistribution(Workspace=monitor)
+        Divide(LHSWorkspace=monitor, RHSWorkspace=incident_ws, OutputWorkspace=incident_ws)
+
+        ax_bmeff.plot(mtd[incident_ws], '-', wkspIndex=0, label='Incident Spectrum (density)')
+
+        # Use measured efficiency
+        CalculateEfficiencyCorrection(InputWorkspace=monitor,
+                                      ChemicalFormula="(He3)",
+                                      Efficiency=1.03e-5,
+                                      OutputWorkspace=incident_ws)
+        if not mtd[monitor].isDistribution():
+            ConvertToDistribution(Workspace=monitor)
+        Divide(LHSWorkspace=monitor, RHSWorkspace=incident_ws, OutputWorkspace=incident_ws)
+
+        ax_bmeff.plot(mtd[incident_ws], 'o', wkspIndex=0, label='Incident Spectrum (efficiency)')
+
+        # Use alpha
+        CalculateEfficiencyCorrection(InputWorkspace=monitor,
+                                      Alpha=-5.72861786781e-06,
+                                      OutputWorkspace=incident_ws)
+        if not mtd[monitor].isDistribution():
+            ConvertToDistribution(Workspace=monitor)
+        Divide(LHSWorkspace=monitor, RHSWorkspace=incident_ws, OutputWorkspace=incident_ws)
+
+        ax_bmeff.plot(mtd[incident_ws], '--', wkspIndex=0, label='Incident Spectrum (alpha)')
+
+        # Plot all
+        ax_bm.legend()
+        ax_bmeff.legend()
+        plt.show()
+        exit()
+    #-----------------------------------------------------------------------------------------#
+    # Howells incident spectrum for testing
+    howells_test = True
+    if howells_test:
+        # Howells function
+        def delta(lam, lam_1, lam_2, lam_3=None, lam_4=None, alpha=None):
+            retVal =  1. / (1. + np.exp((lam - lam_1) / lam_2))
+
+            if lam_3 and lam_4 and alpha:
+                term_2 =  1. + (alpha /  (1. + np.exp((lam_3 - lam) / lam_4)))
+                retVal *= term_2
+
+            return retVal
+
+        def phi_m(lam, **kwargs):
+            phi_max = kwargs['phi_max']
+            phi_epi = kwargs['phi_epi']
+            lam_t   = kwargs['lam_t']
+            return phi_max * (lam_t**4. / lam**5.) * np.exp(-(lam_t / lam)**2.)
+
+
+        def phi_e(lam, **kwargs):
+            phi_max = kwargs['phi_max']
+            phi_epi = kwargs['phi_epi']
+            alpha   = kwargs['alpha']
+            lam_t   = kwargs['lam_t']
+            lam_1   = kwargs['lam_1']
+            lam_2   = kwargs['lam_2']
+
+            a     = None
+            lam_3 = None
+            lam_4 = None
+            if 'a' in kwargs:
+                a = kwargs['a']
+            if 'lam_3' in kwargs:
+                lam_3   = kwargs['lam_3']
+            if 'lam_4' in kwargs:
+                lam_4   = kwargs['lam_4']
+
+
+            if lam_3 and lam_4:
+                delta_term  = delta(lam, lam_1, lam_2, lam_3, lam_4, a)
+            else:
+                delta_term  = delta(lam, lam_1, lam_2)
+            return phi_epi * delta_term / (lam**(1 + 2 * alpha))
+
+
+        def calc_HowellsFunction(lam, **kwargs):
+            return phi_m(lam, **kwargs) + phi_e(lam, **kwargs)
+
+
+        incident_spectrums = dict()
+        incident_spectrums['Ambient 300K polyethylene'] = { 
+            'phi_max' : 6324, 
+            'phi_epi' : 786, 
+            'lam_t'   : 1.58, 
+            'alpha'   : 0.099, 
+            'lam_1'   : 0.67143, 
+            'lam_2'   : 0.06075
+        }
+    
+        '''
+        incident_spectrums['Ambient 300K poisoned (Gd "meat" in polyethylene slabs)'] = {
+            'phi_max' : 1200, 
+            'phi_epi' : 786, 
+            'lam_t'   : 1.58, 
+            'alpha'   : 0.099, 
+            'lam_1'   : 0.67143, 
+            'lam_2'   : 0.06075
+        }
+            
+        incident_spectrums['Cold 77K polyethylene (Howells)'] = { 
+            'phi_max' : 3838, 
+            'phi_epi' : 1029, 
+            'lam_t'   : 2.97, 
+            'alpha'   : 0.089, 
+            'lam_1'   : 1.3287, 
+            'lam_2'   : 0.14735
+        }
+                    
+        incident_spectrums['Cold 77K polyethylene (MildnerEtAl)'] = { 
+            'phi_max' : 3838, 
+            'phi_epi' : 1029, 
+            'lam_t'   : 2.97, 
+            'alpha'   : 0.089, 
+            'lam_1'   : 1.3287, 
+            'lam_2'   : 0.14735,
+            'a'       : 0.2882,
+            'lam_3'   : 0.7253,
+            'lam_4'   : 0.0486
+        }
+        '''
+
+        fig, ax = plt.subplots(1, subplot_kw={'projection':'mantid'})
+
+        # Using Mantid
+        lam_lo = 0.2
+        lam_hi = 4.0
+        lam_delta = 0.01
+        binning = "%s,%s,%s" % (lam_lo, lam_delta, lam_hi)
+        for moderator, spectrum_params in incident_spectrums.items():
+            incident_ws = 'howells_%s' % moderator
+            CreateWorkspace(OutputWorkspace=incident_ws, NSpec=1, DataX=[0], DataY=[0],
+                            UnitX='Wavelength', VerticalAxisUnit='Text', 
+                            VerticalAxisValues='IncidentSpectrum')
+            Rebin(InputWorkspace=incident_ws, OutputWorkspace=incident_ws, Params=binning)
+            ConvertToPointData(InputWorkspace=incident_ws, OutputWorkspace=incident_ws)
+
+            wavelengths = mtd[incident_ws].readX(0)
+            incident_spectrum = calc_HowellsFunction(wavelengths, **spectrum_params)
+            mtd[incident_ws].setY(0, incident_spectrum)
+            ax.plot(mtd[incident_ws], '-', wkspIndex=0, label=moderator)
+
+            eff_ws = 'efficiency'
+            CalculateEfficiencyCorrection(InputWorkspace=incident_ws,
+                                      ChemicalFormula="(He3)",
+                                      DensityType="Number Density",
+                                      Density=1.93138101e-08,
+                                      Thickness=.1,
+                                      OutputWorkspace=eff_ws)
+
+
+        ax.legend()
+        plt.show()
+
+    exit()
+    #-----------------------------------------------------------------------------------------#
+    # Fit incident spectrum
+    incident_fit = 'incident_fit'
+    fit_type = sample['InelasticCorrection']['FitSpectrumWith']
+    FitIncidentSpectrum(InputWorkspace=incident_ws,
+                        OutputWorkspace=incident_fit,
+                        FitSpectrumWith=fit_type,
+                        BinningForFit=opts['LambdaBinningForFit'],
+                        BinningForCalc=opts['LambdaBinningForCalc'],
+                        PlotDiagnostics=opts['PlotFittingDiagnostics'])
 
