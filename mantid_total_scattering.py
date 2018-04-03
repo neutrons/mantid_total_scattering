@@ -449,16 +449,16 @@ if __name__ == "__main__":
 
     # Override Nexus file basename with Filenames if present
     if "Filenames" in sample:
-        sam_scans = sample["Filenames"]
+        sam_scans = ','.join(sample["Filenames"])
     if "Filenames" in sample['Background']:
-        container_scans = sample['Background']["Filenames"]
+        container_scans = ','.join(sample['Background']["Filenames"])
     if "Background" in sample['Background']:
         if "Filenames" in sample['Background']['Background']:
-            container_bg = sample['Background']['Background']['Filenames']
+            container_bg = ','.join(sample['Background']['Background']['Filenames'])
     if "Filenames" in van:
-        van_scans = van["Filenames"]
+        van_scans = ','.join(van["Filenames"])
     if "Filenames" in van['Background']:
-        van_bg_scans = van['Background']["Filenames"]
+        van_bg_scans = ','.join(van['Background']["Filenames"])
  
     # Output nexus filename
     nexus_filename = title + '.nxs'
@@ -509,6 +509,11 @@ if __name__ == "__main__":
         Filename=merging['Characterizations']['Filename'],
         OutputWorkspace='characterizations')
 
+    # Get any additional AlignAndFocusArgs from JSON input
+    if "AlignAndFocusArgs" in config:
+        otherArgs = config["AlignAndFocusArgs"]
+        alignAndFocusArgs.update(otherArgs)
+
     # Setup grouping
     output_grouping = False
     grp_wksp="wksp_output_group"
@@ -540,10 +545,14 @@ if __name__ == "__main__":
 
     #-----------------------------------------------------------------------------------------#
     # Load Sample
+    print("#-----------------------------------#")
+    print("# Sample")
+    print("#-----------------------------------#")
     AlignAndFocusPowderFromFiles(OutputWorkspace='sample',
                                  Filename=sam_scans,
-                                 Absorption=None,
+                                  Absorption=None,
                                  **alignAndFocusArgs)
+
     sam_wksp = 'sample'
     NormaliseByCurrent(InputWorkspace=sam_wksp,
                        OutputWorkspace=sam_wksp,
@@ -579,18 +588,19 @@ if __name__ == "__main__":
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
-    print("#-----------------------------------#")
-    print("# Sample")
-    print("#-----------------------------------#")
     sam_molecular_mass = mtd[sam_wksp].sample().getMaterial().relativeMolecularMass()
     natoms = getNumberAtoms(sam_packing_fraction,sam_mass_density,sam_molecular_mass,Geometry=sam_geometry)
 
     #-----------------------------------------------------------------------------------------#
     # Load Sample Container
+    print("#-----------------------------------#")
+    print("# Sample Container")
+    print("#-----------------------------------#")
     AlignAndFocusPowderFromFiles(OutputWorkspace='container',
                                  Filename=container_scans,
                                  Absorption=None,
                                  **alignAndFocusArgs)
+        
     container = 'container'
     NormaliseByCurrent(InputWorkspace=container,
                        OutputWorkspace=container,
@@ -611,10 +621,14 @@ if __name__ == "__main__":
     # Load Sample Container Background
 
     if container_bg is not None:
+        print("#-----------------------------------#")
+        print("# Sample Container's Background")
+        print("#-----------------------------------#")
         AlignAndFocusPowderFromFiles(OutputWorkspace='container_background',
                                      Filename=container_bg,
                                      Absorption=None,
                                      **alignAndFocusArgs)
+
         container_bg = 'container_background'
         NormaliseByCurrent(InputWorkspace=container_bg,
                            OutputWorkspace=container_bg,
@@ -634,10 +648,14 @@ if __name__ == "__main__":
     #-----------------------------------------------------------------------------------------#
     # Load Vanadium
     #Load(Filename=van_abs, OutputWorkspace='van_absorption')
+    print("#-----------------------------------#")
+    print("# Vanadium")
+    print("#-----------------------------------#")
     AlignAndFocusPowderFromFiles(OutputWorkspace='vanadium',
                                  Filename=van_scans,
                                  AbsorptionWorkspace=None,
                                  **alignAndFocusArgs)
+        
     van_wksp = 'vanadium'
     if "Shape" not in van_geometry:
         van_geometry.update({'Shape': 'Cylinder'})
@@ -674,9 +692,6 @@ if __name__ == "__main__":
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
-    print("#-----------------------------------#")
-    print("# Vanadium")
-    print("#-----------------------------------#")
     van_molecular_mass = mtd[van_wksp].sample().getMaterial().relativeMolecularMass()
     nvan_atoms = getNumberAtoms(1.0,van_mass_density,van_molecular_mass,Geometry=van_geometry)
 
@@ -686,26 +701,29 @@ if __name__ == "__main__":
     #-----------------------------------------------------------------------------------------#
     # Load Vanadium Background
     if van_bg_scans is not None:
+        print("#-----------------------------------#")
+        print("# Vanadium Background")
+        print("#-----------------------------------#")
         AlignAndFocusPowderFromFiles(OutputWorkspace='vanadium_background',
                                      Filename=van_bg_scans,
                                      AbsorptionWorkspace=None,
                                      **alignAndFocusArgs)
 
-    van_bg = 'vanadium_background'
-    NormaliseByCurrent(InputWorkspace=van_bg,
-                       OutputWorkspace=van_bg,
-                       RecalculatePCharge=True)
-    ConvertUnits(InputWorkspace=van_bg,
-                 OutputWorkspace=van_bg,
-                 Target="MomentumTransfer",
-                 EMode="Elastic")
-    vanadium_bg_title = "vanadium_background"
-    save_banks(InputWorkspace=van_bg,
-               Filename=nexus_filename,
-               Title=vanadium_bg_title,
-               OutputDir=output_dir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+        van_bg = 'vanadium_background'
+        NormaliseByCurrent(InputWorkspace=van_bg,
+                           OutputWorkspace=van_bg,
+                           RecalculatePCharge=True)
+        ConvertUnits(InputWorkspace=van_bg,
+                     OutputWorkspace=van_bg,
+                     Target="MomentumTransfer",
+                     EMode="Elastic")
+        vanadium_bg_title = "vanadium_background"
+        save_banks(InputWorkspace=van_bg,
+                   Filename=nexus_filename,
+                   Title=vanadium_bg_title,
+                   OutputDir=output_dir,
+                   GroupingWorkspace=grp_wksp,
+                   Binning=binning)
 
     #-----------------------------------------------------------------------------------------#
     # Load Instrument Characterizations
@@ -1309,10 +1327,10 @@ if __name__ == "__main__":
         PushDataPositive='ResetToZero',
         CalibrationFile=alignAndFocusArgs['CalFilename'],
         CharacterizationRunsFile=merging['Characterizations']['Filename'],
-        BackgroundNumber=container_scans,
-        VanadiumNumber=van_runs,
-        VanadiumBackgroundNumber=van_bg_runs,
-        RemovePromptPulseWidth=50,
+        BackgroundNumber=sample["Background"]["Runs"],
+        VanadiumNumber=van["Runs"],
+        VanadiumBackgroundNumber=van["Background"]["Runs"],
+        RemovePromptPulseWidth=alignAndFocusArgs['RemovePromptPulseWidth'],
         ResampleX=alignAndFocusArgs['ResampleX'],
         BinInDspace=True,
         FilterBadPulses=25.,
