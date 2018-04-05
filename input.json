@@ -6,8 +6,10 @@
                               "Background" : { "Runs" : "91607" }
                             },
              "Material" : "Si",
+             "MassDensity" : 2.328,
              "PackingFraction" : 0.35,
-             "Geometry" : {"Radius" : 0.15,
+             "Geometry" : {"Shape" : "Cylinder",
+                           "Radius" : 0.15,
                            "Height" : 1.8 },
              "AbsorptionCorrection" : { "Type" : "Carpenter" },
              "MultipleScatteringCorrection" : { "Type" : "Carpenter" },
@@ -25,7 +27,8 @@
                   "Material" : "V",
                   "MassDensity" : 6.11,
                   "PackingFraction" : 1.0,
-                  "Geometry" : {"Radius" : 0.2925,
+                  "Geometry" : {"Shape" : "Cylinder",
+                                "Radius" : 0.2925,
                                 "Height" : 1.8 },
                   "AbsorptionCorrection" : { "Type" : "Carpenter" },
                   "MultipleScatteringCorrection" : { "Type" : "Carpenter" },
@@ -44,5 +47,5 @@
                "Characterizations":{"Filename":"/SNS/NOM/shared/CALIBRATION/2017_1_1B_CAL/NOM_char_2017_04_15-pdf.txt"}
               },
     "CacheDir" : "/SNS/NOM/shared/cache_files",
-    "OutputDir" : "./test"
+    "OutputDir" : "/SNS/NOM/shared/diagnostics"
 }
