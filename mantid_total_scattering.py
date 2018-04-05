@@ -117,13 +117,13 @@ def save_banks(InputWorkspace, Filename, Title, OutputDir='./', Binning=None, Gr
         except BaseException:
             pass
     filename = os.path.join(OutputDir, Filename)
-    if isinstance(mtd["tmp"], mantid.api.IEventWorkspace):
+    if isinstance(mtd["tmp"], mantid.api.IEventWorkspace) and GroupingWorkspace:
         DiffractionFocussing(InputWorkspace="tmp", OutputWorkspace="tmp",
                              GroupingWorkspace=GroupingWorkspace,
                              PreserveEvents=False)
     SaveNexusProcessed(
         InputWorkspace="tmp",
-        Filename=Filename,
+        Filename=filename,
         Title=Title,
         Append=True,
         PreserveEvents=False,
@@ -419,7 +419,7 @@ if __name__ == "__main__":
     # TODO how much of each bank gets merged has info here in the form of
     # {"ID", "Qmin", "QMax"}
     cache_dir = config.get("CacheDir", os.path.abspath('.'))
-    output_dir = config.get("OutputDir", os.path.abspath('.'))
+    OutputDir = config.get("OutputDir", os.path.abspath('.'))
 
     # Create Nexus file basenames
     sample['Runs'] = expand_ints(sample['Runs'])
@@ -439,13 +439,13 @@ if __name__ == "__main__":
             container_bg = None
 
     van['Runs'] = expand_ints(van['Runs'])
-    van['Background']['Runs'] = expand_ints(van['Background']['Runs'])
-
     van_scans = ','.join(['%s_%d' % (instr, num) for num in van['Runs']])
-    van_bg_scans = ','.join(['%s_%d' % (instr, num)
-                       for num in van['Background']["Runs"]])
-    if len(van_bg_scans) == 0:
-        van_bg_scans = None
+
+    van_bg_scans = None
+    if 'Background' in van:
+        van_bg_scans = van['Background']['Runs']
+        van_bg_scans = expand_ints(van_bg_scans)
+        van_bg_scans = ','.join(['%s_%d' % (instr, num) for num in van_bg_scans])
 
     # Override Nexus file basename with Filenames if present
     if "Filenames" in sample:
@@ -457,8 +457,9 @@ if __name__ == "__main__":
             container_bg = ','.join(sample['Background']['Background']['Filenames'])
     if "Filenames" in van:
         van_scans = ','.join(van["Filenames"])
-    if "Filenames" in van['Background']:
-        van_bg_scans = ','.join(van['Background']["Filenames"])
+    if "Background" in van:
+        if "Filenames" in van['Background']:
+            van_bg_scans = ','.join(van['Background']["Filenames"])
  
     # Output nexus filename
     nexus_filename = title + '.nxs'
@@ -493,7 +494,7 @@ if __name__ == "__main__":
     # alignAndFocusArgs['Params'] = "0.,0.02,40."
     alignAndFocusArgs['ResampleX'] = -6000
     alignAndFocusArgs['Dspacing'] = True
-    #alignAndFocusArgs['PreserveEvents'] = True
+    alignAndFocusArgs['PreserveEvents'] = True
     alignAndFocusArgs['RemovePromptPulseWidth'] = 50
     alignAndFocusArgs['MaxChunkSize'] = 8
     # alignAndFocusArgs['CompressTolerance'] use defaults
@@ -527,11 +528,13 @@ if __name__ == "__main__":
                                       OutputWorkspace=grp_wksp)
     # If no output grouping specified, create it with Calibration Grouping
     if not output_grouping:
-        LoadDiffCal(alignAndFocusArgs['CalFilename'], 
+        LoadDiffCal(alignAndFocusArgs['CalFilename'],
+                    InstrumentName= instr,
                     WorkspaceName=grp_wksp.replace('_group',''),
                     MakeGroupingWorkspace=True, 
                     MakeCalWorkspace=False,
                     MakeMaskWorkspace=False)
+        grp_wksp = None
 
     # Setup the 6 bank method if no grouping specified
     if not grouping:
@@ -550,7 +553,7 @@ if __name__ == "__main__":
     print("#-----------------------------------#")
     AlignAndFocusPowderFromFiles(OutputWorkspace='sample',
                                  Filename=sam_scans,
-                                  Absorption=None,
+                                 Absorption=None,
                                  **alignAndFocusArgs)
 
     sam_wksp = 'sample'
@@ -580,11 +583,13 @@ if __name__ == "__main__":
                  Target="MomentumTransfer",
                  EMode="Elastic")
     sample_title = "sample_and_container"
-    print(os.path.join(output_dir, sample_title + ".dat"))
+    print(os.path.join(OutputDir, sample_title + ".dat"))
+    print("HERE:", mtd[sam_wksp].getNumberHistograms())
+    print(grp_wksp)
     save_banks(InputWorkspace=sam_wksp,
                Filename=nexus_filename,
                Title=sample_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -613,7 +618,7 @@ if __name__ == "__main__":
     save_banks(InputWorkspace=container,
                Filename=nexus_filename,
                Title=container_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -641,7 +646,7 @@ if __name__ == "__main__":
         save_banks(InputWorkspace=container_bg,
                    Filename=nexus_filename,
                    Title=container_bg_title,
-                   OutputDir=output_dir,
+                   OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
                    Binning=binning)
 
@@ -688,7 +693,7 @@ if __name__ == "__main__":
     save_banks(InputWorkspace=van_wksp,
                Filename=nexus_filename,
                Title=vanadium_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -700,6 +705,7 @@ if __name__ == "__main__":
     print("Vanadium natoms / Sample natoms:", nvan_atoms / natoms)
     #-----------------------------------------------------------------------------------------#
     # Load Vanadium Background
+    van_bg = None
     if van_bg_scans is not None:
         print("#-----------------------------------#")
         print("# Vanadium Background")
@@ -721,7 +727,7 @@ if __name__ == "__main__":
         save_banks(InputWorkspace=van_bg,
                    Filename=nexus_filename,
                    Title=vanadium_bg_title,
-                   OutputDir=output_dir,
+                   OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
                    Binning=binning)
 
@@ -775,19 +781,19 @@ if __name__ == "__main__":
     save_banks(InputWorkspace=container,
                Filename=nexus_filename,
                Title=container_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
     save_banks(InputWorkspace=van_wksp,
                Filename=nexus_filename,
                Title=vanadium_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
     save_banks(InputWorkspace=sam_wksp,
                Filename=nexus_filename,
                Title=sample_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -832,13 +838,13 @@ if __name__ == "__main__":
     save_banks(InputWorkspace=van_corrected,
                Filename=nexus_filename,
                Title=vanadium_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
     save_banks(InputWorkspace=van_corrected,
                Filename=nexus_filename,
                Title=vanadium_title + "_with_peaks",
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -851,6 +857,7 @@ if __name__ == "__main__":
                  OutputWorkspace=van_corrected,
                  Target='dSpacing',
                  EMode='Elastic')
+    # After StripVanadiumPeaks, the workspace goes from EventWorkspace -> Workspace2D 
     StripVanadiumPeaks(InputWorkspace=van_corrected,
                        OutputWorkspace=van_corrected,
                        BackgroundType='Quadratic')
@@ -862,7 +869,7 @@ if __name__ == "__main__":
     save_banks(InputWorkspace=van_corrected,
                Filename=nexus_filename,
                Title=vanadium_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -884,7 +891,7 @@ if __name__ == "__main__":
     save_banks(InputWorkspace=van_corrected,
                Filename=nexus_filename,
                Title=vanadium_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -894,6 +901,7 @@ if __name__ == "__main__":
         van_incident_wksp = 'van_incident_wksp'
         lambda_binning_fit = van['InelasticCorrection']['LambdaBinningForFit']
         lambda_binning_calc = van['InelasticCorrection']['LambdaBinningForCalc']
+        print('van_scan:',van_scan)
         GetIncidentSpectrumFromMonitor(
             '%s_%s' %
             (instr, str(van_scan)), OutputWorkspace=van_incident_wksp)
@@ -932,7 +940,7 @@ if __name__ == "__main__":
         save_banks(InputWorkspace=van_placzek,
                    Filename=nexus_filename,
                    Title="vanadium_placzek",
-                   OutputDir=output_dir,
+                   OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
                    Binning=binning)
 
@@ -943,7 +951,7 @@ if __name__ == "__main__":
                          Target='Wavelength',
                          EMode='Elastic')
             Rebin(InputWorkspace=wksp, OutputWorkspace=wksp,
-                  Params=lambda_binning_calc, PreserveEvents=False)
+                  Params=lambda_binning_calc, PreserveEvents=True)
 
         # Save after rebin in Q
         for wksp in [van_placzek, van_corrected]:
@@ -975,7 +983,7 @@ if __name__ == "__main__":
         save_banks(InputWorkspace=van_corrected,
                    Filename=nexus_filename,
                    Title=vanadium_title,
-                   OutputDir=output_dir,
+                   OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
                    Binning=binning)
 
@@ -999,9 +1007,9 @@ if __name__ == "__main__":
             EMode='Elastic',
             ConvertFromPointData=False)
         Rebin(InputWorkspace=name, OutputWorkspace=name,
-              Params=binning, PreserveEvents=False)
-        if not mtd[name].isDistribution():
-            ConvertToDistribution(name)
+              Params=binning, PreserveEvents=True)
+        #if not mtd[name].isDistribution():
+        #    ConvertToDistribution(name)
 
     Divide(
         LHSWorkspace=sam_wksp,
@@ -1016,13 +1024,13 @@ if __name__ == "__main__":
     save_banks(InputWorkspace=sam_wksp,
                Filename=nexus_filename,
                Title=sample_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
     save_banks(InputWorkspace=sam_raw,
                Filename=nexus_filename,
                Title="sample_normalized",
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -1034,9 +1042,9 @@ if __name__ == "__main__":
             EMode='Elastic',
             ConvertFromPointData=False)
         Rebin(InputWorkspace=name, OutputWorkspace=name,
-              Params=binning, PreserveEvents=False)
-        if not mtd[name].isDistribution():
-            ConvertToDistribution(name)
+              Params=binning, PreserveEvents=True)
+        #if not mtd[name].isDistribution():
+        #    ConvertToDistribution(name)
     print()
     print("## Container ##")
     print("YUnit:", mtd[container].YUnit(), "|", mtd[van_corrected].YUnit())
@@ -1092,13 +1100,13 @@ if __name__ == "__main__":
     save_banks(InputWorkspace=container,
                Filename=nexus_filename,
                Title=container_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
     save_banks(InputWorkspace=container_raw,
                Filename=nexus_filename,
                Title="container_normalized",
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -1107,7 +1115,7 @@ if __name__ == "__main__":
         save_banks(InputWorkspace=container_bg,
                    Filename=nexus_filename,
                    Title=container_bg_title,
-                   OutputDir=output_dir,
+                   OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
                    Binning=binning)
 
@@ -1116,7 +1124,7 @@ if __name__ == "__main__":
         save_banks(InputWorkspace=van_bg,
                    Filename=nexus_filename,
                    Title=vanadium_bg_title,
-                   OutputDir=output_dir,
+                   OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
                    Binning=binning)
 
@@ -1160,7 +1168,7 @@ if __name__ == "__main__":
         save_banks(InputWorkspace=sam_corrected,
                    Filename=nexus_filename,
                    Title=sample_title,
-                   OutputDir=output_dir,
+                   OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
                    Binning=binning)
     else:
@@ -1176,7 +1184,7 @@ if __name__ == "__main__":
     save_banks(InputWorkspace=sam_corrected,
                Filename=nexus_filename,
                Title=sample_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -1192,7 +1200,7 @@ if __name__ == "__main__":
     save_banks(InputWorkspace=sam_corrected,
                Filename=nexus_filename,
                Title=sample_title,
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -1244,7 +1252,7 @@ if __name__ == "__main__":
         save_banks(InputWorkspace=sam_placzek,
                    Filename=nexus_filename,
                    Title="sample_placzek",
-                   OutputDir=output_dir,
+                   OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
                    Binning=binning)
 
@@ -1269,7 +1277,7 @@ if __name__ == "__main__":
         save_banks(InputWorkspace=sam_corrected,
                    Filename=nexus_filename,
                    Title=sample_title,
-                   OutputDir=output_dir,
+                   OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
                    Binning=binning)
 
@@ -1277,9 +1285,12 @@ if __name__ == "__main__":
     # STEP 7: Output spectrum
 
     # TODO Since we already went from Event -> 2D workspace, can't use this anymore
-    # if alignAndFocusArgs['PreserveEvents']:
-    #    CompressEvents(InputWorkspace=sam_corrected, OutputWorkspace=sam_corrected)
-    #    CompressEvents(InputWorkspace=van_corrected, OutputWorkspace=van_corrected)
+    print('sam:', mtd[sam_corrected].id())
+    print('van:', mtd[van_corrected].id())
+    if alignAndFocusArgs['PreserveEvents']:
+        CompressEvents(InputWorkspace=sam_corrected, OutputWorkspace=sam_corrected)
+        # van_corrected is a Workspace2D since we had to use StripVanadiumPeaks
+        #CompressEvents(InputWorkspace=van_corrected, OutputWorkspace=van_corrected)
 
     #-----------------------------------------------------------------------------------------#
 
@@ -1301,13 +1312,13 @@ if __name__ == "__main__":
     save_banks(InputWorkspace="FQ_banks_ws",
                Filename=nexus_filename,
                Title="FQ_banks",
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
     save_banks(InputWorkspace="SQ_banks_ws",
                Filename=nexus_filename,
                Title="SQ_banks",
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
@@ -1319,7 +1330,40 @@ if __name__ == "__main__":
     print("sample total xsection:", mtd[sam_corrected].sample().getMaterial().totalScatterXSection())
     print("vanadium total xsection:", mtd[van_corrected].sample().getMaterial().totalScatterXSection())
 
+
+    # Output Bragg Diffraction
+    ConvertUnits(InputWorkspace=sam_corrected,
+                 OutputWorkspace=sam_corrected,
+                 Target="TOF",
+                 EMode="Elastic")
+
+    ConvertToHistogram(InputWorkspace=sam_corrected,
+                       OutputWorkspace=sam_corrected)
+
+
+    Rebin(InputWorkspace=sam_corrected,
+          OutputWorkspace=sam_corrected,
+          Params="350.0,-0.0001,26233.0")
+    xmin = "449.0,719.0,705.0,1137.0,1246.0,350.0"
+    xmax = "19492.0,19521.0,21992.0,18920.0,15555.0,26233.0"
+    CropWorkspaceRagged(InputWorkspace=sam_corrected,
+                        OutputWorkspace=sam_corrected,
+                        Xmin=xmin,
+                        Xmax=xmax )
+    ResampleX(InputWorkspace=sam_corrected,
+              OutputWorkspace=sam_corrected,
+              NumberBins=3000,
+              LogBinning=True)
+
+    SaveGSS(InputWorkspace=sam_corrected, 
+            Filename=os.path.join(OutputDir,title+".gsa"), 
+            SplitFiles=False, 
+            Append=False,
+            MultiplyByBinWidth=True, 
+            Format="SLOG", 
+            ExtendedHeader=True)
     # process the run
+    '''
     SNSPowderReduction(
         Filename=sam_scans,
         MaxChunkSize=alignAndFocusArgs['MaxChunkSize'],
@@ -1336,13 +1380,12 @@ if __name__ == "__main__":
         FilterBadPulses=25.,
         SaveAs="gsas fullprof topas",
         OutputFilePrefix=title,
-        OutputDirectory=output_dir,
+        OutputDirectory=OutputDir,
         StripVanadiumPeaks=True,
         VanadiumRadius=van_geometry['Radius'],
         NormalizeByCurrent=True,
         FinalDataUnits="dSpacing")
 
-    '''
     #-----------------------------------------------------------------------------------------#
     # Ouput bank-by-bank with linear fits for high-Q
 
@@ -1365,9 +1408,9 @@ if __name__ == "__main__":
     save_banks_with_fit( title, fitrange_individual, InputWorkspace='FQ_banks', **kwargs)
     save_banks_with_fit( title, fitrange_individual, InputWorkspace='FQ_banks_raw', **kwargs)
 
-    save_banks('SQ_banks',     title=os.path.join(output_dir,title+"_SQ_banks.dat"),     binning=binning)
-    save_banks('FQ_banks',     title=os.path.join(output_dir,title+"_FQ_banks.dat"),     binning=binning)
-    save_banks('FQ_banks_raw', title=os.path.join(output_dir,title+"_FQ_banks_raw.dat"), binning=binning)
+    save_banks('SQ_banks',     title=os.path.join(OutputDir,title+"_SQ_banks.dat"),     binning=binning)
+    save_banks('FQ_banks',     title=os.path.join(OutputDir,title+"_FQ_banks.dat"),     binning=binning)
+    save_banks('FQ_banks_raw', title=os.path.join(OutputDir,title+"_FQ_banks_raw.dat"), binning=binning)
 
     #-----------------------------------------------------------------------------------------#
     # Event workspace -> Histograms
@@ -1414,12 +1457,12 @@ if __name__ == "__main__":
     save_banks(InputWorkspace="FQ_banks_ws",
                Filename=nexus_filename,
                Title="FQ_banks",
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                Binning=binning)
     save_banks(InputWorkspace="SQ_banks_ws",
                Filename=nexus_filename,
                Title="SQ_banks",
-               OutputDir=output_dir,
+               OutputDir=OutputDir,
                Binning=binning)
 
 
