@@ -117,7 +117,8 @@ def save_banks(InputWorkspace, Filename, Title, OutputDir='./', Binning=None, Gr
         except BaseException:
             pass
     filename = os.path.join(OutputDir, Filename)
-    if isinstance(mtd["tmp"], mantid.api.IEventWorkspace) and GroupingWorkspace:
+    if isinstance(mtd["tmp"], mantid.api.IEventWorkspace) and GroupingWorkspace and mtd["tmp"].YUnit() == "Counts":
+        print("Workspace type:", mtd["tmp"].id())
         DiffractionFocussing(InputWorkspace="tmp", OutputWorkspace="tmp",
                              GroupingWorkspace=GroupingWorkspace,
                              PreserveEvents=False)
