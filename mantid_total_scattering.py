@@ -378,20 +378,17 @@ def SetInelasticCorrection(inelastic_dict):
     return inelastic_settings
 
 
-#-------------------------------------------------------------------------
-# MAIN - NOM_pdf
+def main(config=None):
+    if not config:
+        import argparse
+        parser = argparse.ArgumentParser(
+            description="Absolute normalization PDF generation")
+        parser.add_argument('json', help='Input json file')
+        options = parser.parse_args()
+        print("loading config from '%s'" % options.json)
+        with open(options.json, 'r') as handle:
+            config = json.load(handle)
 
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(
-        description="Absolute normalization PDF generation")
-    parser.add_argument('json', help='Input json file')
-    options = parser.parse_args()
-
-    print("loading config from '%s'" % options.json)
-    with open(options.json, 'r') as handle:
-        config = json.load(handle)
     title = config['Title']
     instr = config['Instrument']
 
@@ -427,26 +424,28 @@ if __name__ == "__main__":
     sample['Background']['Runs'] = expand_ints(
         sample['Background'].get('Runs', None))
 
-    sam_scans = ','.join(['%s_%d' % (instr, num) for num in sample['Runs']])
-    container_scans = ','.join(['%s_%d' % (instr, num)
+    facility_file_format = '%s%d'
+
+    sam_scans = ','.join([facility_file_format % (instr, num) for num in sample['Runs']])
+    container_scans = ','.join([facility_file_format % (instr, num)
                           for num in sample['Background']["Runs"]])
     container_bg = None
     if "Background" in sample['Background']:
         sample['Background']['Background']['Runs'] = expand_ints(
             sample['Background']['Background']['Runs'])
-        container_bg = ','.join(['%s_%d' % (instr, num)
+        container_bg = ','.join([facility_file_format % (instr, num)
                                  for num in sample['Background']['Background']['Runs']])
         if len(container_bg) == 0:
             container_bg = None
 
     van['Runs'] = expand_ints(van['Runs'])
-    van_scans = ','.join(['%s_%d' % (instr, num) for num in van['Runs']])
+    van_scans = ','.join([facility_file_format % (instr, num) for num in van['Runs']])
 
     van_bg_scans = None
     if 'Background' in van:
         van_bg_scans = van['Background']['Runs']
         van_bg_scans = expand_ints(van_bg_scans)
-        van_bg_scans = ','.join(['%s_%d' % (instr, num) for num in van_bg_scans])
+        van_bg_scans = ','.join([facility_file_format % (instr, num) for num in van_bg_scans])
 
     # Override Nexus file basename with Filenames if present
     if "Filenames" in sample:
@@ -494,9 +493,9 @@ if __name__ == "__main__":
     # alignAndFocusArgs['GroupFilename'] don't use
     # alignAndFocusArgs['Params'] = "0.,0.02,40."
     alignAndFocusArgs['ResampleX'] = -6000
-    alignAndFocusArgs['Dspacing'] = True
-    alignAndFocusArgs['PreserveEvents'] = True
-    alignAndFocusArgs['RemovePromptPulseWidth'] = 50
+    alignAndFocusArgs['Dspacing'] = False
+    alignAndFocusArgs['PreserveEvents'] = False
+    #alignAndFocusArgs['RemovePromptPulseWidth'] = 50
     alignAndFocusArgs['MaxChunkSize'] = 8
     # alignAndFocusArgs['CompressTolerance'] use defaults
     # alignAndFocusArgs['UnwrapRef'] POWGEN option
@@ -530,7 +529,7 @@ if __name__ == "__main__":
     # If no output grouping specified, create it with Calibration Grouping
     if not output_grouping:
         LoadDiffCal(alignAndFocusArgs['CalFilename'],
-                    InstrumentName= instr,
+                    InstrumentName=instr,
                     WorkspaceName=grp_wksp.replace('_group',''),
                     MakeGroupingWorkspace=True, 
                     MakeCalWorkspace=False,
@@ -570,6 +569,7 @@ if __name__ == "__main__":
         new_sam_geometry[key] = v
     sam_geometry = new_sam_geometry
     sam_geometry.update({'Center': [0., 0., 0., ]})
+    sam_geometry['Shape'] = 'Cylinder'
     sam_material = str(sam_material)
     SetSample(
         InputWorkspace=sam_wksp,
@@ -904,7 +904,7 @@ if __name__ == "__main__":
         lambda_binning_calc = van['InelasticCorrection']['LambdaBinningForCalc']
         print('van_scan:',van_scan)
         GetIncidentSpectrumFromMonitor(
-            '%s_%s' %
+            '%s%s' %
             (instr, str(van_scan)), OutputWorkspace=van_incident_wksp)
 
         fit_type = van['InelasticCorrection']['FitSpectrumWith']
@@ -1016,10 +1016,10 @@ if __name__ == "__main__":
         LHSWorkspace=sam_wksp,
         RHSWorkspace=van_corrected,
         OutputWorkspace=sam_wksp)
-    Divide(
-        LHSWorkspace=sam_raw,
-        RHSWorkspace=van_corrected,
-        OutputWorkspace=sam_raw)
+    #Divide(
+    #    LHSWorkspace=sam_raw,
+    #    RHSWorkspace=van_corrected,
+    #    OutputWorkspace=sam_raw)
 
     sample_title += "_normalized"
     save_banks(InputWorkspace=sam_wksp,
@@ -1066,20 +1066,20 @@ if __name__ == "__main__":
         LHSWorkspace=container,
         RHSWorkspace=van_corrected,
         OutputWorkspace=container)
-    Divide(
-        LHSWorkspace=container_raw,
-        RHSWorkspace=van_corrected,
-        OutputWorkspace=container_raw)
-    if van_bg is not None:
-        Divide(
-            LHSWorkspace=van_bg,
-            RHSWorkspace=van_corrected,
-            OutputWorkspace=van_bg)
-    if container_bg is not None:
-        Divide(
-            LHSWorkspace=container_bg,
-            RHSWorkspace=van_corrected,
-            OutputWorkspace=container_bg)
+    #Divide(
+    #    LHSWorkspace=container_raw,
+    #    RHSWorkspace=van_corrected,
+    #    OutputWorkspace=container_raw)
+    #if van_bg is not None:
+    #    Divide(
+    #        LHSWorkspace=van_bg,
+    #        RHSWorkspace=van_corrected,
+    #        OutputWorkspace=van_bg)
+    #if container_bg is not None:
+    #    Divide(
+    #       LHSWorkspace=container_bg,
+    #        RHSWorkspace=van_corrected,
+    #        OutputWorkspace=container_bg)
 
     print()
     print("## Container After Divide##")
@@ -1111,23 +1111,23 @@ if __name__ == "__main__":
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
-    if container_bg is not None:
-        container_bg_title += "_normalised"
-        save_banks(InputWorkspace=container_bg,
-                   Filename=nexus_filename,
-                   Title=container_bg_title,
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+    #if container_bg is not None:
+    #    container_bg_title += "_normalised"
+    #    save_banks(InputWorkspace=container_bg,
+    #               Filename=nexus_filename,
+    #               Title=container_bg_title,
+    #               OutputDir=OutputDir,
+    #               GroupingWorkspace=grp_wksp,
+    #               Binning=binning)
 
-    if van_bg is not None:
-        vanadium_bg_title += "_normalized"
-        save_banks(InputWorkspace=van_bg,
-                   Filename=nexus_filename,
-                   Title=vanadium_bg_title,
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+    #if van_bg is not None:
+    #    vanadium_bg_title += "_normalized"
+    #    save_banks(InputWorkspace=van_bg,
+    #               Filename=nexus_filename,
+    #               Title=vanadium_bg_title,
+    #               OutputDir=OutputDir,
+    #               GroupingWorkspace=grp_wksp,
+    #               Binning=binning)
 
     #-----------------------------------------------------------------------------------------#
     # STEP 3 & 4: Subtract multiple scattering and apply absorption correction
@@ -1218,7 +1218,7 @@ if __name__ == "__main__":
             lambda_binning_fit = sample['InelasticCorrection']['LambdaBinningForFit']
             lambda_binning_calc = sample['InelasticCorrection']['LambdaBinningForCalc']
             GetIncidentSpectrumFromMonitor(
-                '%s_%s' %
+                '%s%s' %
                 (instr, str(sam_scan)), OutputWorkspace=sam_incident_wksp)
 
             fit_type = sample['InelasticCorrection']['FitSpectrumWith']
@@ -1345,24 +1345,25 @@ if __name__ == "__main__":
     Rebin(InputWorkspace=sam_corrected,
           OutputWorkspace=sam_corrected,
           Params="350.0,-0.0001,26233.0")
-    xmin = "449.0,719.0,705.0,1137.0,1246.0,350.0"
-    xmax = "19492.0,19521.0,21992.0,18920.0,15555.0,26233.0"
+    xmin = "450.0,1100.0,2050.0,3400.0,4500.0"
+    xmax = "11000.0,11000.0,11000.0,11000.0,11000.0"
     CropWorkspaceRagged(InputWorkspace=sam_corrected,
                         OutputWorkspace=sam_corrected,
                         Xmin=xmin,
-                        Xmax=xmax )
-    ResampleX(InputWorkspace=sam_corrected,
-              OutputWorkspace=sam_corrected,
-              NumberBins=3000,
-              LogBinning=True)
+                        Xmax=xmax)
+    return mtd[sam_corrected]
+    #ResampleX(InputWorkspace=sam_corrected,
+    #          OutputWorkspace=sam_corrected,
+    #          NumberBins=3000,
+    #          LogBinning=True)
 
-    SaveGSS(InputWorkspace=sam_corrected, 
-            Filename=os.path.join(OutputDir,title+".gsa"), 
-            SplitFiles=False, 
-            Append=False,
-            MultiplyByBinWidth=True, 
-            Format="SLOG", 
-            ExtendedHeader=True)
+    #SaveGSS(InputWorkspace=sam_corrected,
+    #        Filename=os.path.join(OutputDir,title+".gsa"),
+    #        SplitFiles=False,
+    #        Append=False,
+    #        MultiplyByBinWidth=True,
+    #        Format="SLOG",
+    #        ExtendedHeader=True)
     # process the run
     '''
     SNSPowderReduction(
@@ -1501,3 +1502,7 @@ if __name__ == "__main__":
                     'for merged banks %s: %f + %f * Q' % (','.join([ str(i) for i in wkspIndices]), \
                                                        fitParams.cell('Value', 0), fitParams.cell('Value', 1)) ]
 '''
+
+
+if __name__ == "__main__":
+    main()
