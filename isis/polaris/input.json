@@ -38,11 +38,11 @@
                                             "LambdaBinningForFit"  : "0.16,0.04,2.8",
                                             "LambdaBinningForCalc" : "0.1,0.0001,3.0"}
                 },
-    "Calibration":{"Filename":"C:/Users/hvq65228/Documents/git/mantid_total_scattering/isis/polaris/grouping.cal"},
+    "Calibration":{"Filename":"C:/Users/hvq65228/Documents/git/total_scattering/isis/polaris/grouping.cal"},
     "HighQLinearFitRange" : 0.60,
     "Merging":{"QBinning": [0.35, 0.05, 11.4],
                "SumBanks": [3],
-               "Characterizations":{"Filename":"C:/Users/hvq65228/Documents/git/mantid_total_scattering/isis/polaris/character.txt"}
+               "Characterizations":{"Filename":"C:/Users/hvq65228/Documents/git/total_scattering/isis/polaris/character.txt"}
               },
     "CacheDir" : "C:/POLARIS_cache/",
     "OutputDir" : "C:/ts_output/"

@@ -391,6 +391,7 @@ def main(config=None):
         with open(options.json, 'r') as handle:
             config = json.load(handle)
 
+    facility = config['Facility']
     title = config['Title']
     instr = config['Instrument']
 
@@ -426,7 +427,10 @@ def main(config=None):
     sample['Background']['Runs'] = expand_ints(
         sample['Background'].get('Runs', None))
 
-    facility_file_format = '%s%d'
+    if facility is 'SNS':
+        facility_file_format = '%s_%d'
+    else:
+        facility_file_format = '%s%d'
 
     sam_scans = ','.join([facility_file_format % (instr, num) for num in sample['Runs']])
     container_scans = ','.join([facility_file_format % (instr, num)
@@ -803,8 +807,8 @@ def main(config=None):
         lambda_binning_calc = van['InelasticCorrection']['LambdaBinningForCalc']
         print('van_scan:',van_scan)
         GetIncidentSpectrumFromMonitor(
-            '%s%s' %
-            (instr, str(van_scan)), OutputWorkspace=van_incident_wksp)
+            Filename=facility_file_format % (instr, van_scan),
+            OutputWorkspace=van_incident_wksp)
 
         fit_type = van['InelasticCorrection']['FitSpectrumWith']
         FitIncidentSpectrum(InputWorkspace=van_incident_wksp,
@@ -1117,8 +1121,8 @@ def main(config=None):
             lambda_binning_fit = sample['InelasticCorrection']['LambdaBinningForFit']
             lambda_binning_calc = sample['InelasticCorrection']['LambdaBinningForCalc']
             GetIncidentSpectrumFromMonitor(
-                '%s%s' %
-                (instr, str(sam_scan)), OutputWorkspace=sam_incident_wksp)
+                Filename=facility_file_format % (instr, sam_scan),
+                OutputWorkspace=sam_incident_wksp)
 
             fit_type = sample['InelasticCorrection']['FitSpectrumWith']
             FitIncidentSpectrum(InputWorkspace=sam_incident_wksp,

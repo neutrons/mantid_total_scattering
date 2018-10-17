@@ -1,4 +1,5 @@
 {
+    "Facility": "SNS",
     "Instrument": "PG3",
     "Title" : "BaTiO3",
     "Sample": { "Runs" : "37883",

@@ -1,4 +1,5 @@
 {
+    "Facility": "SNS",
     "Instrument": "PG3",
     "Title" : "PG3_LaB6_Carpenter",
     "Sample": { "Runs" : "37899",
