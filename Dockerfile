@@ -4,13 +4,15 @@ FROM ubuntu:bionic
 # Needed to allow install of tzdata
 ENV DEBIAN_FRONTEND noninteractive
 
-ENV MANTID_GIT_REPO /root/mantid
-ENV MANTIDBRANCH    master
-ENV BUILD_DIR       build-${MANTIDBRANCH}
-ENV MANTIDPATH      ${MANTID_GIT_REPO}/build-${MANTIDBRANCH}/bin
-ENV PATH            ${MANTIDPATH}:${PATH}
-ENV PYTHONPATH      ${MANTIDPATH}:${PYTHONPATH}
-ENV PYTHON_EXE      /usr/bin/python3
+ENV MANTID_GIT_REPO    /root/mantid
+ENV MANTIDBRANCH       master
+ENV BUILD_DIR          build-${MANTIDBRANCH}
+ENV MANTIDPATH         ${MANTID_GIT_REPO}/build-${MANTIDBRANCH}/bin
+ENV MANTID_TS_GIT_REPO /root/mantid_total_scattering
+ENV MANTID_TS_PATH     ${MANTID_TS_GIT_REPO}
+ENV PATH               ${MANTIDPATH}:${PATH}
+ENV PYTHONPATH         ${MANTIDPATH}:${MANTID_TS_PATH}:${PYTHONPATH}
+ENV PYTHON_EXE         /usr/bin/python3
 
 RUN \
   sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
@@ -40,6 +42,7 @@ RUN apt-get install -y python3-sip-dev python3-pyqt4  python3-numpy  python3-sci
 RUN pip install flake8==2.5.4 pep8==1.6.2 pyflakes==1.3.0 mccabe==0.6.1 && \
     apt-get install -y cppcheck
 
+# Install Mantid
 RUN cd /root && \
     git clone https://github.com/mantidproject/mantid && \
     cd ${MANTID_GIT_REPO} && \
@@ -48,4 +51,8 @@ RUN cd /root && \
     cd ${BUILD_DIR} && \
     cmake -GNinja -DPYTHON_EXECUTABLE=$PYTHON_EXE $MANTID_GIT_REPO && \
     ninja
+
+# Install mantid_total_scattering
+RUN cd /root && \
+    git clone https://github.com/marshallmcdonnell/mantid_total_scattering.git
 
