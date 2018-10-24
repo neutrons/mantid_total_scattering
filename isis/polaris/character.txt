@@ -1,0 +1,13 @@
+Instrument parameter file:
+1 2.2476 10.4000
+2 1.7825 25.9875
+3 1.2086 51.9938
+4 0.9085 91.5081
+5 1.2449 146.9415
+
+L1 14
+#S 1 characterization runs
+#ToDo: correct below values
+#L frequency(Hz) center_wavelength(angstrom) bank_num vanadium_run empty_run vanadium_back d_min(angstrom) d_max(angstrom) wavelength_min wavelength_max
+60 1.4  1 0 0 0 1.01,0.42,0.22,0.14,.10 26.82,11.13,5.92,3.70,2.70 300.00 16666 0.1 2.9
+30 2.8  1 0 0 0 1.01,0.42,0.22,0.14,.10 26.82,11.13,5.92,3.70,2.70 300.00 33333 0.1 5.8

@@ -18,14 +18,16 @@ from scipy.constants import m_n, micro, Avogadro
 from scipy.constants import physical_constants
 from scipy import interpolate, signal, ndimage, optimize
 
+
+from file_handling.load import load
+from inelastic.placzek import CalculatePlaczekSelfScattering
+from inelastic.placzek import GetIncidentSpectrumFromMonitor, FitIncidentSpectrum
+
 if six.PY3:
     unicode = str
     import configparser
 else:
     import ConfigParser as configparser
-
-from inelastic.placzek import CalculatePlaczekSelfScattering
-from inelastic.placzek import GetIncidentSpectrumFromMonitor, FitIncidentSpectrum
 
 #-----------------------------------------------------------------------------------------#
 # Utilities
@@ -378,20 +380,18 @@ def SetInelasticCorrection(inelastic_dict):
     return inelastic_settings
 
 
-#-------------------------------------------------------------------------
-# MAIN - NOM_pdf
+def main(config=None):
+    if not config:
+        import argparse
+        parser = argparse.ArgumentParser(
+            description="Absolute normalization PDF generation")
+        parser.add_argument('json', help='Input json file')
+        options = parser.parse_args()
+        print("loading config from '%s'" % options.json)
+        with open(options.json, 'r') as handle:
+            config = json.load(handle)
 
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(
-        description="Absolute normalization PDF generation")
-    parser.add_argument('json', help='Input json file')
-    options = parser.parse_args()
-
-    print("loading config from '%s'" % options.json)
-    with open(options.json, 'r') as handle:
-        config = json.load(handle)
+    facility = config['Facility']
     title = config['Title']
     instr = config['Instrument']
 
@@ -427,26 +427,31 @@ if __name__ == "__main__":
     sample['Background']['Runs'] = expand_ints(
         sample['Background'].get('Runs', None))
 
-    sam_scans = ','.join(['%s_%d' % (instr, num) for num in sample['Runs']])
-    container_scans = ','.join(['%s_%d' % (instr, num)
+    if facility is 'SNS':
+        facility_file_format = '%s_%d'
+    else:
+        facility_file_format = '%s%d'
+
+    sam_scans = ','.join([facility_file_format % (instr, num) for num in sample['Runs']])
+    container_scans = ','.join([facility_file_format % (instr, num)
                           for num in sample['Background']["Runs"]])
     container_bg = None
     if "Background" in sample['Background']:
         sample['Background']['Background']['Runs'] = expand_ints(
             sample['Background']['Background']['Runs'])
-        container_bg = ','.join(['%s_%d' % (instr, num)
+        container_bg = ','.join([facility_file_format % (instr, num)
                                  for num in sample['Background']['Background']['Runs']])
         if len(container_bg) == 0:
             container_bg = None
 
     van['Runs'] = expand_ints(van['Runs'])
-    van_scans = ','.join(['%s_%d' % (instr, num) for num in van['Runs']])
+    van_scans = ','.join([facility_file_format % (instr, num) for num in van['Runs']])
 
     van_bg_scans = None
     if 'Background' in van:
         van_bg_scans = van['Background']['Runs']
         van_bg_scans = expand_ints(van_bg_scans)
-        van_bg_scans = ','.join(['%s_%d' % (instr, num) for num in van_bg_scans])
+        van_bg_scans = ','.join([facility_file_format % (instr, num) for num in van_bg_scans])
 
     # Override Nexus file basename with Filenames if present
     if "Filenames" in sample:
@@ -471,19 +476,16 @@ if __name__ == "__main__":
 
 
     # Get sample corrections
-    sam_geometry = sample.get('Geometry', None)
     sam_abs_corr = sample.get("AbsorptionCorrection", None)
     sam_ms_corr = sample.get("MultipleScatteringCorrection", None)
     sam_inelastic_corr = SetInelasticCorrection(
         sample.get('InelasticCorrection', None))
 
     # Get vanadium corrections
-    van_material = van.get('Material', 'V')
     van_mass_density = van.get('MassDensity', van_mass_density)
     van_packing_fraction = van.get(
         'PackingFraction',
         van_packing_fraction)
-    van_geometry = van.get('Geometry', None)
     van_abs_corr = van.get("AbsorptionCorrection", {"Type": None})
     van_ms_corr = van.get("MultipleScatteringCorrection", {"Type": None})
     van_inelastic_corr = SetInelasticCorrection(
@@ -494,9 +496,9 @@ if __name__ == "__main__":
     # alignAndFocusArgs['GroupFilename'] don't use
     # alignAndFocusArgs['Params'] = "0.,0.02,40."
     alignAndFocusArgs['ResampleX'] = -6000
-    alignAndFocusArgs['Dspacing'] = True
-    alignAndFocusArgs['PreserveEvents'] = True
-    alignAndFocusArgs['RemovePromptPulseWidth'] = 50
+    alignAndFocusArgs['Dspacing'] = False
+    alignAndFocusArgs['PreserveEvents'] = False
+    #alignAndFocusArgs['RemovePromptPulseWidth'] = 50
     alignAndFocusArgs['MaxChunkSize'] = 8
     # alignAndFocusArgs['CompressTolerance'] use defaults
     # alignAndFocusArgs['UnwrapRef'] POWGEN option
@@ -530,7 +532,7 @@ if __name__ == "__main__":
     # If no output grouping specified, create it with Calibration Grouping
     if not output_grouping:
         LoadDiffCal(alignAndFocusArgs['CalFilename'],
-                    InstrumentName= instr,
+                    InstrumentName=instr,
                     WorkspaceName=grp_wksp.replace('_group',''),
                     MakeGroupingWorkspace=True, 
                     MakeCalWorkspace=False,
@@ -552,37 +554,7 @@ if __name__ == "__main__":
     print("#-----------------------------------#")
     print("# Sample")
     print("#-----------------------------------#")
-    AlignAndFocusPowderFromFiles(OutputWorkspace='sample',
-                                 Filename=sam_scans,
-                                 Absorption=None,
-                                 **alignAndFocusArgs)
-
-    sam_wksp = 'sample'
-    NormaliseByCurrent(InputWorkspace=sam_wksp,
-                       OutputWorkspace=sam_wksp,
-                       RecalculatePCharge=True)
-
-    new_sam_geometry = dict()
-    for k, v in sam_geometry.items():
-        key = str(k)
-        if isinstance(v,unicode):
-            v = str(v)
-        new_sam_geometry[key] = v
-    sam_geometry = new_sam_geometry
-    sam_geometry.update({'Center': [0., 0., 0., ]})
-    sam_material = str(sam_material)
-    SetSample(
-        InputWorkspace=sam_wksp,
-        Geometry=sam_geometry,
-        Material={
-            'ChemicalFormula': sam_material,
-            'SampleMassDensity': sam_mass_density})
-
-
-    ConvertUnits(InputWorkspace=sam_wksp,
-                 OutputWorkspace=sam_wksp,
-                 Target="MomentumTransfer",
-                 EMode="Elastic")
+    sam_wksp = load('sample', sam_scans, sam_geometry, sam_material, sam_mass_density, **alignAndFocusArgs)
     sample_title = "sample_and_container"
     print(os.path.join(OutputDir, sample_title + ".dat"))
     print("HERE:", mtd[sam_wksp].getNumberHistograms())
@@ -602,23 +574,10 @@ if __name__ == "__main__":
     print("#-----------------------------------#")
     print("# Sample Container")
     print("#-----------------------------------#")
-    AlignAndFocusPowderFromFiles(OutputWorkspace='container',
-                                 Filename=container_scans,
-                                 Absorption=None,
-                                 **alignAndFocusArgs)
-        
-    container = 'container'
-    NormaliseByCurrent(InputWorkspace=container,
-                       OutputWorkspace=container,
-                       RecalculatePCharge=True)
-    ConvertUnits(InputWorkspace=container,
-                 OutputWorkspace=container,
-                 Target="MomentumTransfer",
-                 EMode="Elastic")
-    container_title = "container"
+    container = load('container', container_scans, **alignAndFocusArgs)
     save_banks(InputWorkspace=container,
                Filename=nexus_filename,
-               Title=container_title,
+               Title=container,
                OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
@@ -630,23 +589,10 @@ if __name__ == "__main__":
         print("#-----------------------------------#")
         print("# Sample Container's Background")
         print("#-----------------------------------#")
-        AlignAndFocusPowderFromFiles(OutputWorkspace='container_background',
-                                     Filename=container_bg,
-                                     Absorption=None,
-                                     **alignAndFocusArgs)
-
-        container_bg = 'container_background'
-        NormaliseByCurrent(InputWorkspace=container_bg,
-                           OutputWorkspace=container_bg,
-                           RecalculatePCharge=True)
-        ConvertUnits(InputWorkspace=container_bg,
-                     OutputWorkspace=container_bg,
-                     Target="MomentumTransfer",
-                     EMode="Elastic")
-        container_bg_title = "container_background"
+        container_bg = load('container_background', container_bg, **alignAndFocusArgs)
         save_banks(InputWorkspace=container_bg,
                    Filename=nexus_filename,
-                   Title=container_bg_title,
+                   Title=container_bg,
                    OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
                    Binning=binning)
@@ -657,38 +603,7 @@ if __name__ == "__main__":
     print("#-----------------------------------#")
     print("# Vanadium")
     print("#-----------------------------------#")
-    AlignAndFocusPowderFromFiles(OutputWorkspace='vanadium',
-                                 Filename=van_scans,
-                                 AbsorptionWorkspace=None,
-                                 **alignAndFocusArgs)
-        
-    van_wksp = 'vanadium'
-    if "Shape" not in van_geometry:
-        van_geometry.update({'Shape': 'Cylinder'})
-    van_geometry.update({'Center': [0., 0., 0., ]})
-    NormaliseByCurrent(InputWorkspace=van_wksp,
-                       OutputWorkspace=van_wksp,
-                       RecalculatePCharge=True)
-    new_van_geometry = dict()
-    for k, v in van_geometry.items():
-        key = str(k)
-        if isinstance(v,unicode):
-            v = str(v)
-        new_van_geometry[key] = v
-    van_geometry = new_van_geometry
-    van_geometry.update({'Center': [0., 0., 0., ]})
-    van_material = str(van_material)
-
-    SetSample(
-        InputWorkspace=van_wksp,
-        Geometry=van_geometry,
-        Material={
-            'ChemicalFormula': van_material,
-            'SampleMassDensity': van_mass_density})
-    ConvertUnits(InputWorkspace=van_wksp,
-                 OutputWorkspace=van_wksp,
-                 Target="MomentumTransfer",
-                 EMode="Elastic")
+    van_wksp = load('vanadium', van_scans, van_geometry, van_material, van_mass_density, **alignAndFocusArgs)
     vanadium_title = "vanadium_and_background"
 
     save_banks(InputWorkspace=van_wksp,
@@ -711,19 +626,7 @@ if __name__ == "__main__":
         print("#-----------------------------------#")
         print("# Vanadium Background")
         print("#-----------------------------------#")
-        AlignAndFocusPowderFromFiles(OutputWorkspace='vanadium_background',
-                                     Filename=van_bg_scans,
-                                     AbsorptionWorkspace=None,
-                                     **alignAndFocusArgs)
-
-        van_bg = 'vanadium_background'
-        NormaliseByCurrent(InputWorkspace=van_bg,
-                           OutputWorkspace=van_bg,
-                           RecalculatePCharge=True)
-        ConvertUnits(InputWorkspace=van_bg,
-                     OutputWorkspace=van_bg,
-                     Target="MomentumTransfer",
-                     EMode="Elastic")
+        van_bg = load('vanadium_background', van_bg_scans, **alignAndFocusArgs)
         vanadium_bg_title = "vanadium_background"
         save_banks(InputWorkspace=van_bg,
                    Filename=nexus_filename,
@@ -904,8 +807,8 @@ if __name__ == "__main__":
         lambda_binning_calc = van['InelasticCorrection']['LambdaBinningForCalc']
         print('van_scan:',van_scan)
         GetIncidentSpectrumFromMonitor(
-            '%s_%s' %
-            (instr, str(van_scan)), OutputWorkspace=van_incident_wksp)
+            Filename=facility_file_format % (instr, van_scan),
+            OutputWorkspace=van_incident_wksp)
 
         fit_type = van['InelasticCorrection']['FitSpectrumWith']
         FitIncidentSpectrum(InputWorkspace=van_incident_wksp,
@@ -918,8 +821,8 @@ if __name__ == "__main__":
         van_placzek = 'van_placzek'
 
         SetSample(InputWorkspace=van_incident_wksp,
-                  Material={'ChemicalFormula': van_material,
-                            'SampleMassDensity': van_mass_density})
+                  Material={'ChemicalFormula': str(van_material),
+                            'SampleMassDensity': str(van_mass_density)})
         CalculatePlaczekSelfScattering(IncidentWorkspace=van_incident_wksp,
                                        ParentWorkspace=van_corrected,
                                        OutputWorkspace=van_placzek,
@@ -1016,10 +919,10 @@ if __name__ == "__main__":
         LHSWorkspace=sam_wksp,
         RHSWorkspace=van_corrected,
         OutputWorkspace=sam_wksp)
-    Divide(
-        LHSWorkspace=sam_raw,
-        RHSWorkspace=van_corrected,
-        OutputWorkspace=sam_raw)
+    #Divide(
+    #    LHSWorkspace=sam_raw,
+    #    RHSWorkspace=van_corrected,
+    #    OutputWorkspace=sam_raw)
 
     sample_title += "_normalized"
     save_banks(InputWorkspace=sam_wksp,
@@ -1066,20 +969,20 @@ if __name__ == "__main__":
         LHSWorkspace=container,
         RHSWorkspace=van_corrected,
         OutputWorkspace=container)
-    Divide(
-        LHSWorkspace=container_raw,
-        RHSWorkspace=van_corrected,
-        OutputWorkspace=container_raw)
-    if van_bg is not None:
-        Divide(
-            LHSWorkspace=van_bg,
-            RHSWorkspace=van_corrected,
-            OutputWorkspace=van_bg)
-    if container_bg is not None:
-        Divide(
-            LHSWorkspace=container_bg,
-            RHSWorkspace=van_corrected,
-            OutputWorkspace=container_bg)
+    #Divide(
+    #    LHSWorkspace=container_raw,
+    #    RHSWorkspace=van_corrected,
+    #    OutputWorkspace=container_raw)
+    #if van_bg is not None:
+    #    Divide(
+    #        LHSWorkspace=van_bg,
+    #        RHSWorkspace=van_corrected,
+    #        OutputWorkspace=van_bg)
+    #if container_bg is not None:
+    #    Divide(
+    #       LHSWorkspace=container_bg,
+    #        RHSWorkspace=van_corrected,
+    #        OutputWorkspace=container_bg)
 
     print()
     print("## Container After Divide##")
@@ -1111,23 +1014,23 @@ if __name__ == "__main__":
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
-    if container_bg is not None:
-        container_bg_title += "_normalised"
-        save_banks(InputWorkspace=container_bg,
-                   Filename=nexus_filename,
-                   Title=container_bg_title,
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+    #if container_bg is not None:
+    #    container_bg_title += "_normalised"
+    #    save_banks(InputWorkspace=container_bg,
+    #               Filename=nexus_filename,
+    #               Title=container_bg_title,
+    #               OutputDir=OutputDir,
+    #               GroupingWorkspace=grp_wksp,
+    #               Binning=binning)
 
-    if van_bg is not None:
-        vanadium_bg_title += "_normalized"
-        save_banks(InputWorkspace=van_bg,
-                   Filename=nexus_filename,
-                   Title=vanadium_bg_title,
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+    #if van_bg is not None:
+    #    vanadium_bg_title += "_normalized"
+    #    save_banks(InputWorkspace=van_bg,
+    #               Filename=nexus_filename,
+    #               Title=vanadium_bg_title,
+    #               OutputDir=OutputDir,
+    #               GroupingWorkspace=grp_wksp,
+    #               Binning=binning)
 
     #-----------------------------------------------------------------------------------------#
     # STEP 3 & 4: Subtract multiple scattering and apply absorption correction
@@ -1218,8 +1121,8 @@ if __name__ == "__main__":
             lambda_binning_fit = sample['InelasticCorrection']['LambdaBinningForFit']
             lambda_binning_calc = sample['InelasticCorrection']['LambdaBinningForCalc']
             GetIncidentSpectrumFromMonitor(
-                '%s_%s' %
-                (instr, str(sam_scan)), OutputWorkspace=sam_incident_wksp)
+                Filename=facility_file_format % (instr, sam_scan),
+                OutputWorkspace=sam_incident_wksp)
 
             fit_type = sample['InelasticCorrection']['FitSpectrumWith']
             FitIncidentSpectrum(InputWorkspace=sam_incident_wksp,
@@ -1230,8 +1133,8 @@ if __name__ == "__main__":
 
             sam_placzek = 'sam_placzek'
             SetSample(InputWorkspace=sam_incident_wksp,
-                      Material={'ChemicalFormula': sam_material,
-                                'SampleMassDensity': sam_mass_density})
+                      Material={'ChemicalFormula': str(sam_material),
+                                'SampleMassDensity': str(sam_mass_density)})
             CalculatePlaczekSelfScattering(IncidentWorkspace=sam_incident_wksp,
                                            ParentWorkspace=sam_corrected,
                                            OutputWorkspace=sam_placzek,
@@ -1345,24 +1248,25 @@ if __name__ == "__main__":
     Rebin(InputWorkspace=sam_corrected,
           OutputWorkspace=sam_corrected,
           Params="350.0,-0.0001,26233.0")
-    xmin = "449.0,719.0,705.0,1137.0,1246.0,350.0"
-    xmax = "19492.0,19521.0,21992.0,18920.0,15555.0,26233.0"
+    xmin = "450.0,1100.0,2050.0,3400.0,4500.0"
+    xmax = "11000.0,11000.0,11000.0,11000.0,11000.0"
     CropWorkspaceRagged(InputWorkspace=sam_corrected,
                         OutputWorkspace=sam_corrected,
                         Xmin=xmin,
-                        Xmax=xmax )
-    ResampleX(InputWorkspace=sam_corrected,
-              OutputWorkspace=sam_corrected,
-              NumberBins=3000,
-              LogBinning=True)
+                        Xmax=xmax)
+    return mtd[sam_corrected]
+    #ResampleX(InputWorkspace=sam_corrected,
+    #          OutputWorkspace=sam_corrected,
+    #          NumberBins=3000,
+    #          LogBinning=True)
 
-    SaveGSS(InputWorkspace=sam_corrected, 
-            Filename=os.path.join(OutputDir,title+".gsa"), 
-            SplitFiles=False, 
-            Append=False,
-            MultiplyByBinWidth=True, 
-            Format="SLOG", 
-            ExtendedHeader=True)
+    #SaveGSS(InputWorkspace=sam_corrected,
+    #        Filename=os.path.join(OutputDir,title+".gsa"),
+    #        SplitFiles=False,
+    #        Append=False,
+    #        MultiplyByBinWidth=True,
+    #        Format="SLOG",
+    #        ExtendedHeader=True)
     # process the run
     '''
     SNSPowderReduction(
@@ -1501,3 +1405,7 @@ if __name__ == "__main__":
                     'for merged banks %s: %f + %f * Q' % (','.join([ str(i) for i in wkspIndices]), \
                                                        fitParams.cell('Value', 0), fitParams.cell('Value', 1)) ]
 '''
+
+
+if __name__ == "__main__":
+    main()

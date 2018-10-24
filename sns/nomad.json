@@ -1,4 +1,5 @@
 {
+    "Facility": "SNS",
     "Instrument": "NOM",
     "Title" : "Si_SRM_e_d91772_no_mask",
     "Sample": { "Runs" : "91796",

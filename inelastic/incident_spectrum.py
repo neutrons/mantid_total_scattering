@@ -134,8 +134,8 @@ def GetIncidentSpectrumFromMonitor(
     if BinType == 'ResampleX':
         ResampleX(InputWorkspace=monitor,
                   OutputWorkspace=monitor,
-                  XMin=[lambdaMin, lambdaMin],  # TODO change ResampleX
-                  XMax=[lambdaMax, lambdaMax],
+                  XMin=[lambdaMin],  # TODO change ResampleX
+                  XMax=[lambdaMax],
                   NumberBins=abs(int(lambdaBinning)),
                   LogBinning=(int(lambdaBinning) < 0),
                   PreserveEvents=True)

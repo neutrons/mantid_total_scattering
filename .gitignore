@@ -101,5 +101,7 @@ ENV/
 .mypy_cache/
 
 # Files
-*.nxs
 *.dat
+
+.idea/
+.pytest_cache/
