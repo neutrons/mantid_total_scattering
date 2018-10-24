@@ -1,4 +1,4 @@
-FROM marshallmcdonnell:mantid
+FROM marshallmcdonnell/mantid:latest
 
 # Install mantid_total_scattering
 RUN cd /root && \
