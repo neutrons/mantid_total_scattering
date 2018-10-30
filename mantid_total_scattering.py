@@ -414,7 +414,7 @@ def main(config=None):
     merging = config['Merging']
     binning = merging['QBinning']
     # workspace indices - zero indexed arrays
-    wkspIndices = merging['SumBanks']
+    wkspIndices = merging.get('SumBanks',None)
     # Grouping
     grouping = merging.get('Grouping',None)
     # TODO how much of each bank gets merged has info here in the form of
@@ -507,17 +507,13 @@ def main(config=None):
     # alignAndFocusArgs['CropWavelengthMin'] from characterizations file
     # alignAndFocusArgs['CropWavelengthMax'] from characterizations file
     alignAndFocusArgs['CacheDir'] = os.path.abspath(cache_dir)
-    alignAndFocusArgs['Characterizations'] = 'characterizations'
-    alignAndFocusArgs['ReductionProperties'] = '__snspowderreduction'
-    results = PDLoadCharacterizations(
-        Filename=merging['Characterizations']['Filename'],
-        OutputWorkspace='characterizations')
 
     # Get any additional AlignAndFocusArgs from JSON input
     if "AlignAndFocusArgs" in config:
         otherArgs = config["AlignAndFocusArgs"]
         alignAndFocusArgs.update(otherArgs)
 
+    print(alignAndFocusArgs)
     # Setup grouping
     output_grouping = False
     grp_wksp="wksp_output_group"
@@ -537,15 +533,13 @@ def main(config=None):
                     MakeGroupingWorkspace=True, 
                     MakeCalWorkspace=False,
                     MakeMaskWorkspace=False)
-        grp_wksp = None
 
     # Setup the 6 bank method if no grouping specified
     if not grouping:
-        alignAndFocusArgs['PrimaryFlightPath']=results[2]
-        alignAndFocusArgs['SpectrumIDs']=results[3]
-        alignAndFocusArgs['L2']=results[4]
-        alignAndFocusArgs['Polar']=results[5]
-        alignAndFocusArgs['Azimuthal']=results[6]
+        CreateGroupingWorkspace(InstrumentName=instr,
+                                GroupDetectorsBy='bank',
+                                OutputWorkspace=grp_wksp)
+        alignAndFocusArgs['GroupingWorkspace'] = grp_wksp
 
     # TODO take out the RecalculatePCharge in the future once tested
 
