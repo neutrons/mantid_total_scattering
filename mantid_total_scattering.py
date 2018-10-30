@@ -207,7 +207,7 @@ def getQmaxFromData(Workspace=None, WorkspaceIndex=0):
 
 def expand_ints(s):
     spans = (el.partition('-')[::2] for el in s.split(','))
-    ranges = (xrange(int(s), int(e) + 1 if e else int(s) + 1)
+    ranges = (range(int(s), int(e) + 1 if e else int(s) + 1)
               for s, e in spans)
     all_nums = itertools.chain.from_iterable(ranges)
     return list(all_nums)
