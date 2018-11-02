@@ -631,15 +631,16 @@ def main(config=None):
 
     #-----------------------------------------------------------------------------------------#
     # Load Instrument Characterizations
-    PDDetermineCharacterizations(InputWorkspace=sam_wksp,
-                                 Characterizations='characterizations',
-                                 ReductionProperties='__snspowderreduction')
-    propMan = PropertyManagerDataService.retrieve('__snspowderreduction')
-    qmax = 2. * np.pi / propMan['d_min'].value
-    qmin = 2. * np.pi / propMan['d_max'].value
-    for a, b in zip(qmin, qmax):
-        print('Qrange:', a, b)
-    mask_info = generateCropingTable(qmin, qmax)
+    if "Characterizations" in merging:
+        PDDetermineCharacterizations(InputWorkspace=sam_wksp,
+                                     Characterizations='characterizations',
+                                     ReductionProperties='__snspowderreduction')
+        propMan = PropertyManagerDataService.retrieve('__snspowderreduction')
+        qmax = 2. * np.pi / propMan['d_min'].value
+        qmin = 2. * np.pi / propMan['d_max'].value
+        for a, b in zip(qmin, qmax):
+            print('Qrange:', a, b)
+        mask_info = generateCropingTable(qmin, qmax)
 
     #-----------------------------------------------------------------------------------------#
     # STEP 1: Subtract Backgrounds
