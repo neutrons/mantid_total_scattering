@@ -7,6 +7,7 @@
                               "Background" : { "Runs" : "91607" }
                             },
              "Material" : "Si",
+             "MassDensity" : 2.33,
              "PackingFraction" : 0.35,
              "Geometry" : {"Radius" : 0.15,
                            "Height" : 1.8 },
