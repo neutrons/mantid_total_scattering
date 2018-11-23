@@ -7,9 +7,9 @@ from isis.polaris.generate_input import generate_input_json
 from utils import ROOT_DIR
 
 
-class TestPolarisTotalScattering(unittest.TestCase):
+class PolarisTotalScatteringSystemTest(unittest.TestCase):
 
-    def test_silicon(self):
+    def silicon(self):
         """
         Run polaris silicon data through total scattering script
         """

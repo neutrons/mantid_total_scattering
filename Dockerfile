@@ -10,12 +10,6 @@ FROM marshallmcdonnell/mantid:latest
 # TEST
 #RUN echo "Building git branch: $BRANCH"
 
-# Install mantid_total_scattering
-#RUN cd /root && \
-#    git clone https://github.com/marshallmcdonnell/mantid_total_scattering.git && \
-#    cd mantid_total_scattering && \
-#    git checkout $BRANCH
-
 # Copy git content from current branch
 COPY . /root/mantid_total_scattering
 
