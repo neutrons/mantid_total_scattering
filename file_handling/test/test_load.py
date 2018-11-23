@@ -19,7 +19,7 @@ class TestLoad(unittest.TestCase):
             'ReductionProperties': '__powderreduction'
         }
         # Highly cropped version of the workspace to improve run time
-        self.sample_file_path = os.path.join(ROOT_DIR, 'test_data', 'tiny-data-file.nxs')
+        self.sample_file_path = os.path.join(ROOT_DIR, 'test_data', 'POLARIS00097947-min.nxs')
 
     def test_basic_load(self):
         ws_name = 'test-sample'

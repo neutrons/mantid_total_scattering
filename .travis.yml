@@ -6,4 +6,7 @@ services:
   - docker
 
 before_install:
-  - docker run dockerfiles/Mantid_Dockerfile
+  - docker build -t unit-test-env .
+
+script:
+  - docker run -t unit-test-env
