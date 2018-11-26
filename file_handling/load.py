@@ -9,7 +9,7 @@ def load(ws_name, input_files, Geometry=None, ChemicalFormula=None, MassDensity=
     NormaliseByCurrent(InputWorkspace=ws_name,
                        OutputWorkspace=ws_name,
                        RecalculatePCharge=True)
-    if Geometry and ChemicalForumla and MassDensity:
+    if Geometry and ChemicalFormula and MassDensity:
         set_sample(ws_name, Geometry, ChemicalFormula, MassDensity)
 
     ConvertUnits(InputWorkspace=ws_name,
