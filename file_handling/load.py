@@ -23,8 +23,6 @@ def set_sample(ws_name, geometry, material, mass_density):
     new_geometry = dict()
     for k, v in geometry.items():
         key = str(k)
-        if isinstance(v, unicode):
-            v = str(v)
         new_geometry[key] = v
     geometry = new_geometry
     geometry.update({'Center': [0., 0., 0., ]})
