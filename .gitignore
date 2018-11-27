@@ -105,3 +105,8 @@ ENV/
 
 .idea/
 .pytest_cache/
+
+# test directories
+cache/
+output/
+isis/polaris/test_input.json

@@ -3,13 +3,13 @@ import os
 import unittest
 
 import mantid_total_scattering as total_scattering
-from isis.polaris.generate_input import generate_input_json
+from isis.polaris.generate_input import generate_input_json, clean_up
 from utils import ROOT_DIR
 
 
 class PolarisTotalScatteringSystemTest(unittest.TestCase):
 
-    def silicon(self):
+    def test_silicon(self):
         """
         Run polaris silicon data through total scattering script
         """
@@ -20,3 +20,4 @@ class PolarisTotalScatteringSystemTest(unittest.TestCase):
         self.assertEqual(actual.getNumberHistograms(), 5)
         self.assertEqual(actual.getTitle(), "10: Silicon 640b, 700MeV, chopper stopped")
         self.assertEqual(actual.getInstrument().getFullName(), "POLARIS")
+        clean_up()  # If you want to see the output, comment out this function call
