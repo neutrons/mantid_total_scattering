@@ -1,7 +1,7 @@
 from mantid.simpleapi import AlignAndFocusPowderFromFiles, NormaliseByCurrent, SetSample, ConvertUnits
 
 
-def load(ws_name, input_files, Geometry=None, ChemicalFormula=None, MassDensity=None, **align_and_focus_args):
+def load(ws_name, input_files, geometry=None, chemical_formula=None, mass_density=None, **align_and_focus_args):
     AlignAndFocusPowderFromFiles(OutputWorkspace=ws_name,
                                  Filename=input_files,
                                  Absorption=None,
@@ -9,8 +9,8 @@ def load(ws_name, input_files, Geometry=None, ChemicalFormula=None, MassDensity=
     NormaliseByCurrent(InputWorkspace=ws_name,
                        OutputWorkspace=ws_name,
                        RecalculatePCharge=True)
-    if Geometry and ChemicalFormula and MassDensity:
-        set_sample(ws_name, Geometry, ChemicalFormula, MassDensity)
+    if geometry and chemical_formula and mass_density:
+        set_sample(ws_name, geometry, chemical_formula, mass_density)
 
     ConvertUnits(InputWorkspace=ws_name,
                  OutputWorkspace=ws_name,
@@ -19,14 +19,14 @@ def load(ws_name, input_files, Geometry=None, ChemicalFormula=None, MassDensity=
     return ws_name
 
 
-def set_sample(ws_name, Geometry=None, ChemicalFormula=None, MassDensity=None):
-    if 'Center' not in Geometry:
-        Geometry.update({'Center': [0., 0., 0., ]})
-    if "Shape" not in Geometry:
-        Geometry.update({'Shape': 'Cylinder'})
+def set_sample(ws_name, geometry=None, chemical_formula=None, mass_density=None):
+    if 'Center' not in geometry:
+        geometry.update({'Center': [0., 0., 0., ]})
+    if "Shape" not in geometry:
+        geometry.update({'Shape': 'Cylinder'})
     SetSample(
         InputWorkspace=ws_name,
-        Geometry=Geometry,
+        Geometry=geometry,
         Material={
-            'ChemicalFormula': ChemicalFormula,
-            'SampleMassDensity': MassDensity})
+            'ChemicalFormula': chemical_formula,
+            'SampleMassDensity': mass_density})

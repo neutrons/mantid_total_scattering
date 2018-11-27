@@ -40,9 +40,9 @@ class TestLoad(unittest.TestCase):
         mass_density = 2.328
         actual = load(ws_name=ws_name,
                       input_files=self.sample_file_path,
-                      Geometry=geometry,
-                      ChemicalFormula=formula,
-                      MassDensity=mass_density,
+                      geometry=geometry,
+                      chemical_formula=formula,
+                      mass_density=mass_density,
                       **self.align_and_focus_args)
         actual = mtd[actual]
         self.assertEqual(actual.sample().getMaterial().name(), 'Si')
