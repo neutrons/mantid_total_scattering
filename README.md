@@ -20,3 +20,5 @@ To launch the total scattering script, complete the input JSON file, and run:
 
     python mantid_total_scattering.py input.json
 
+
+[![Build Status](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering.svg?branch=master)](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering)
