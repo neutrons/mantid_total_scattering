@@ -36,12 +36,12 @@ class TestLoad(unittest.TestCase):
                     'Radius': 0.3175,
                     'Center': [0.0, 0.0, 0.0],
                     'Height': 4.0}
-        material = 'Si'
+        formula = 'Si'
         mass_density = 2.328
         actual = load(ws_name=ws_name,
                       input_files=self.sample_file_path,
                       geometry=geometry,
-                      material=material,
+                      chemical_formula=formula,
                       mass_density=mass_density,
                       **self.align_and_focus_args)
         actual = mtd[actual]
