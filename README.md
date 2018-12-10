@@ -1,7 +1,7 @@
 Total Scattering Data Reduction using Mantid Framework
 -----------------------------------------------------------
 
-This project is trying to implement total scattering data reduction for neutron time-of-flight diffractometers using the algorithms currently available in the Mantid framework (https://github.com/mantidproject/mantid)
+This project is trying to implement total scattering data reduction for neutron time-of-flight diffractometers using the algorithms currently available in the [Mantid framework](https://github.com/mantidproject/mantid)
 
 
 This entails taking raw neutron counts from detectors in the diffraction experiment and turning them into the reciprocal-space structure factor patterns, F(Q) or S(Q), and applying a Fourier Transform to real-space to give the pair distribution fuction, PDF.
