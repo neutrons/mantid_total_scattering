@@ -2,7 +2,7 @@
 FROM python:3.6-slim
 
 # Install mantid image
-FROM marshallmcdonnell/mantid:latest
+FROM mantidproject/mantid:nightly_ubuntu16.04
 
 # Pass in git path
 #ARG BRANCH=master
