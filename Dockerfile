@@ -19,9 +19,7 @@ RUN apt-get update && \
     pip install pytest
 
 # Copy Insturment geometry caches
-RUN mkdir /root/.mantid && \
-    mkdir /root/.mantid/instrument/ && \
-    mkdir /root/.mantid/instrument/geometryCache
+RUN mkdir -p /root/.mantid/instrument/geometryCache
 
 COPY ./dockerfiles/POLARIS9fbf7121b4274c833043ae8933ec643ff7b9313d.vtp /root/.mantid/instrument/geometryCache/POLARIS9fbf7121b4274c833043ae8933ec643ff7b9313d.vtp
 
