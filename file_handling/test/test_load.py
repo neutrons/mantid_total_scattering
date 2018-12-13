@@ -48,3 +48,5 @@ class TestLoad(unittest.TestCase):
         self.assertEqual(actual.sample().getMaterial().name(), 'Si')
         mtd.clear()
 
+if __name__ == '__main__':
+    unittest.main()  # pragma: no cover
