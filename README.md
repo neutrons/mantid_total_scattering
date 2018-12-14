@@ -1,3 +1,9 @@
+| DevOps |
+|--------|
+| [![Build Status](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering.svg?branch=master)](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering) |
+| [![codecov](https://codecov.io/gh/marshallmcdonnell/mantid_total_scattering/branch/master/graph/badge.svg)](https://codecov.io/gh/marshallmcdonnell/mantid_total_scattering) |
+
+
 Total Scattering Data Reduction using Mantid Framework
 -----------------------------------------------------------
 
@@ -28,4 +34,3 @@ docker build -t unit-test-env . && docker run -t unit-test-env
 ```
 
 
-[![Build Status](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering.svg?branch=master)](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering)
