@@ -30,7 +30,7 @@ To launch the total scattering script, complete the input JSON file, and run:
 To build and run tests via [Docker](https://docs.docker.com/), use:
 
 ```bash
-docker build -t unit-test-env . && docker run -t unit-test-env
+docker build -t unit-test-env -f docker/Dockerfile.test . && docker run -t unit-test-env "pytest"
 ```
 
 
