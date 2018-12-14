@@ -3,7 +3,7 @@ from mantid import mtd
 from mantid.api import IEventWorkspace
 from mantid.simpleapi import \
     CloneWorkspace, Rebin, ConvertToDistribution, DiffractionFocussing, \
-    SaveNexusProcessed, SaveAscii, Fit, DeleteWorkspace
+    SaveNexusProcessed, SaveAscii, DeleteWorkspace
 
 
 def save_banks(
@@ -93,5 +93,3 @@ def save_file(ws, filename, header=list()):
         Separator='Space',
         ColumnHeader=False,
         AppendToFile=True)
-
-
