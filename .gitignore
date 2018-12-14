@@ -105,3 +105,6 @@ ENV/
 
 .idea/
 .pytest_cache/
+
+.direnv
+.envrc
