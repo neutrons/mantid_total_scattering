@@ -183,8 +183,9 @@ def GenerateEventsFilterFromFiles(filenames, OutputWorkspace,
     unitOfTime = kwargs.get('UnitOfTime', 'Nanoseconds')
 
     # TODO - handle multi-file filtering. Delete this line once implemented.
-    error = 'ERROR: Multi-file filtering is not yet supported. (Stay tuned...)'
-    assert len(filenames) == 1, error
+    if len(filenames) == 1:
+        error = 'Multi-file filtering is not yet supported. (Stay tuned...)'
+        raise Exception(error)
 
     for i, filename in enumerate(filenames):
         Load(Filename=filename, OutputWorkspace=filename)

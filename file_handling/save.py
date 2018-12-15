@@ -73,7 +73,7 @@ def save_banks(
     DeleteWorkspace(tmp_wksp)
 
 
-def save_file(ws, filename, header=list()):
+def save_file(ws, filename, header=None):
     """
     Small wrapper to Mantid `SaveAscii` algorithm to add a header lines.
 
@@ -85,8 +85,9 @@ def save_file(ws, filename, header=list()):
     :type headers: list
     """
     with open(filename, 'w') as f:
-        for line in header:
-            f.write('# %s \n' % line)
+        if header:
+            for line in header:
+                f.write('# %s \n' % line)
     SaveAscii(
         InputWorkspace=ws,
         Filename=filename,
