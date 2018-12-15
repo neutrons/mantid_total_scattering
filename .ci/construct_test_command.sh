@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 token=d9212b19-6bbd-4466-8f45-18414480f879
 ci_env="bash <(curl -s https://codecov.io/env)"
 ci_post_cov="bash <(curl -s https://codecov.io/bash) -t $token"
