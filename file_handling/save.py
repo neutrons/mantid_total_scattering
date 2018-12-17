@@ -6,13 +6,8 @@ from mantid.simpleapi import \
     SaveNexusProcessed, SaveAscii, DeleteWorkspace
 
 
-def save_banks(
-        InputWorkspace,
-        Filename,
-        Title,
-        OutputDir='./',
-        Binning=None,
-        GroupingWorkspace=None):
+def save_banks(InputWorkspace, Filename, Title, OutputDir,
+               Binning=None, GroupingWorkspace=None):
     """
     Saves input workspace to processed NeXus file in specified
     output directory with optional rebinning and grouping
@@ -36,8 +31,8 @@ def save_banks(
     """
 
     # Make a local clone
-    CloneWorkspace(InputWorkspace=InputWorkspace, OutputWorkspace="tmp")
-    tmp_wksp = mtd["tmp"]
+    CloneWorkspace(InputWorkspace=InputWorkspace, OutputWorkspace="__tmp")
+    tmp_wksp = mtd["__tmp"]
 
     # Rebin if requested
     if Binning:

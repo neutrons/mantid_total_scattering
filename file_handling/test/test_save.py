@@ -13,7 +13,7 @@ from mantid.simpleapi import mtd, \
 class TestSave(unittest.TestCase):
 
     def setUp(self):
-        self.align_and_focus_args = {
+        align_and_focus_args = {
             'CalFilename': os.path.join(ROOT_DIR, 'isis', 'polaris', 'grouping.cal'),
             'ResampleX': -6000,
             'DSpacing': False,
@@ -24,7 +24,7 @@ class TestSave(unittest.TestCase):
         # Highly cropped version of the workspace to improve run time
         ws_name = 'test-sample'
         sample_file_path = os.path.join(ROOT_DIR, 'test_data', 'POLARIS00097947-min.nxs')
-        wksp = load(ws_name, sample_file_path, **self.align_and_focus_args)
+        wksp = load(ws_name, sample_file_path, **align_and_focus_args)
 
         self.wksp = mtd[wksp]
         self.out_nxs = '%s.nxs' % ws_name
