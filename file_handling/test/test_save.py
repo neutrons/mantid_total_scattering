@@ -38,12 +38,12 @@ class TestSave(unittest.TestCase):
             os.remove(self.out_ascii)
 
     def test_save_banks_exists(self):
-        save_banks(self.wksp, self.out_nxs, 'wksp')
+        save_banks(self.wksp, self.out_nxs, 'wksp', '.')
         self.assertTrue(os.path.isfile(self.out_nxs))
         mtd.clear()
 
     def test_save_banks_check_contents(self):
-        save_banks(self.wksp, self.out_nxs, 'wksp')
+        save_banks(self.wksp, self.out_nxs, 'wksp', '.')
         out_wksp = LoadNexusProcessed(self.out_nxs)
         self.assertEqual(out_wksp.blocksize(),
                          self.wksp.blocksize())
@@ -54,7 +54,7 @@ class TestSave(unittest.TestCase):
                         )
 
     def test_save_banks_binning(self):
-        save_banks(self.wksp, self.out_nxs, 'wksp', Binning='0,100,10000')
+        save_banks(self.wksp, self.out_nxs, 'wksp', '.', Binning='0,100,10000')
         out_wksp = LoadNexusProcessed(self.out_nxs)
         self.assertNotEqual(out_wksp.blocksize(),
                             self.wksp.blocksize())
@@ -71,7 +71,7 @@ class TestSave(unittest.TestCase):
         # Create grouping workspace.
         grp_ws, nspectra, grp_count = CreateGroupingWorkspace(InstrumentName='POLARIS',
                                                               GroupDetectorsBy="All")
-        save_banks(self.wksp, self.out_nxs, 'wksp_title', GroupingWorkspace=grp_ws)
+        save_banks(self.wksp, self.out_nxs, 'wksp_title', '.', GroupingWorkspace=grp_ws)
         out_wksp = LoadNexusProcessed(self.out_nxs)
 
         self.assertEqual(grp_ws.blocksize(), 1)
