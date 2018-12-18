@@ -385,7 +385,7 @@ def main(config=None):
     # alignAndFocusArgs['Params'] = "0.,0.02,40."
     alignAndFocusArgs['ResampleX'] = -6000
     alignAndFocusArgs['Dspacing'] = False
-    alignAndFocusArgs['PreserveEvents'] = False
+    alignAndFocusArgs['PreserveEvents'] = True
     alignAndFocusArgs['MaxChunkSize'] = 8
     alignAndFocusArgs['CacheDir'] = os.path.abspath(cache_dir)
 
@@ -427,7 +427,7 @@ def main(config=None):
 
     # 2. Get any other additional arguments passed
     if "AdditionalOptions" in config:
-        additionalOpts = config["AddtionalOptions"]
+        additionalOpts = config["AdditionalOptions"]
         if "CorrelationChopper" in additionalOpts:
             loadKwargs['CorrelationChopper'] = additionalOpts['CorrelationChopper']
 

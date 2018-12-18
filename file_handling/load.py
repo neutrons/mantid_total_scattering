@@ -1,6 +1,6 @@
 from mantid.simpleapi import \
     AlignAndFocusPowderFromFiles, NormaliseByCurrent, \
-    SetSample, ConvertUnits, CorelliCrossCorrelate
+    SetSample, ConvertUnits, CorelliCrossCorrelate, SortEvents
 
 
 def load(ws_name, input_files, geometry=None, chemical_formula=None, mass_density=None, **kwargs):
@@ -8,6 +8,11 @@ def load(ws_name, input_files, geometry=None, chemical_formula=None, mass_densit
     if 'AlignAndFocusArgs' in kwargs:
         align_and_focus_args = kwargs['AlignAndFocusArgs']
 
+    # In order to preserve pulse information
+    if 'CorrelationChopper' in kwargs:
+        align_and_focus_args['CompressWallClockTolerance'] = 0.001
+
+    print(align_and_focus_args)
     AlignAndFocusPowderFromFiles(OutputWorkspace=ws_name,
                                  Filename=input_files,
                                  Absorption=None,
@@ -19,11 +24,19 @@ def load(ws_name, input_files, geometry=None, chemical_formula=None, mass_densit
         set_sample(ws_name, geometry, chemical_formula, mass_density)
 
     # Cross-correlation chopper for Corelli
-    if 'CorrelationChoppper' in kwargs:
+    if 'CorrelationChopper' in kwargs:
+        ConvertUnits(InputWorkspace=ws_name,
+                     OutputWorkspace=ws_name,
+                     Target="TOF",
+                     EMode="Elastic")
+
+        SortEvents(InputWorkspace=ws_name, SortBy="X Value")
+
         cc_opts = kwargs['CorrelationChopper']
         CorelliCrossCorrelate(InputWorkspace=ws_name,
                               OutputWorkspace=ws_name,
                               TimingOffset=cc_opts['TimingOffset'])
+
 
     ConvertUnits(InputWorkspace=ws_name,
                  OutputWorkspace=ws_name,
