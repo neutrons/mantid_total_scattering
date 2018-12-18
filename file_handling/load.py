@@ -10,7 +10,7 @@ def load(ws_name, input_files, geometry=None, chemical_formula=None, mass_densit
 
     # In order to preserve pulse information
     if 'CorrelationChopper' in kwargs:
-        align_and_focus_args['CompressWallClockTolerance'] = 0.001
+        align_and_focus_args['CompressTolerance'] = 0.0
 
     print(align_and_focus_args)
     AlignAndFocusPowderFromFiles(OutputWorkspace=ws_name,
