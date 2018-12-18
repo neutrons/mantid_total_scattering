@@ -375,6 +375,10 @@ def main(config=None):
     van_inelastic_corr = SetInelasticCorrection(
         van.get('InelasticCorrection', None))
 
+    # Collect key word arguments for load algorithm
+    loadKwargs = dict()
+
+    # 1. collect AlignAndFocus arguments
     alignAndFocusArgs = dict()
     alignAndFocusArgs['CalFilename'] = config['Calibration']['Filename']
     # alignAndFocusArgs['GroupFilename'] don't use
@@ -391,6 +395,7 @@ def main(config=None):
         alignAndFocusArgs.update(otherArgs)
 
     print(alignAndFocusArgs)
+
     # Setup grouping
     output_grouping = False
     grp_wksp = "wksp_output_group"
@@ -418,6 +423,14 @@ def main(config=None):
                                 OutputWorkspace=grp_wksp)
         alignAndFocusArgs['GroupingWorkspace'] = grp_wksp
 
+    loadKwargs['AlignAndFocusArgs'] = alignAndFocusArgs
+
+    # 2. Get any other additional arguments passed
+    if "AdditionalOptions" in config:
+        additionalOpts = config["AddtionalOptions"]
+        if "CorrelationChopper" in additionalOpts:
+            loadKwargs['CorrelationChopper'] = additionalOpts['CorrelationChopper']
+
     # TODO take out the RecalculatePCharge in the future once tested
     # Load Sample
     print("#-----------------------------------#")
@@ -429,7 +442,7 @@ def main(config=None):
         sam_geometry,
         sam_material,
         sam_mass_density,
-        **alignAndFocusArgs)
+        **loadKwargs)
     sample_title = "sample_and_container"
     print(os.path.join(OutputDir, sample_title + ".dat"))
     print("HERE:", mtd[sam_wksp].getNumberHistograms())
@@ -453,7 +466,7 @@ def main(config=None):
     print("#-----------------------------------#")
     print("# Sample Container")
     print("#-----------------------------------#")
-    container = load('container', container_scans, **alignAndFocusArgs)
+    container = load('container', container_scans, **loadKwargs)
     save_banks(InputWorkspace=container,
                Filename=nexus_filename,
                Title=container,
@@ -470,7 +483,7 @@ def main(config=None):
         container_bg = load(
             'container_background',
             container_bg,
-            **alignAndFocusArgs)
+            **loadKwargs)
         save_banks(InputWorkspace=container_bg,
                    Filename=nexus_filename,
                    Title=container_bg,
@@ -489,7 +502,7 @@ def main(config=None):
         van_geometry,
         van_material,
         van_mass_density,
-        **alignAndFocusArgs)
+        **loadKwargs)
     vanadium_title = "vanadium_and_background"
 
     save_banks(InputWorkspace=van_wksp,
@@ -517,7 +530,7 @@ def main(config=None):
         print("#-----------------------------------#")
         print("# Vanadium Background")
         print("#-----------------------------------#")
-        van_bg = load('vanadium_background', van_bg_scans, **alignAndFocusArgs)
+        van_bg = load('vanadium_background', van_bg_scans, **loadKwargs)
         vanadium_bg_title = "vanadium_background"
         save_banks(InputWorkspace=van_bg,
                    Filename=nexus_filename,

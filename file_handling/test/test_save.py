@@ -21,10 +21,12 @@ class TestSave(unittest.TestCase):
             'MaxChunkSize': 8,
             'ReductionProperties': '__powderreduction'
         }
+
+        loadKwargs = {'AlignAndFocusArgs': align_and_focus_args}
         # Highly cropped version of the workspace to improve run time
         ws_name = 'test-sample'
         sample_file_path = os.path.join(ROOT_DIR, 'test_data', 'POLARIS00097947-min.nxs')
-        wksp = load(ws_name, sample_file_path, **align_and_focus_args)
+        wksp = load(ws_name, sample_file_path, **loadKwargs)
 
         self.wksp = mtd[wksp]
         self.out_nxs = '%s.nxs' % ws_name
