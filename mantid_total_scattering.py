@@ -414,7 +414,7 @@ def main(config=None):
     # Setup the 6 bank method if no grouping specified
     if not grouping:
         CreateGroupingWorkspace(InstrumentName=instr,
-                                GroupDetectorsBy='bank',
+                                GroupDetectorsBy='Group',
                                 OutputWorkspace=grp_wksp)
         alignAndFocusArgs['GroupingWorkspace'] = grp_wksp
 
