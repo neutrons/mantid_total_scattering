@@ -19,9 +19,9 @@ from mantid.simpleapi import \
     CarpenterSampleCorrection, MayersSampleCorrection, \
     CropWorkspaceRagged
 
-from file_handling.load import load
-from file_handling.save import save_banks
-from inelastic.placzek import \
+from total_scattering.file_handling.load import load
+from total_scattering.file_handling.save import save_banks
+from total_scattering.inelastic.placzek import \
     GetIncidentSpectrumFromMonitor, FitIncidentSpectrum, \
     CalculatePlaczekSelfScattering
 

@@ -1,7 +1,7 @@
 import os
 
 
-from utils import ROOT_DIR
+from total_scattering.utils import ROOT_DIR
 
 
 def generate_input_json():

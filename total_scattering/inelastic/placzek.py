@@ -6,7 +6,7 @@ import scipy
 from mantid import mtd
 from mantid.simpleapi import *
 
-from inelastic.incident_spectrum import GetIncidentSpectrumFromMonitor, FitIncidentSpectrum
+from total_scattering.inelastic.incident_spectrum import GetIncidentSpectrumFromMonitor, FitIncidentSpectrum
 
 
 #-------------------------------------------------------------------------
@@ -97,7 +97,7 @@ def CalculatePlaczekSelfScattering(
 
     # constants and conversions
     factor  = 1. / scipy.constants.physical_constants['atomic mass unit-kilogram relationship'][0]
-    neutron_mass = factor * scipy.constants.m_n 
+    neutron_mass = factor * scipy.constants.m_n
 
     # get sample information: mass, total scattering length, and concentration
     # of each species
@@ -268,7 +268,7 @@ if '__main__' == __name__:
     #print(mtd[placzek].getNumberHistograms())
     '''
     ConvertUnits(InputWorkspace=placzek,
-             OutputWorkspace=placzek, 
+             OutputWorkspace=placzek,
              Target='MomentumTransfer',
              EMode='Elastic')
     '''
