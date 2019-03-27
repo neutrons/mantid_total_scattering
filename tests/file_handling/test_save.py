@@ -2,9 +2,9 @@ import os
 import unittest
 import numpy as np
 
-from file_handling.load import load
-from file_handling.save import save_banks, save_file
-from utils import ROOT_DIR
+from total_scattering.file_handling.load import load
+from total_scattering.file_handling.save import save_banks, save_file
+from tests import EXAMPLE_DIR, TEST_DATA_DIR
 
 from mantid.simpleapi import mtd, \
     LoadNexusProcessed, LoadAscii, ConvertToHistogram
@@ -14,7 +14,7 @@ class TestSave(unittest.TestCase):
 
     def setUp(self):
         align_and_focus_args = {
-            'CalFilename': os.path.join(ROOT_DIR, 'isis', 'polaris', 'grouping.cal'),
+            'CalFilename': os.path.join(EXAMPLE_DIR, 'isis', 'polaris_grouping.cal'),
             'ResampleX': -6000,
             'DSpacing': False,
             'PreserveEvents': False,
@@ -23,7 +23,7 @@ class TestSave(unittest.TestCase):
         }
         # Highly cropped version of the workspace to improve run time
         ws_name = 'test-sample'
-        sample_file_path = os.path.join(ROOT_DIR, 'test_data', 'POLARIS00097947-min.nxs')
+        sample_file_path = os.path.join(TEST_DATA_DIR, 'POLARIS00097947-min.nxs')
         wksp = load(ws_name, sample_file_path, **align_and_focus_args)
 
         self.wksp = mtd[wksp]

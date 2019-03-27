@@ -1,17 +1,16 @@
 import os
 import unittest
 
-from file_handling.load import load
-from utils import ROOT_DIR
+from total_scattering.file_handling.load import load
+from tests import EXAMPLE_DIR, TEST_DATA_DIR
 
 from mantid.simpleapi import mtd
-
 
 class TestLoad(unittest.TestCase):
 
     def setUp(self):
         self.align_and_focus_args = {
-            'CalFilename': os.path.join(ROOT_DIR, 'isis', 'polaris', 'grouping.cal'),
+            'CalFilename': os.path.join(EXAMPLE_DIR, 'isis', 'polaris_grouping.cal'),
             'ResampleX': -6000,
             'DSpacing': False,
             'PreserveEvents': False,
@@ -19,7 +18,7 @@ class TestLoad(unittest.TestCase):
             'ReductionProperties': '__powderreduction'
         }
         # Highly cropped version of the workspace to improve run time
-        self.sample_file_path = os.path.join(ROOT_DIR, 'test_data', 'POLARIS00097947-min.nxs')
+        self.sample_file_path = os.path.join(TEST_DATA_DIR, 'POLARIS00097947-min.nxs')
 
     def test_basic_load(self):
         ws_name = 'test-sample'
