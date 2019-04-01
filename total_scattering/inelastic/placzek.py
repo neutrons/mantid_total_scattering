@@ -4,12 +4,16 @@ import collections
 import numpy as np
 import scipy
 from mantid import mtd
-from mantid.simpleapi import *
+from mantid.simpleapi import \
+    CreateWorkspace, \
+    Load, \
+    SetSampleMaterial
 
-from total_scattering.inelastic.incident_spectrum import GetIncidentSpectrumFromMonitor, FitIncidentSpectrum
+from total_scattering.inelastic.incident_spectrum import \
+    FitIncidentSpectrum, GetIncidentSpectrumFromMonitor
 
 
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Placzek - 1st order inelastic correction
 
 def plotPlaczek(x, y, fit, fit_prime, title=None):
@@ -72,6 +76,7 @@ def GetSampleSpeciesInfo(InputWorkspace):
 
     return atom_species
 
+
 def CalculateElasticSelfScattering(InputWorkspace):
 
     atom_species = GetSampleSpeciesInfo(InputWorkspace)
@@ -96,7 +101,7 @@ def CalculatePlaczekSelfScattering(
         ParentWorkspace=None):
 
     # constants and conversions
-    factor  = 1. / scipy.constants.physical_constants['atomic mass unit-kilogram relationship'][0]
+    factor = 1. / scipy.constants.physical_constants['atomic mass unit-kilogram relationship'][0]
     neutron_mass = factor * scipy.constants.m_n
 
     # get sample information: mass, total scattering length, and concentration
@@ -162,16 +167,15 @@ def CalculatePlaczekSelfScattering(
         f = L1 / L_total
 
         angle_conv = np.pi / 180.
-        sin_theta = np.sin(theta * angle_conv)
         sin_theta_by_2 = np.sin(theta * angle_conv / 2.)
 
         term1 = (f - 1.) * phi_1
         term2 = f * eps_1
         term3 = f - 3.
 
-        #per_bank_q = ConvertLambdaToQ(x_lambda,theta)
+        # per_bank_q = ConvertLambdaToQ(x_lambda,theta) - See Eq. (A1.14) of
         inelastic_placzek_self_correction = 2. * \
-            (term1 - term2 + term3) * sin_theta_by_2 * sin_theta_by_2 * summation_term  # See Eq. (A1.14) of
+            (term1 - term2 + term3) * sin_theta_by_2 * sin_theta_by_2 * summation_term
         x_lambdas = np.append(x_lambdas, x_lambda)
         placzek_correction = np.append(
             placzek_correction,
@@ -199,11 +203,12 @@ def CalculatePlaczekSelfScattering(
 
     return mtd[OutputWorkspace]
 
-#-----------------------------------------------------------------------------------------#
+# --------------------------------------------------------------------------------------------- #
 # Start Placzek calculations
 
+
 if '__main__' == __name__:
-    #-----------------------------------------------------------------------------------------#
+    # ----------------------------------------------------------------------------------------- #
     # Get input parameters
     configfile = sys.argv[1]
     with open(configfile) as handle:
@@ -213,18 +218,16 @@ if '__main__' == __name__:
     sample = config['Sample']
     opts = sample['InelasticCorrection']
 
-
-    #-----------------------------------------------------------------------------------------#
+    # ----------------------------------------------------------------------------------------- #
     # Get incident spectrum
     runs = sample["Runs"].split(',')
-    runs = [ "%s_%s" % (config["Instrument"], run) for run in runs ]
+    runs = ["%s_%s" % (config["Instrument"], run) for run in runs]
     print("Processing Scan: ", runs[0])
 
     incident_ws = 'incident_ws'
-    GetIncidentSpectrumFromMonitor(runs[0],
-                                   OutputWorkspace=incident_ws)
+    GetIncidentSpectrumFromMonitor(runs[0], OutputWorkspace=incident_ws)
 
-    #-----------------------------------------------------------------------------------------#
+    # ----------------------------------------------------------------------------------------- #
     # Fit incident spectrum
     incident_fit = 'incident_fit'
     fit_type = opts['FitSpectrumWith']
@@ -253,10 +256,9 @@ if '__main__' == __name__:
     L2 = [x['L2'] for bank, x in banks.iteritems()]
     Polar = [x['theta'] for bank, x in banks.iteritems()]
 
-
-    parent='parent_ws'
-    placzek='placzek_out'
-    Load(Filename=runs[0], OutputWorkspace=parent )
+    parent = 'parent_ws'
+    placzek = 'placzek_out'
+    Load(Filename=runs[0], OutputWorkspace=parent)
     CalculatePlaczekSelfScattering(IncidentWorkspace=incident_fit,
                                    OutputWorkspace=placzek,
                                    L1=19.5,
@@ -264,15 +266,14 @@ if '__main__' == __name__:
                                    Polar=Polar,
                                    ParentWorkspace=parent)
 
-    #print(mtd[parent].getNumberHistograms())
-    #print(mtd[placzek].getNumberHistograms())
+    # print(mtd[parent].getNumberHistograms())
+    # print(mtd[placzek].getNumberHistograms())
     '''
     ConvertUnits(InputWorkspace=placzek,
              OutputWorkspace=placzek,
              Target='MomentumTransfer',
              EMode='Elastic')
     '''
-
 
     plot = True
     if plot:
@@ -281,7 +282,7 @@ if '__main__' == __name__:
         nbanks = range(mtd[placzek].getNumberHistograms())
         for bank, theta in zip(nbanks, Polar):
             x_lambda = mtd[placzek].readX(bank)
-            q = ConvertLambdaToQ(x_lambda,theta)
+            q = ConvertLambdaToQ(x_lambda, theta)
             per_bank_placzek = mtd[placzek].readY(bank)
             label = 'Bank: %d at Theta %d' % (bank, int(theta))
             plt.plot(
@@ -299,6 +300,6 @@ if '__main__' == __name__:
         plt.xlabel('Q (Angstroms^-1')
         plt.ylabel('1 - P(Q)')
         axes = plt.gca()
-        #axes.set_ylim([0.96, 1.0])
+        # axes.set_ylim([0.96, 1.0])
         plt.legend()
         plt.show()

@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
-#import versioneer  # https://github.com/warner/python-versioneer
+# import versioneer  # https://github.com/warner/python-versioneer
 
 setup(name='mantid_total_scattering',
-      version=1.0, # versioneer.get_version(),
-      #cmdclass=versioneer.get_cmdclass(),
+      version=1.0,  # versioneer.get_version(),
+      # cmdclass=versioneer.get_cmdclass(),
       description='Need a description',
       author='Marshall, Elliot, Pete',
       author_email='mcondonnellmd@ornl.gov',
@@ -12,7 +12,7 @@ setup(name='mantid_total_scattering',
       license='GPL License (version 3)',
       scripts=['bin/mantid_total_scattering.py'],
       packages=find_packages(),
-      #package_data={'': ['*.ui', '*.png', '*.qrc', '*.json']},
+      # package_data={'': ['*.ui', '*.png', '*.qrc', '*.json']},
       include_package_data=True,
       install_requires=[],
       setup_requires=[],
