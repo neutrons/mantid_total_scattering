@@ -1,8 +1,8 @@
 import os
 import unittest
 
-from file_handling.load import load
-from utils import ROOT_DIR
+from total_scattering.file_handling.load import load
+from tests import EXAMPLE_DIR, TEST_DATA_DIR
 
 from mantid.simpleapi import mtd
 
@@ -11,7 +11,7 @@ class TestLoad(unittest.TestCase):
 
     def setUp(self):
         self.align_and_focus_args = {
-            'CalFilename': os.path.join(ROOT_DIR, 'isis', 'polaris', 'grouping.cal'),
+            'CalFilename': os.path.join(EXAMPLE_DIR, 'isis', 'polaris_grouping.cal'),
             'ResampleX': -6000,
             'DSpacing': False,
             'PreserveEvents': False,
@@ -19,7 +19,7 @@ class TestLoad(unittest.TestCase):
             'ReductionProperties': '__powderreduction'
         }
         # Highly cropped version of the workspace to improve run time
-        self.sample_file_path = os.path.join(ROOT_DIR, 'test_data', 'POLARIS00097947-min.nxs')
+        self.sample_file_path = os.path.join(TEST_DATA_DIR, 'POLARIS00097947-min.nxs')
 
     def test_basic_load(self):
         ws_name = 'test-sample'
@@ -36,15 +36,18 @@ class TestLoad(unittest.TestCase):
                     'Radius': 0.3175,
                     'Center': [0.0, 0.0, 0.0],
                     'Height': 4.0}
-        material = 'Si'
+        formula = 'Si'
         mass_density = 2.328
         actual = load(ws_name=ws_name,
                       input_files=self.sample_file_path,
                       geometry=geometry,
-                      material=material,
+                      chemical_formula=formula,
                       mass_density=mass_density,
                       **self.align_and_focus_args)
         actual = mtd[actual]
         self.assertEqual(actual.sample().getMaterial().name(), 'Si')
         mtd.clear()
 
+
+if __name__ == '__main__':
+    unittest.main()  # pragma: no cover

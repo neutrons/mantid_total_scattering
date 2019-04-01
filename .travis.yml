@@ -6,7 +6,8 @@ services:
   - docker
 
 before_install:
-  - docker build -t unit-test-env .
+  - docker build -t unit-test-env -f docker/Dockerfile.test .
+  - test_cmd=`./.ci/construct_test_command.sh`
 
 script:
-  - docker run -t unit-test-env
+  - docker run -t unit-test-env /bin/bash -c "$test_cmd"
