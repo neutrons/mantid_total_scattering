@@ -24,7 +24,9 @@ Structure factor S(Q) -> Pair Distribution Function G(r)
 
 To launch the total scattering script, complete the input JSON file, and run:
 
-    python mantid_total_scattering.py input.json
+```bash
+mantidtotalscattering input.json
+```
     
 ## Running the tests
 To build and run tests via [Docker](https://docs.docker.com/), use:
