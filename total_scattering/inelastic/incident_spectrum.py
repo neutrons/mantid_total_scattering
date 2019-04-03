@@ -74,9 +74,9 @@ def fitHowellsFunction(x_fit, y_fit, x):
             lambdas, phi_max, phi_epi, lam_t, lam_1, lam_2, a):
         term1 = (((2 * lam_t**2) / lambdas**2) - 5.) * (1. / lambdas) * \
             phi_max * ((lam_t**4.) / lambdas**5.) * np.exp(-(lam_t / lambdas)**2.)
-        term2 = ((1 + 2 * a) / lambdas)
-        * (1. / lambdas) * (phi_epi / (lambdas ** (1. + 2. * a)))
-        * (1. / (1 + np.exp((lambdas - lam_1) / lam_2)))
+        term2 = ((1 + 2 * a) / lambdas) \
+            * (1. / lambdas) * (phi_epi / (lambdas ** (1. + 2. * a))) \
+            * (1. / (1 + np.exp((lambdas - lam_1) / lam_2)))
         return term1 + term2
 
     params = [1., 1., 1., 0., 1., 1.]
