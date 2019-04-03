@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 # import versioneer  # https://github.com/warner/python-versioneer
 
 setup(name='mantid_total_scattering',
-      version=0.1,  # versioneer.get_version(),
+      version=0.2,  # versioneer.get_version(),
       # cmdclass=versioneer.get_cmdclass(),
       description='Need a description',
       author='Marshall, Elliot, Pete',
