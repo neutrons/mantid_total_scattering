@@ -1,4 +1,4 @@
-To run the mantid_total_scattering script with PyCharm, you will need to:
+To run the mantidtotalscattering script with PyCharm, you will need to:
 1. Setup the project configuration
 1. Setup the test/run configuration
 
