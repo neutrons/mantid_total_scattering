@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 # import versioneer  # https://github.com/warner/python-versioneer
 
 setup(name='mantid_total_scattering',
-      version=1.0,  # versioneer.get_version(),
+      version=0.1,  # versioneer.get_version(),
       # cmdclass=versioneer.get_cmdclass(),
       description='Need a description',
       author='Marshall, Elliot, Pete',
@@ -14,7 +14,14 @@ setup(name='mantid_total_scattering',
       packages=find_packages(),
       # package_data={'': ['*.ui', '*.png', '*.qrc', '*.json']},
       include_package_data=True,
-      install_requires=[],
-      setup_requires=[],
+      install_requires=[
+        "h5py",
+        "matplotlib",
+        "numpy",
+        "scikit-image",
+        "scipy",
+        "six",
+        "pyyaml",
+      ],
       test_suite='tests'
       )
