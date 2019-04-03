@@ -1,7 +1,14 @@
-from mantid.simpleapi import AlignAndFocusPowderFromFiles, NormaliseByCurrent, SetSample, ConvertUnits
+from mantid.simpleapi import \
+    AlignAndFocusPowderFromFiles, NormaliseByCurrent, SetSample, ConvertUnits
 
 
-def load(ws_name, input_files, geometry=None, chemical_formula=None, mass_density=None, **align_and_focus_args):
+def load(
+        ws_name,
+        input_files,
+        geometry=None,
+        chemical_formula=None,
+        mass_density=None,
+        **align_and_focus_args):
     AlignAndFocusPowderFromFiles(OutputWorkspace=ws_name,
                                  Filename=input_files,
                                  Absorption=None,

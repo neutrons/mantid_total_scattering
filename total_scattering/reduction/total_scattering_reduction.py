@@ -2,7 +2,6 @@
 from __future__ import (absolute_import, division, print_function)
 
 import os
-import json
 import itertools
 import numpy as np
 from scipy.constants import Avogadro
@@ -19,9 +18,9 @@ from mantid.simpleapi import \
     CarpenterSampleCorrection, MayersSampleCorrection, \
     CropWorkspaceRagged
 
-from file_handling.load import load
-from file_handling.save import save_banks
-from inelastic.placzek import \
+from total_scattering.file_handling.load import load
+from total_scattering.file_handling.save import save_banks
+from total_scattering.inelastic.placzek import \
     GetIncidentSpectrumFromMonitor, FitIncidentSpectrum, \
     CalculatePlaczekSelfScattering
 
@@ -247,17 +246,7 @@ def SetInelasticCorrection(inelastic_dict):
     return inelastic_settings
 
 
-def main(config=None):
-    if not config:
-        import argparse
-        parser = argparse.ArgumentParser(
-            description="Absolute normalization PDF generation")
-        parser.add_argument('json', help='Input json file')
-        options = parser.parse_args()
-        print("loading config from '%s'" % options.json)
-        with open(options.json, 'r') as handle:
-            config = json.load(handle)
-
+def TotalScatteringReduction(config=None):
     facility = config['Facility']
     title = config['Title']
     instr = config['Instrument']
@@ -1309,7 +1298,3 @@ def main(config=None):
                     % (','.join([ str(i) for i in wkspIndices]), \
                     fitParams.cell('Value', 0), fitParams.cell('Value', 1)) ]
 '''
-
-
-if __name__ == "__main__":
-    main()
