@@ -109,4 +109,4 @@ ENV/
 # test directories
 cache/
 output/
-isis/polaris/test_input.json
+total_scattering/isis/polaris/test_input.json

@@ -2,6 +2,7 @@ import os
 
 
 from total_scattering.utils import ROOT_DIR
+POLARIS_DIR = os.path.join(ROOT_DIR, 'total_scattering', 'isis', 'polaris')
 
 
 JSON_MSG = """
@@ -58,8 +59,8 @@ JSON_MSG = """
 
 
 def generate_input_json():
-    calib_path = os.path.join(ROOT_DIR, 'isis', 'polaris', 'grouping.cal')
-    character_path = os.path.join(ROOT_DIR, 'isis', 'polaris', 'character.txt')
+    calib_path = os.path.join(ROOT_DIR, 'examples', 'isis', 'polaris_grouping.cal')
+    character_path = os.path.join(POLARIS_DIR, 'character.txt')
     cache_path = os.path.join(ROOT_DIR, 'cache')
     output_path = os.path.join(ROOT_DIR, 'output')
     if os.name is 'nt':
@@ -67,7 +68,7 @@ def generate_input_json():
         character_path = character_path.replace('\\', '\\\\')
         cache_path = cache_path.replace('\\', '\\\\')
         output_path = output_path.replace('\\', '\\\\')
-    with open(os.path.join(ROOT_DIR, 'isis', 'polaris', 'test_input.json'), 'w') as input_file:
+    with open(os.path.join(POLARIS_DIR, 'test_input.json'), 'w') as input_file:
         input_file.write(JSON_MSG % (calib_path,
                                      character_path,
                                      cache_path,  # cache dir
@@ -77,4 +78,4 @@ def generate_input_json():
 def clean_up():
     os.removedirs(os.path.join(ROOT_DIR, 'cache'))
     os.removedirs(os.path.join(ROOT_DIR, 'output'))
-    os.remove(os.path.join(ROOT_DIR, 'isis', 'polaris', 'test_input.json'))
+    os.remove(os.path.join(POLARIS_DIR, 'test_input.json'))
