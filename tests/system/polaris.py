@@ -6,9 +6,11 @@ from total_scattering.reduction import TotalScatteringReduction
 from total_scattering.isis.polaris.generate_input import generate_input_json, POLARIS_DIR
 from tests import IN_TRAVIS
 
+run_test = False
+
 
 class PolarisTotalScatteringSystemTest(unittest.TestCase):
-    @unittest.skipIf(IN_TRAVIS, 'Do not run thest on build servers')
+    @unittest.skipIf(IN_TRAVIS or not run_test, 'Do not run thest on build servers')
     def test_silicon(self):
         """
         Run polaris silicon data through total scattering script
