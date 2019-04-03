@@ -17,7 +17,7 @@ RUN apt-get update && \
 
 # Copy Insturment geometry caches
 RUN mkdir -p /root/.mantid/instrument/geometryCache
-COPY ./test_data/POLARIS9fbf7121b4274c833043ae8933ec643ff7b9313d.vtp /root/.mantid/instrument/geometryCache/POLARIS9fbf7121b4274c833043ae8933ec643ff7b9313d.vtp
+COPY ./tests/data/POLARIS9fbf7121b4274c833043ae8933ec643ff7b9313d.vtp /root/.mantid/instrument/geometryCache/POLARIS9fbf7121b4274c833043ae8933ec643ff7b9313d.vtp
 
 # Hack for seg fault when DownloadInstrument gets called inside container from "import mantid.simpleapi"
 RUN echo "UpdateInstrumentDefinitions.OnStartup = 0" > /root/.mantid/Mantid.user.properties
