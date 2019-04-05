@@ -225,23 +225,27 @@ def print_unit_info(workspace):
 
 
 def SetInelasticCorrection(inelastic_dict):
+    default_inelastic_dict = {"Type": None}
+
     if inelastic_dict is None:
-        inelastic_dict = {"Type": None}
-        return inelastic_dict
+        return default_inelastic_dict
 
     corr_type = inelastic_dict["Type"]
+    if corr_type is None or corr_type == u'None':
+        return default_inelastic_dict
 
-    if corr_type == "Placzek":
-        default_settings = {"Order": "1st",
-                            "Self": True,
-                            "Interference": False,
-                            "FitSpectrumWith": "GaussConvCubicSpline",
-                            "LambdaBinning": "0.16,0.04,2.8"}
-        inelastic_settings = default_settings.copy()
-        inelastic_settings.update(inelastic_dict)
+    if corr_type:
+        if corr_type == "Placzek":
+            default_settings = {"Order": "1st",
+                                "Self": True,
+                                "Interference": False,
+                                "FitSpectrumWith": "GaussConvCubicSpline",
+                                "LambdaBinning": "0.16,0.04,2.8"}
+            inelastic_settings = default_settings.copy()
+            inelastic_settings.update(inelastic_dict)
 
-    else:
-        raise Exception("Unknown Inelastic Correction Type")
+        else:
+            raise Exception("Unknown Inelastic Correction Type")
 
     return inelastic_settings
 
@@ -259,7 +263,7 @@ def TotalScatteringReduction(config=None):
     sam_material = sample.get('Material', None)
 
     # Get normalization info
-    van = config['Vanadium']
+    van = config['Normalization']
     van_mass_density = van.get('MassDensity', None)
     van_packing_fraction = van.get('PackingFraction', 1.0)
     van_geometry = van.get('Geometry', None)
@@ -297,7 +301,7 @@ def TotalScatteringReduction(config=None):
     # alignAndFocusArgs['CropWavelengthMax'] from characterizations file
     '''
 
-    if facility is 'SNS':
+    if facility == 'SNS':
         facility_file_format = '%s_%d'
     else:
         facility_file_format = '%s%d'
@@ -386,11 +390,13 @@ def TotalScatteringReduction(config=None):
 
     if grouping:
         if 'Initial' in grouping:
-            alignAndFocusArgs['GroupFilename'] = grouping['Initial']
+            if grouping['Initial'] and not grouping['Initial'] == u'':
+                alignAndFocusArgs['GroupFilename'] = grouping['Initial']
         if 'Output' in grouping:
-            output_grouping = True
-            LoadDetectorsGroupingFile(InputFile=grouping['Output'],
-                                      OutputWorkspace=grp_wksp)
+            if grouping['Output'] and not grouping['Output'] == u'':
+                output_grouping = True
+                LoadDetectorsGroupingFile(InputFile=grouping['Output'],
+                                          OutputWorkspace=grp_wksp)
     # If no output grouping specified, create it with Calibration Grouping
     if not output_grouping:
         LoadDiffCal(alignAndFocusArgs['CalFilename'],
