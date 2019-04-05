@@ -1,6 +1,7 @@
 # Install mantid image
 FROM mantidproject/mantid:nightly_ubuntu16.04_python3
 
+
 # Copy git content from current branch
 COPY . /root/mantid_total_scattering
 
@@ -14,6 +15,13 @@ RUN apt-get update && \
     apt-get -y upgrade && \
     apt-get install python3-pip curl git -y && \
     pip3 install pytest codecov
+
+# Copy Insturment geometry caches
+RUN mkdir -p /root/.mantid/instrument/geometryCache
+COPY ./tests/data/POLARIS9fbf7121b4274c833043ae8933ec643ff7b9313d.vtp /root/.mantid/instrument/geometryCache/POLARIS9fbf7121b4274c833043ae8933ec643ff7b9313d.vtp
+
+# Hack for seg fault when DownloadInstrument gets called inside container from "import mantid.simpleapi"
+RUN echo "UpdateInstrumentDefinitions.OnStartup = 0" > /root/.mantid/Mantid.user.properties
 
 # Move to work directory
 WORKDIR $TSREPO

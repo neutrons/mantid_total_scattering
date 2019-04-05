@@ -8,7 +8,7 @@ branches:
 services:
   - docker
 before_install:
-  - docker build -t unit-test-env -f .ci/Dockerfile.test .
+  - docker build -t unit-test-env -f .ci/Dockerfile.nightly_ubuntu16.04_python3 .
   - test_cmd=`./.ci/construct_test_command.sh`
 script:
   - docker run -t unit-test-env /bin/bash -c "$test_cmd"

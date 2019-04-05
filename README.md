@@ -63,7 +63,7 @@ To build and run the tests via [pytest](https://docs.pytest.org), use:
 To build and run tests via [Docker](https://docs.docker.com/), use:
 
 ```bash
-docker build -t unit-test-env -f .ci/Dockerfile.test . && docker run -t unit-test-env "pytest"
+docker build -t unit-test-env -f .ci/Dockerfile.nightly_ubuntu16.04_python3 . && docker run -t unit-test-env /bin/bash -c "mantidpython -m pytest"
 ```
 
 
