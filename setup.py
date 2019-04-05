@@ -20,6 +20,7 @@ setup(name='mantid_total_scattering',
       install_requires=[
         "h5py",
         "matplotlib<3.0",
+        "networkx==2.2",
         "numpy",
         "scikit-image<0.15",
         "scipy",
