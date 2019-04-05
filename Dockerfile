@@ -1,5 +1,5 @@
 # Install mantid image
-FROM mantidproject/mantid:nightly_ubuntu16.04
+FROM mantidproject/mantid:nightly_ubuntu16.04_python3
 
 # Copy git content from current branch
 COPY . /root/mantid_total_scattering
