@@ -1,14 +1,17 @@
 from setuptools import setup, find_packages
-# import versioneer  # https://github.com/warner/python-versioneer
+import versioneer
+
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 setup(name='mantid_total_scattering',
-      version=0.2,  # versioneer.get_version(),
-      # cmdclass=versioneer.get_cmdclass(),
-      description='Need a description',
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       author='Marshall, Elliot, Pete',
       author_email='mcondonnellmd@ornl.gov',
       url='https://github.com/marshallmcdonnell/mantid_total_scattering',
-      long_description='''Should have a longer description''',
+      description='Mantid Total Scattering Reduction',
+      long_description_content_type="text/markdown",
       license='GPL License (version 3)',
       scripts=['bin/mantidtotalscattering'],
       packages=find_packages(),
