@@ -9,7 +9,6 @@ before_install:
   - test_cmd=`./.ci/construct_test_command.sh`
 script:
   - docker run -t unit-test-env /bin/bash -c "$test_cmd"
-after_success:
   - python setup.py install
 deploy:
   skip_cleanup: true
