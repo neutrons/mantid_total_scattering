@@ -1,4 +1,3 @@
-sudo: required
 dist: trusty
 language: generic
 
@@ -9,10 +8,13 @@ matrix:
   include:
   - os: linux
     env: TYPE="conda" CONDA=2.7
+    sudo: required
   - os: linux
     env: TYPE="conda" CONDA=3.6
+    sudo: required
   - os: linux
     env: TYPE="docker"
+    sudo: required
 
 before_install:
   - if [[ "${TYPE}" == "docker" ]]; then
