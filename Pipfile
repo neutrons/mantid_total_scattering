@@ -6,14 +6,14 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-h5py = "*"
-matplotlib = "*"
-numpy = "*"
-scikit-image = "*"
-scipy = "*"
-six = "*"
-PyYAML = "*"
 mantid-total-scattering = {editable = true,path = "."}
+h5py = "*"
+matplotlib = "<3.0"
+numpy = "*"
+scikit-image = "<0.15"
+scipy = "<1.3"
+six = ">=1.10.0"
+PyYAML = "*"
 versioneer = "*"
 flake8 = "*"
 pytest = "*"

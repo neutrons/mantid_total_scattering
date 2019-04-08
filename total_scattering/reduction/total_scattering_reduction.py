@@ -8,21 +8,37 @@ from scipy.constants import Avogadro
 
 from mantid import mtd
 from mantid.simpleapi import \
-    CreateEmptyTableWorkspace, Load, GenerateEventsFilter, \
-    LoadDetectorsGroupingFile, LoadDiffCal, \
-    CreateGroupingWorkspace, GroupWorkspaces, \
-    PDDetermineCharacterizations, PropertyManagerDataService, \
-    CloneWorkspace, ConvertUnits, SetSample, Rebin, CompressEvents, \
-    Minus, Divide, SetUncertainties, ConvertToHistogram,\
-    ConvertToDistribution, StripVanadiumPeaks, FFTSmooth, \
-    CarpenterSampleCorrection, MayersSampleCorrection, \
-    CropWorkspaceRagged
+    CarpenterSampleCorrection, \
+    CloneWorkspace, \
+    CompressEvents, \
+    ConvertToDistribution, \
+    ConvertToHistogram,\
+    ConvertUnits, \
+    CreateEmptyTableWorkspace, \
+    CreateGroupingWorkspace, \
+    CropWorkspaceRagged, \
+    Divide, \
+    FFTSmooth, \
+    GenerateEventsFilter, \
+    GroupWorkspaces, \
+    Load, \
+    LoadDetectorsGroupingFile, \
+    LoadDiffCal, \
+    MayersSampleCorrection, \
+    Minus, \
+    PDDetermineCharacterizations, \
+    PropertyManagerDataService, \
+    Rebin, \
+    SetSample, \
+    SetUncertainties, \
+    StripVanadiumPeaks
 
 from total_scattering.file_handling.load import load
 from total_scattering.file_handling.save import save_banks
 from total_scattering.inelastic.placzek import \
-    GetIncidentSpectrumFromMonitor, FitIncidentSpectrum, \
-    CalculatePlaczekSelfScattering
+    CalculatePlaczekSelfScattering, \
+    FitIncidentSpectrum, \
+    GetIncidentSpectrumFromMonitor
 
 # Utilities
 

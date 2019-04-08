@@ -20,6 +20,36 @@ Structure factor S(Q) -> Pair Distribution Function G(r)
 ![alt text](https://raw.githubusercontent.com/marshallmcdonnell/mantid_total_scattering/master/images/sofq_to_gofr.png)
 
 
+## Installation
+
+### Anaconda 
+
+**Setup** 
+Add channels with dependencies, create a conda environment with `python_version` set to either `2.7.14` or `3.6`, and activate the environment
+
+```
+conda config --add channels conda-forge --add channels mantid --add channels mantid/label/nightly
+conda create -n mantidts_env python=${python_version}
+conda activate mantidts_env
+```
+
+**Install**
+```
+conda install -c marshallmcdonnell mantid-total-scattering
+```
+
+**Notes**
+If you have an error (see below for example) related to the `libGL` library, you may not have it installed for the Mantid Framework to work. See instructions [here]() for installing the necessary libraries for different OS
+
+Example error:
+`ImportError: First import of "._api" failed with "libGL.so.1: cannot open shared object file...`
+
+If you have an error that another version of Mantid is installed on the machine and being imported via `PYTHONPATH`, you can use the following as a workaround for CLI tool:
+
+```
+PYTHONPATH="" mantidtotalscattering
+```
+
 ## Getting started for development
 
 Clone the repository to a local directory

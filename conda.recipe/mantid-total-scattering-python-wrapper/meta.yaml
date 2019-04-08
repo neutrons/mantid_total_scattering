@@ -1,0 +1,38 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: "mantid-total-scattering-python-wrapper"
+  version: "{{ data['version'] }}"
+
+source:
+  path: ../..
+
+build:
+  noarch: python
+  string: py{{py}}
+  script: python setup.py install --single-version-externally-managed --record=record.txt
+
+requirements:
+  build:
+    - python
+    - setuptools
+
+  run:
+    - python
+
+test:
+  imports:
+    - total_scattering
+    - total_scattering.file_handling
+    - total_scattering.inelastic
+
+about:
+  home: https://github.com/marshallmcdonnell/mantid_total_scattering
+  license: GPL (version 3)
+  license_family: GPL3
+  license_file: 
+  summary: Mantid Total Scattering Reduction
+
+extra:
+  recipe-maintainers:
+    - marshallmcdonnell
