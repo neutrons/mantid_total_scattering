@@ -43,7 +43,7 @@ install:
 script:
   - if [[ "${TYPE}" == "docker" ]]; then
       docker run -t test-env /bin/bash -c "$test_cmd";
-      python setup.py install;
+      sudo python setup.py install;
     fi
   - if [[ "${TYPE}" == "conda" ]]; then
       python setup.py install;
