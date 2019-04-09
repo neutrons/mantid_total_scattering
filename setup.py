@@ -24,7 +24,7 @@ setup(name='mantid_total_scattering',
         "numpy",
         "scikit-image<0.15",
         "scipy",
-        "six",
+        "six>=1.10.0",
         "pyyaml",
       ],
       test_suite='tests'
