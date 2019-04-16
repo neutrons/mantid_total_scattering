@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-PKG_NAME=mantid_total_scattering
+PKG_NAME=mantid-total-scattering
 USER=marshallmcdonnell
 
 OS=${TRAVIS_OS_NAME}-64
