@@ -17,15 +17,18 @@ matrix:
     sudo: required
 
 before_install:
-  - if [[ "${TYPE}" == "docker" ]]; then
+  - | 
+    if [[ "${TYPE}" == "docker" ]]; then
       docker build -t test-env -f .ci/Dockerfile.nightly_ubuntu16.04 .;
       test_cmd=`./.ci/construct_test_command.sh`;
     fi
-  - if [[ "${TYPE}" == "conda" ]]; then
-      wget -O miniconda.sh https://repo.continuum.io/miniconda/Miniconda${CONDA:0:1}-latest-Linux-x86_64.sh;
-      ls /sbin;
-      ls /sbin | grep md5;
-      bash miniconda.sh -b -p $HOME/miniconda;
+
+  - |
+    if [[ "${TYPE}" == "conda" ]]; then
+      MINICONDA_URL="https://repo.continuum.io/miniconda";
+      MINICONDA_URL="Miniconda${CONDA:0:1}-latest-Linux-x86_64.sh";
+      wget "${MINICONDA_URL}/${MINICONDA_FILE}";
+      bash ${MINICONDA_FILE} -b -p $HOME/miniconda;
       export PATH="$HOME/miniconda/bin:$PATH";
       conda config --set always_yes yes --set changeps1 no --set anaconda_upload yes;
       conda config --add channels conda-forge;
@@ -40,20 +43,34 @@ before_install:
     fi
 
 install:
-  - if [[ "${TYPE}" == "conda" ]]; then source activate test-env; fi
+  - |
+    if [[ "${TYPE}" == "conda" ]]; then
+      source activate test-env; 
+    fi
 
 script:
-  - if [[ "${TYPE}" == "docker" ]]; then
+  - |
+    if [[ "${TYPE}" == "docker" ]]; then
       docker run -t test-env /bin/bash -c "$test_cmd";
       sudo python setup.py install;
     fi
-  - if [[ "${TYPE}" == "conda" ]]; then
+
+  - |
+    if [[ "${TYPE}" == "conda" ]]; then
       python setup.py install;
       python setup.py test;
     fi
 
 after_success:
-  - if [[ "${TYPE}" == "conda" ]]; then cd conda.recipe; conda build .; fi
+
+after_success:
+  - |
+    if [[ "${TYPE}" == "conda" ]]; then 
+      test $TRAVIS_BRANCH = "master";
+      conda install conda-build;
+      conda install anaconda-client;
+      bash conda.recipe/conda_upload.sh
+    fi
 
 deploy:
   skip_cleanup: true
