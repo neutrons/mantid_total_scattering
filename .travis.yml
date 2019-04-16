@@ -29,6 +29,7 @@ before_install:
       export PATH="$HOME/miniconda/bin:$PATH";
       conda config --set always_yes yes --set changeps1 no;
       conda config --add channels conda-forge;
+      conda config --add channels mantid;
       conda update  -q conda;
       conda create  -n test-env -q python=$CONDA;
       conda update  -n test-env -q conda;
@@ -49,6 +50,9 @@ script:
       python setup.py install;
       python setup.py test;
     fi
+
+after_success:
+  - if [[ "${TYPE}" == "conda" ]]; then cd conda.recipe; conda build .; fi
 
 deploy:
   skip_cleanup: true
