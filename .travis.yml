@@ -34,6 +34,7 @@ before_install:
       conda create  -n test-env -q python=$CONDA;
       conda update  -n test-env -q conda;
       conda install -n test-env -q conda-build;
+      conda install -n test-env -q anaconda-client;
       conda install -n test-env -c mantid mantid-workbench nexus poco;
       conda install -n test-env flake8;
     fi
