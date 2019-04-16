@@ -26,7 +26,7 @@ before_install:
   - |
     if [[ "${TYPE}" == "conda" ]]; then
       MINICONDA_URL="https://repo.continuum.io/miniconda";
-      MINICONDA_URL="Miniconda${CONDA:0:1}-latest-Linux-x86_64.sh";
+      MINICONDA_FILE="Miniconda${CONDA:0:1}-latest-Linux-x86_64.sh";
       wget "${MINICONDA_URL}/${MINICONDA_FILE}";
       bash ${MINICONDA_FILE} -b -p $HOME/miniconda;
       export PATH="$HOME/miniconda/bin:$PATH";
