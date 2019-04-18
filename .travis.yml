@@ -1,15 +1,77 @@
-sudo: required
-language: python
-python:
-  - '2.7'
+dist: trusty
+language: generic
+
 services:
   - docker
+
+matrix:
+  include:
+  - os: linux
+    env: TYPE="conda" CONDA=2.7
+    sudo: required
+  - os: linux
+    env: TYPE="conda" CONDA=3.6
+    sudo: required
+  - os: linux
+    env: TYPE="docker"
+    sudo: required
+
 before_install:
-  - docker build -t unit-test-env -f .ci/Dockerfile.nightly_ubuntu16.04 .
-  - test_cmd=`./.ci/construct_test_command.sh`
+  - | 
+    if [[ "${TYPE}" == "docker" ]]; then
+      docker build -t test-env -f .ci/Dockerfile.nightly_ubuntu16.04 .;
+      test_cmd=`./.ci/construct_test_command.sh`;
+    fi
+
+  - |
+    if [[ "${TYPE}" == "conda" ]]; then
+      MINICONDA_URL="https://repo.continuum.io/miniconda";
+      MINICONDA_FILE="Miniconda${CONDA:0:1}-latest-Linux-x86_64.sh";
+      wget "${MINICONDA_URL}/${MINICONDA_FILE}";
+      bash ${MINICONDA_FILE} -b -p $HOME/miniconda;
+      export PATH="$HOME/miniconda/bin:$PATH";
+      conda config --set always_yes yes --set changeps1 no --set anaconda_upload yes;
+      conda config --add channels conda-forge;
+      conda config --add channels mantid;
+      conda update  -q conda;
+      conda create  -n test-env -q python=$CONDA;
+      conda update  -n test-env -q conda;
+      conda install -n test-env -q conda-build;
+      conda install -n test-env -q anaconda-client;
+      conda install -n test-env -c mantid mantid-workbench nexus poco;
+      conda install -n test-env flake8;
+    fi
+
+install:
+  - |
+    if [[ "${TYPE}" == "conda" ]]; then
+      source activate test-env; 
+    fi
+
 script:
-  - docker run -t unit-test-env /bin/bash -c "$test_cmd"
-  - python setup.py install
+  - |
+    if [[ "${TYPE}" == "docker" ]]; then
+      docker run -t test-env /bin/bash -c "$test_cmd";
+      sudo python setup.py install;
+    fi
+
+  - |
+    if [[ "${TYPE}" == "conda" ]]; then
+      python setup.py install;
+      python setup.py test;
+    fi
+
+after_success:
+
+after_success:
+  - |
+    if [[ "${TYPE}" == "conda" ]]; then 
+      test $TRAVIS_BRANCH = "master";
+      conda install conda-build;
+      conda install anaconda-client;
+      bash conda.recipe/conda_upload.sh
+    fi
+
 deploy:
   skip_cleanup: true
   skip_existing: true

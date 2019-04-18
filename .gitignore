@@ -110,3 +110,6 @@ ENV/
 cache/
 output/
 total_scattering/isis/polaris/test_input.json
+
+# conda
+conda_build/
