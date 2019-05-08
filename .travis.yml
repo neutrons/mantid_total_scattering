@@ -17,10 +17,13 @@ matrix:
 
   # Conda w/o mantid-framework
   - os: linux
+    env: TYPE="conda" CONDA=2.7    PKG="mantid-total-scattering-python-wrapper"
+    sudo: required
+  - os: linux
     env: TYPE="conda" CONDA=2.7.14 PKG="mantid-total-scattering-python-wrapper"
     sudo: required
   - os: linux
-    env: TYPE="conda" CONDA=3.6 PKG="mantid-total-scattering-python-wrapper" 
+    env: TYPE="conda" CONDA=3.6    PKG="mantid-total-scattering-python-wrapper"
     sudo: required
 
   # Conda w/ mantid-framework
@@ -28,7 +31,7 @@ matrix:
     env: TYPE="conda" CONDA=2.7.14 PKG="mantid-total-scattering"
     sudo: required
   - os: linux
-    env: TYPE="conda" CONDA=3.6 PKG="mantid-total-scattering" 
+    env: TYPE="conda" CONDA=3.6    PKG="mantid-total-scattering"
     sudo: required
 
   # Since Mantid Framework is prone to seg faults
@@ -37,7 +40,7 @@ matrix:
       env: TYPE="conda" CONDA=2.7.14 PKG="mantid-total-scattering"
       sudo: required
     - os: linux
-      env: TYPE="conda" CONDA=3.6 PKG="mantid-total-scattering"
+      env: TYPE="conda" CONDA=3.6    PKG="mantid-total-scattering"
       sudo: required
 
 before_install:
@@ -85,8 +88,10 @@ script:
 
   - |
     if [[ "${TYPE}" == "conda" ]]; then
-      conda install -c mantid/label/nightly mantid-framework
-      python setup.py test;
+      if [[ "${CONDA}" == 2.7.14 || "${CONDA}" == '3.6' ]]; then
+        conda install -c mantid/label/nightly mantid-framework
+        python setup.py test;
+      fi
     fi
 
 deploy:
@@ -110,4 +115,4 @@ deploy:
    on:
      branch: master
      tags: true
-     condition: $TYPE = conda
+     condition: $TYPE = conda AND ($CONDA='2.7' OR $CONDA='3.6')
