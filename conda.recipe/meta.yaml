@@ -1,0 +1,45 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: "mantid-total-scattering"
+  version: "{{ data['version'] }}"
+
+source:
+
+source:
+  path: ..
+
+build:
+  number: 0
+  script: python setup.py install --single-version-externally-managed --record=record.txt
+  script_env:
+   - CONDA_BLD_PATH
+
+requirements:
+  run:
+    - h5py
+    - matplotlib <3.0
+    - mantid-framework
+    - networkx ==2.2
+    - numpy
+    - python
+    - pyyaml
+    - scikit-image <0.15
+    - scipy
+    - six
+
+test:
+  commands:
+    - ls
+
+
+about:
+  home: https://github.com/marshallmcdonnell/mantid_total_scattering
+  license: GPL (version 3)
+  license_family: GPL3
+  license_file: 
+  summary: Mantid Total Scattering Reduction
+
+extra:
+  recipe-maintainers:
+    - marshallmcdonnell
