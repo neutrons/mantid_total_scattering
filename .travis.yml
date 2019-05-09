@@ -102,10 +102,11 @@ deploy:
    skip_cleanup: true
    skip_existing: true
    on:
-     tags: true
-     branch: master
+     tags: false
+     branch: docker_pypi_deploy 
+     condition: $TYPE = docker
    password:
-     secure: ${PYPI_UPLOAD_TOKEN}
+     secure: kqA6ITb6fr+9Q/KBeU/mxa+d319Uwgc9wi8OPsZssvSneQ8vGAIVSSDBeCVbKSXLjXUIKUWYfndOiqT8wCQU+jpY1TZG0Bm0zWGGxBvcUJEnVrB7siWJ6l+MZ4nPXFFMtwhP0KMDtwen0fLnGOLQlNLyz3qb0Lf8NkM1BumXDK7Lc7p/x8ziKHQothL047jx+0PMsydbTdK2gae/ADm6R4z+ZJirv0/yciUQnCwmiXSnYX5UHtkXqP3k21ZtTV3eA9vNvK1HMEti51lFDrgTt5EBOxtX0UIz6YqfCl5ZHyXMS4uCwqL/m7gRPAc1MTmSurZ4JJkvsaVrU3vUdIimlm2EwqH6+yOfjvWlTdwjglkplt4Z95/rN3CLvYIrYq76XsG2yxY8c11+xmpSMo2/6vbRvmKhmbyV6tFeBgq5rflA/xJkM5WqSyMcE0lhk8xc0RL7aAeblyAs9q/hN9BiZIesegE6pd8DWYEGw6cWnwzaflLgze0nJYE5gQ5z5LZJky8/Nxdxumtf9XVS48PenaNIbDLLG1ER2nufHHg3/5Yv+c0TMRWKv6plb4OLj2AIYa2aSedm7YyVhCbVV0/xM0HxZ8fpKxBMDuFuuU1S1YgQkex7cCfj2QW2JBGoX/iAvPz1sZcU7A+VKaKMJyY+SSmQf+Sz3Px3O8CE+9LerV4=
 
  # Deploy conda package to Anaconda.org https://anaconda.org/marshallmcdonnell/mantid-total-scattering
  - provider: script

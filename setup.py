@@ -18,6 +18,7 @@ setup(name='mantid_total_scattering',
             "mantidtotalscattering = total_scattering.cli:main"
         ]
       },
+      install_requires=['six>=1.9'],
       packages=find_packages(),
       # package_data={'': ['*.ui', '*.png', '*.qrc', '*.json']},
       include_package_data=True,
