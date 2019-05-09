@@ -20,11 +20,14 @@ Structure factor S(Q) -> Pair Distribution Function G(r)
 ![alt text](https://raw.githubusercontent.com/marshallmcdonnell/mantid_total_scattering/master/images/sofq_to_gofr.png)
 
 
-## Installation
+# Installation
 
-### Anaconda 
+## Mantid Framework Included
+
+### Anaconda (Recommended)
 
 **Setup** 
+
 Add channels with dependencies, create a conda environment with `python_version` set to either `2.7.14` or `3.6`, and activate the environment
 
 ```
@@ -34,11 +37,13 @@ conda activate mantidts_env
 ```
 
 **Install**
+
 ```
 conda install -c marshallmcdonnell mantid-total-scattering
 ```
 
 **Notes**
+
 If you have an error (see below for example) related to the `libGL` library, you may not have it installed for the Mantid Framework to work. See instructions [here]() for installing the necessary libraries for different OS
 
 Example error:
@@ -50,7 +55,50 @@ If you have an error that another version of Mantid is installed on the machine 
 PYTHONPATH="" mantidtotalscattering
 ```
 
-## Getting started for development
+# Usage (CLI reduction tool)
+
+To launch the total scattering script, complete the input JSON file (found in `examples` directory), and run:
+
+```bash
+mantidtotalscattering examples/sns/nomad_simple.json
+```
+
+If you need to specify the path to Mantid build, use:
+```
+MANTIDPATH=/path/to/mantid/build/bin PATH=$MANTIDPATH:$PATH PYTHONPATH=$MANTIDPATH:$PATH mantidtotalscattering <json input>
+```
+
+## Mantid Framework Not Included (for development)
+
+This is mainly for development if you want to use a local development build of Mantid Framework instead of one included.
+
+## PyPI (Recommended)
+
+**Install**
+
+```
+pip install mantid-total-scattering
+```
+
+## Anaconda 
+
+**Setup**
+
+Add channels with dependencies, create a conda environment with `python_version` set to either `2.7` or `3.6`, and activate the environment
+
+```
+conda config --add channels conda-forge
+conda create -n mantidts_env python=${python_version}
+conda activate mantidts_env
+```
+
+**Install**
+
+```
+conda install -c marshallmcdonnell mantid-total-scattering-python-wrapper
+```
+
+## Development
 
 Clone the repository to a local directory
 
@@ -70,19 +118,6 @@ To setup the development environment with [pipenv](https://pipenv.readthedocs.io
 NOTE: On Step 3, if you get something like
 "Shell for UNKNOWN_VIRTUAL_ENVIRONMENT already activated.", the shell is already running from install.
 Usually, do a `deactivate` and then repeat Step 3.
-
-### Use CLI reduction tool
-
-To launch the total scattering script, complete the input JSON file (found in `examples` directory), and run:
-
-```bash
-mantidtotalscattering examples/sns/nomad_simple.json
-```
-
-If you need to specify the path to Mantid build, use:
-```
-MANTIDPATH=/path/to/mantid/build/bin PATH=$MANTIDPATH:$PATH PYTHONPATH=$MANTIDPATH:$PATH mantidtotalscattering <json input>
-```
 
 ## Running the tests
 To build and run the tests via [pytest](https://docs.pytest.org), use:
