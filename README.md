@@ -44,7 +44,7 @@ conda install -c marshallmcdonnell mantid-total-scattering
 
 **Notes**
 
-If you have an error (see below for example) related to the `libGL` library, you may not have it installed for the Mantid Framework to work. See instructions [here](https://github.com/mantidproject/conda-recipes/) for installing the necessary libraries for different OS
+If you have an error (see below for example) related to the `libGL` library, you may not have it installed for the Mantid Framework to work. See instructions [here](https://github.com/mantidproject/conda-recipes/#gl-and-glu-libs) for installing the necessary libraries for different OS
 
 Example error:
 `ImportError: First import of "._api" failed with "libGL.so.1: cannot open shared object file...`
