@@ -104,6 +104,7 @@ deploy:
    on:
      tags: false
      branch: docker_pypi_deploy 
+     condition: $TYPE = docker
    password:
      secure: ${PYPI_UPLOAD_TOKEN}
 
