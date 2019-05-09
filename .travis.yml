@@ -102,8 +102,8 @@ deploy:
    skip_cleanup: true
    skip_existing: true
    on:
-     tags: true
-     branch: master
+     tags: false
+     branch: docker_pypi_deploy 
    password:
      secure: ${PYPI_UPLOAD_TOKEN}
 
