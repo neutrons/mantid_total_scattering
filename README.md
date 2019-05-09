@@ -33,7 +33,7 @@ Add channels with dependencies, create a conda environment with `python_version`
 ```
 conda config --add channels conda-forge --add channels mantid --add channels mantid/label/nightly
 conda create -n mantidts_env python=${python_version}
-conda activate mantidts_env
+source activate mantidts_env
 ```
 
 **Install**
