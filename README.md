@@ -98,7 +98,7 @@ conda activate mantidts_env
 conda install -c marshallmcdonnell mantid-total-scattering-python-wrapper
 ```
 
-## Development
+# Development
 
 Clone the repository to a local directory
 
@@ -107,7 +107,7 @@ git clone https://github.com/marshallmcdonnell/mantid_total_scattering.git
 cd mantid_total_scattering
 ```
 
-### Setup using Pipenv
+## Pipenv
 
 To setup the development environment with [pipenv](https://pipenv.readthedocs.io):
 
@@ -119,7 +119,7 @@ NOTE: On Step 3, if you get something like
 "Shell for UNKNOWN_VIRTUAL_ENVIRONMENT already activated.", the shell is already running from install.
 Usually, do a `deactivate` and then repeat Step 3.
 
-## Running the tests
+# Tests
 To build and run the tests via [pytest](https://docs.pytest.org), use:
 ```bash
 /path/to/mantid/build/bin/mantidpython setup.py test
