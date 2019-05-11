@@ -1,9 +1,8 @@
 | DevOps | Release |
 |--------|---------| 
-| [![Build Status](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering.svg?branch=master)](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering) | https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/version.svg |
-| [![codecov](https://codecov.io/gh/marshallmcdonnell/mantid_total_scattering/branch/master/graph/badge.svg)](https://codecov.io/gh/marshallmcdonnell/mantid_total_scattering) | 
-https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/latest_release_date.svg |
-| | https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/platforms.svg  |
+| [![Build Status](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering.svg?branch=master)](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering) | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/installer/conda.svg)](https://conda.anaconda.org/marshallmcdonnell) |
+| [![codecov](https://codecov.io/gh/marshallmcdonnell/mantid_total_scattering/branch/master/graph/badge.svg)](https://codecov.io/gh/marshallmcdonnell/mantid_total_scattering) | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/version.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering) |
+| | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/platforms.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering) |
 
 
 Total Scattering Data Reduction using Mantid Framework
