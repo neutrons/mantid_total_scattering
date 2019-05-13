@@ -13,7 +13,7 @@ setup(name='mantid_total_scattering',
       description='Mantid Total Scattering Reduction',
       long_description_content_type="text/markdown",
       license='GPL License (version 3)',
-      entry_points = {
+      entry_points={
         'console_scripts': [
             "mantidtotalscattering = total_scattering.cli:main"
         ]
