@@ -41,6 +41,12 @@ class TestSave(unittest.TestCase):
         save_banks(self.wksp, self.out_nxs, 'wksp', '.')
         self.assertTrue(os.path.isfile(self.out_nxs))
         mtd.clear()
+    
+    def test_save_banks_relative_path(self):
+        save_banks(self.wksp, self.out_nxs, 'wksp', './output')
+        self.assertTrue(os.path.isfile( os.path.join('./output', self.out_nxs)))
+        mtd.clear()
+        
 
     def test_save_banks_check_contents(self):
         save_banks(self.wksp, self.out_nxs, 'wksp', '.')
@@ -59,6 +65,7 @@ class TestSave(unittest.TestCase):
         self.assertNotEqual(out_wksp.blocksize(),
                             self.wksp.blocksize())
         self.assertEqual(out_wksp.blocksize(), 100)
+
 
     def test_save_banks_grouping(self):
         # TODO: Will have to implement when we have event test data.
