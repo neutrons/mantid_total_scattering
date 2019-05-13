@@ -56,7 +56,7 @@ def save_banks(InputWorkspace, Filename, Title, OutputDir,
                                         PreserveEvents=False)
 
     # Save out wksp to file
-    filename = os.path.join(OutputDir, Filename)
+    filename = os.path.join( os.path.abspath(OutputDir), Filename)
     SaveNexusProcessed(
         InputWorkspace=tmp_wksp,
         Filename=filename,
