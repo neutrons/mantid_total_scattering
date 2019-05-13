@@ -63,7 +63,7 @@ def generate_input_json():
     character_path = os.path.join(POLARIS_DIR, 'character.txt')
     cache_path = os.path.join(ROOT_DIR, 'cache')
     output_path = os.path.join(ROOT_DIR, 'output')
-    if os.name is 'nt':
+    if os.name == 'nt':
         calib_path = calib_path.replace('\\', '\\\\')
         character_path = character_path.replace('\\', '\\\\')
         cache_path = cache_path.replace('\\', '\\\\')

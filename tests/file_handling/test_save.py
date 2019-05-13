@@ -42,6 +42,11 @@ class TestSave(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.out_nxs))
         mtd.clear()
 
+    def test_save_banks_relative_path(self):
+        save_banks(self.wksp, self.out_nxs, 'wksp', './output')
+        self.assertTrue(os.path.isfile(os.path.join('./output', self.out_nxs)))
+        mtd.clear()
+
     def test_save_banks_check_contents(self):
         save_banks(self.wksp, self.out_nxs, 'wksp', '.')
         out_wksp = LoadNexusProcessed(self.out_nxs)
