@@ -37,10 +37,16 @@ conda create -n mantidts_env python=${python_version}
 source activate mantidts_env
 ```
 
-**Install**
+**Install (or Update)**
 
 ```
 conda install -c marshallmcdonnell mantid-total-scattering
+```
+
+Go here for how to delete an [environment](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#removing-an-environment) or use:
+
+```
+conda remove --name mantidts_env --all
 ```
 
 **Notes**
