@@ -21,7 +21,7 @@
                                        "LambdaBinningForFit"  : "0.16,0.04,2.8",
                                        "LambdaBinningForCalc" : "0.16,0.0001,2.9"}
             },
-    "Vanadium": { "Runs" : "91603",
+    "Normalization": { "Runs" : "91603",
                   "Background" : { "Runs" : "91607" },
                   "Material" : "V",
                   "MassDensity" : 6.11,
@@ -39,10 +39,10 @@
                                             "LambdaBinningForCalc" : "0.1,0.0001,3.0"}
                 },
     "Calibration":{"Filename":"/SNS/NOM/shared/CALIBRATION/2017_1_1B_CAL/NOM_d91621_2017_04_12_shifter.h5"},
+    "AlignAndFocusArgs" : { "TMin" : 300.0, "TMax" : 16667.0 },
     "HighQLinearFitRange" : 0.60,
     "Merging":{"QBinning": [0.0, 0.02, 40.0],
-               "SumBanks": [3],
-               "Characterizations":{"Filename":"/SNS/NOM/shared/CALIBRATION/2017_1_1B_CAL/NOM_char_2017_04_15-pdf.txt"}
+               "SumBanks": [3]
               },
     "CacheDir" : "./tmp",
     "OutputDir" : "./output"
