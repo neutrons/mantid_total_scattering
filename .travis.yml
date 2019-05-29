@@ -68,7 +68,7 @@ install:
       conda update  -q conda;
       conda info -a
 
-      conda create -q -n ${PKG} python=$CONDA flake8 conda-build conda-verify anaconda-client;
+      conda create -q -n ${PKG} python=$CONDA flake8 conda-build=3.17 conda-verify anaconda-client;
       source activate ${PKG}
 
       # Build recipe and install 

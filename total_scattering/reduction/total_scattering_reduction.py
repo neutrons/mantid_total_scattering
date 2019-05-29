@@ -843,6 +843,15 @@ def TotalScatteringReduction(config=None):
                GroupingWorkspace=grp_wksp,
                Binning=binning)
 
+    # Output an initial I(Q) for sample
+    iq_filename = title + '_initial_iofq_banks.nxs'
+    save_banks(InputWorkspace=sam_wksp,
+               Filename=iq_filename,
+               Title="IQ_banks",
+               OutputDir=OutputDir,
+               GroupingWorkspace=grp_wksp,
+               Binning=binning)
+
     for name in [container, van_corrected]:
         ConvertUnits(
             InputWorkspace=name,
@@ -1127,6 +1136,23 @@ def TotalScatteringReduction(config=None):
                Binning=binning)
     save_banks(InputWorkspace="SQ_banks_ws",
                Filename=nexus_filename,
+               Title="SQ_banks",
+               OutputDir=OutputDir,
+               GroupingWorkspace=grp_wksp,
+               Binning=binning)
+
+    # Output a main S(Q) and F(Q) file
+    fq_filename = title + '_fofq_banks_corrected.nxs'
+    save_banks(InputWorkspace="FQ_banks_ws",
+               Filename=fq_filename,
+               Title="FQ_banks",
+               OutputDir=OutputDir,
+               GroupingWorkspace=grp_wksp,
+               Binning=binning)
+
+    sq_filename = title + '_sofq_banks_corrected.nxs'
+    save_banks(InputWorkspace="SQ_banks_ws",
+               Filename=sq_filename,
                Title="SQ_banks",
                OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
