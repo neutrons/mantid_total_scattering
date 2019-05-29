@@ -1144,8 +1144,8 @@ def TotalScatteringReduction(config=None):
     # Output a main S(Q) and F(Q) file
     fq_filename = title + '_fofq_banks_corrected.nxs'
     save_banks(InputWorkspace="FQ_banks_ws",
-               Filename=sq_filename,
-               Title="SQ_banks",
+               Filename=fq_filename,
+               Title="FQ_banks",
                OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
