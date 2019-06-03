@@ -38,9 +38,7 @@ def set_sample(ws_name, geometry=None, chemical_formula=None, mass_density=None)
         geometry.update({'Center': [0., 0., 0., ]})
     if "Shape" not in geometry:
         geometry.update({'Shape': 'Cylinder'})
-    print("GEOMETRY:", geometry)
     geometry = configure_geometry(geometry)
-    print("NEW GEOMETRY:", geometry)
     SetSample(
         InputWorkspace=ws_name,
         Geometry=geometry,
@@ -54,7 +52,6 @@ def configure_geometry(geo):
     shape = geo['Shape'].lower().replace(" ", "")
     if shape == 'cylinder':
         new_geo = add_required_shape_keys(geo, "Cylinder")
-        new_geo['Shape'] = 'Cylinder'
 
     if shape == 'hollowcylinder':
         new_geo = add_required_shape_keys(geo, "HollowCylinder")
@@ -62,11 +59,9 @@ def configure_geometry(geo):
             new_geo['OuterRadius'] = geo['Radius']
         if 'Radius2' in geo:
             new_geo['InnerRadius'] = geo['Radius2']
-        new_geo['Shape'] = "HollowCylinder"
 
     if shape == 'flatplate':
         new_geo = add_required_shape_keys(geo, "FlatPlate")
-        new_geo['Shape'] = "FlatPlate"
     return new_geo
 
 
@@ -77,4 +72,5 @@ def add_required_shape_keys(mydict, shape):
             new_dict[key] = None
         else:
             new_dict[key] = mydict[key]
+    new_dict['Shape'] = shape
     return new_dict
