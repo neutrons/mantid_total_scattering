@@ -1,0 +1,2 @@
+ignore:
+  - "total_scattering/_version.py"
