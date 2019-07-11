@@ -46,7 +46,7 @@ matrix:
 before_install:
   - | 
     if [[ "${TYPE}" == "docker" ]]; then
-      docker build -t test-env -f .ci/Dockerfile.nightly_ubuntu16.04 .;
+      docker build -t test-env -f .ci/Dockerfile.nightly_ubuntu16.04_python3 .;
       test_cmd=`./.ci/construct_test_command.sh`;
     fi
 
