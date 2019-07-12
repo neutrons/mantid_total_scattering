@@ -38,7 +38,7 @@ class TestUtilsForReduction(unittest.TestCase):
         keys = ["Vanadium", "Normalization", "Normalisation"]
         dictionary = {"Sample": True}
         with self.assertRaises(Exception):
-            match_value = ts.extract_key_match_from_dict(keys, dictionary)
+            ts.extract_key_match_from_dict(keys, dictionary)
 
     def test_get_sample_when_match(self):
         """ Test extracting sample info from config
@@ -52,7 +52,7 @@ class TestUtilsForReduction(unittest.TestCase):
         """
         config = {"BadKey": {"Runs": "10-20"}}
         with self.assertRaises(Exception):
-            sample_value = ts.get_sample(config)
+            ts.get_sample(config)
 
     def test_get_normalization_when_match_for_vanadium(self):
         """ Test extracting vanadium info from config
@@ -80,5 +80,5 @@ class TestUtilsForReduction(unittest.TestCase):
         """
         config = {"BadKey": {"Runs": "10-20"}}
         with self.assertRaises(Exception):
-            norm_value = ts.get_normalization(config)
+            ts.get_normalization(config)
         
