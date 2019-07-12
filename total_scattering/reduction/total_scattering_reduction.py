@@ -310,22 +310,22 @@ def find_key_match_in_dict(keys, dictionary):
     return None
 
 
-def extract_from_dict_using_keys(dictionary, keys):
+def extract_key_match_from_dict(keys, dictionary):
     """ Convienence function for extraction of one key from dictionary
 
-    :param dictionary: Dictionary to check
-    "type dictionary: dict
     :param keys: Keys to check against dictionary
     :type keys: list
+    :param dictionary: Dictionary to check
+    "type dictionary: dict
 
-    :return: The exctracted value for normalization in the input
+    :return: The exctracted value
     :rtype: any
     """
     out = find_key_match_in_dict(keys, dictionary)
     if out:
         return out
     else:
-        e = "No normalization section found. Valid keys are {}".format(keys)
+        e = "No matching key found. Valid keys are {}".format(keys)
         raise Exception(e)
 
 
@@ -339,7 +339,7 @@ def get_sample(config):
     :rtype: any
     """
     keys = ["Sample"]
-    out = extract_from_dict_using_keys(config, keys)
+    out = extract_key_match_from_dict(keys, config)
     return out
 
 
@@ -353,7 +353,7 @@ def get_normalization(config):
     :rtype: any
     """
     keys = ["Normalization", "Normalisation", "Vanadium"]
-    out = extract_from_dict_using_keys(config, keys)
+    out = extract_key_match_from_dict(keys, config)
     return out
 
 
