@@ -81,4 +81,3 @@ class TestUtilsForReduction(unittest.TestCase):
         config = {"BadKey": {"Runs": "10-20"}}
         with self.assertRaises(Exception):
             ts.get_normalization(config)
-        
