@@ -39,4 +39,46 @@ class TestUtilsForReduction(unittest.TestCase):
         dictionary = {"Sample": True}
         with self.assertRaises(Exception):
             match_value = ts.extract_key_match_from_dict(keys, dictionary)
+
+    def test_get_sample_when_match(self):
+        """ Test extracting sample info from config
+        """
+        config = {"Sample": {"Runs": "10-20"}}
+        sample_value = ts.get_sample(config)
+        self.assertEqual(config["Sample"], sample_value)
+
+    def test_get_sample_raise_error_when_no_match(self):
+        """ Test that we raise an error when no Sample key found
+        """
+        config = {"BadKey": {"Runs": "10-20"}}
+        with self.assertRaises(Exception):
+            sample_value = ts.get_sample(config)
+
+    def test_get_normalization_when_match_for_vanadium(self):
+        """ Test extracting vanadium info from config
+        """
+        config = {"Vanadium": {"Runs": "10-20"}}
+        norm_value = ts.get_normalization(config)
+        self.assertEqual(config["Vanadium"], norm_value)
+
+    def test_get_normalization_when_match_for_normalization(self):
+        """ Test extracting normalization info from config
+        """
+        config = {"Normalization": {"Runs": "10-20"}}
+        norm_value = ts.get_normalization(config)
+        self.assertEqual(config["Normalization"], norm_value)
+
+    def test_get_normalization_when_match_for_normalisation(self):
+        """ Test extracting normalisation info from config
+        """
+        config = {"Normalisation": {"Runs": "10-20"}}
+        norm_value = ts.get_normalization(config)
+        self.assertEqual(config["Normalisation"], norm_value)
+
+    def test_get_normalization_raise_error_when_no_match(self):
+        """ Test that we raise an error when no normalization keys found
+        """
+        config = {"BadKey": {"Runs": "10-20"}}
+        with self.assertRaises(Exception):
+            norm_value = ts.get_normalization(config)
         
