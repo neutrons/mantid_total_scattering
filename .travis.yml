@@ -92,6 +92,8 @@ script:
     if [[ "${TYPE}" == "conda" ]]; then
       if [[ "${CONDA}" == '2.7.14' || "${CONDA}" == '3.6' ]]; then
         conda install -c mantid/label/nightly mantid-framework=4
+        which python
+        python -V
         python setup.py test;
       fi
     fi
