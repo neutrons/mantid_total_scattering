@@ -379,6 +379,7 @@ def TotalScatteringReduction(config=None):
     # Get calibration, characterization, and other settings
     merging = config['Merging']
     binning = merging['QBinning']
+    characterizations = merging.get('Characterizations', None)
 
     # Grouping
     grouping = merging.get('Grouping', None)
@@ -629,7 +630,7 @@ def TotalScatteringReduction(config=None):
                    Binning=binning)
 
     # Load Instrument Characterizations
-    if "Characterizations" in merging:
+    if characterizations:
         PDDetermineCharacterizations(
             InputWorkspace=sam_wksp,
             Characterizations='characterizations',
