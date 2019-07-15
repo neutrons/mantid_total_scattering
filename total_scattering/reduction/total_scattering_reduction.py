@@ -378,7 +378,7 @@ def TotalScatteringReduction(config=None):
 
     # Get calibration, characterization, and other settings
     merging = config['Merging']
-    binning = merging.get('QBinning', None)
+    binning = merging['QBinning']
     characterizations = merging.get('Characterizations', None)
 
     # Grouping
