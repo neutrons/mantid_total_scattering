@@ -1,10 +1,6 @@
 # Install mantid image
 FROM mantidproject/mantid:nightly_ubuntu16.04_python3
 
-
-# Copy git content from current branch
-COPY . /root/mantid_total_scattering
-
 # Add Mantid to python path
 ENV MANTIDPATH         /opt/mantidnightly/bin
 ENV TSREPO             /root/mantid_total_scattering
@@ -22,6 +18,9 @@ COPY ./tests/data/POLARIS9fbf7121b4274c833043ae8933ec643ff7b9313d.vtp /root/.man
 
 # Hack for seg fault when DownloadInstrument gets called inside container from "import mantid.simpleapi"
 RUN echo "UpdateInstrumentDefinitions.OnStartup = 0" > /root/.mantid/Mantid.user.properties
+
+# Copy git content from current branch
+COPY . /root/mantid_total_scattering
 
 # Move to work directory
 WORKDIR $TSREPO

@@ -266,20 +266,111 @@ def SetInelasticCorrection(inelastic_dict):
     return inelastic_settings
 
 
+def one_and_only_one(iterable):
+    """Determine if iterable (ie list) has one and only one `True` value
+
+    :param iterable: The iterable to check
+    :type iterable: list
+
+    :return: If there is one and only one True
+    :rtype: bool
+    """
+    try:
+        iterator = iter(iterable)
+        has_true = any(iterator)
+        has_another_true = any(iterator)
+        return has_true and not has_another_true
+    except Exception as e:
+        print(e)
+        raise
+
+
+def find_key_match_in_dict(keys, dictionary):
+    """ Check if one and only one of the keys is in the dictionary
+    and return its value
+
+    :param key: Keys we will check for in dictionary
+    :type key: str
+    :param dictionary: Dictionary to check
+    :type dictionary: dict
+
+    :return: Either the value in dictionary for the key or None if not found
+    :rtype: value in dict or None
+    """
+    # Get the boolean for each key if it exists in the dictionary
+    keys_exist_in_dict = map(lambda key: key in dictionary, keys)
+
+    # If only one exists, return the match, else raise exception
+    if one_and_only_one(keys_exist_in_dict):
+        for key in keys:
+            if key in dictionary:
+                return dictionary[key]
+
+    # None of the keys in the dictionary, return None
+    return None
+
+
+def extract_key_match_from_dict(keys, dictionary):
+    """ Convienence function for extraction of one key from dictionary
+
+    :param keys: Keys to check against dictionary
+    :type keys: list
+    :param dictionary: Dictionary to check
+    "type dictionary: dict
+
+    :return: The exctracted value
+    :rtype: any
+    """
+    out = find_key_match_in_dict(keys, dictionary)
+    if out:
+        return out
+    else:
+        e = "No matching key found. Valid keys are {}".format(keys)
+        raise Exception(e)
+
+
+def get_sample(config):
+    """ Extract the sample section from JSON input
+
+    :param config: JSON input for reduction
+    :type config: dict
+
+    :return: The exctracted value for sample in the input
+    :rtype: any
+    """
+    keys = ["Sample"]
+    out = extract_key_match_from_dict(keys, config)
+    return out
+
+
+def get_normalization(config):
+    """ Extract the normalization section from JSON input
+
+    :param config: JSON input for reduction
+    :type config: dict
+
+    :return: The exctracted value for normalization in the input
+    :rtype: any
+    """
+    keys = ["Normalization", "Normalisation", "Vanadium"]
+    out = extract_key_match_from_dict(keys, config)
+    return out
+
+
 def TotalScatteringReduction(config=None):
     facility = config['Facility']
     title = config['Title']
     instr = config['Instrument']
 
     # Get sample info
-    sample = config['Sample']
+    sample = get_sample(config)
     sam_mass_density = sample.get('MassDensity', None)
     sam_packing_fraction = sample.get('PackingFraction', None)
     sam_geometry = sample.get('Geometry', None)
     sam_material = sample.get('Material', None)
 
     # Get normalization info
-    van = config['Normalization']
+    van = get_normalization(config)
     van_mass_density = van.get('MassDensity', None)
     van_packing_fraction = van.get('PackingFraction', 1.0)
     van_geometry = van.get('Geometry', None)
