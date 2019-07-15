@@ -87,7 +87,7 @@ script:
 
   - |
     if [[ "${TYPE}" == "conda" ]]; then
-      conda install -c mantid/label/nightly mantid-framework=4
+      conda install mantid-framework=4 --channel mantid/label/nightly --override-channels
       python setup.py test;
     fi
 
