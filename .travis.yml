@@ -63,7 +63,7 @@ install:
   - |
     if [[ "${TYPE}" == "conda" ]]; then
       conda config --set always_yes yes --set changeps1 no --set anaconda_upload no;
-      conda config --add channels conda-forge --add channels mantid;
+      conda config --add channels conda-forge --add channels mantid --add channels mantid/label/nightly;
       # conda update  -q conda
       # pinned because 4.7.7 is broken when using `conda update -q conda`
       # can remove this if this issue is closed:
