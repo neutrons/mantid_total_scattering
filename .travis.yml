@@ -103,6 +103,10 @@ script:
       conda index ${CONDA_PREFIX}/conda-bld
       mamba install -c ${CONDA_PREFIX}/conda-bld ${PKG}
 
+      if [[ "${PKG}" == "mantid-total-scattering-python-wrapper" ]]; then
+        mamba install mantid-framework -c mantid/label/nightly;
+      fi
+
       flake8 .
       python -c "import mantid"
       python -c "import total_scattering"
