@@ -54,6 +54,7 @@ before_install:
       wget "${MINICONDA_URL}/${MINICONDA_FILE}";
       bash ${MINICONDA_FILE} -b -p $HOME/miniconda;
       export PATH="$HOME/miniconda/bin:$PATH";
+      conda init bash;
 
       sudo apt-get install freeglut3-dev libglu1-mesa;
     fi
@@ -62,24 +63,27 @@ before_install:
 install:
   - |
     if [[ "${TYPE}" == "conda" ]]; then
+      # Setup conda activate/deactivate commands
+      conda init bash
+      source $(conda info --root)/etc/profile.d/conda.sh
+      conda info --root
+
+      # Conda config - behavior and channel setup
       conda config --set always_yes yes --set changeps1 no --set anaconda_upload no;
       conda config --add channels conda-forge --add channels mantid --add channels mantid/label/nightly;
-      # conda update  -q conda
-      # pinned because 4.7.7 is broken when using `conda update -q conda`
-      # can remove this if this issue is closed:
-      # - https://github.com/conda/conda/issues/8934
-      conda install  -q conda==4.7.5;
-      conda info -a
 
-      conda create -q -n ${PKG} python=$CONDA flake8 conda-build=3.17 conda-verify anaconda-client pytest;
-      source activate ${PKG}
+      # Install mamba
+      conda install mamba -c conda-forge
+      mamba update mamba -c conda-forge
+      mamba info -a
 
-      # Build recipe and install 
+      # BUILD: Create mts build environment
+      mamba create -q -n ${PKG}_build python=$CONDA conda-build=3.17 conda-verify;
+      conda activate ${PKG}_build
       PKG_PATH="./conda.recipe/${PKG}"
-      conda build ${PKG_PATH}
+      mamba build ${PKG_PATH}
       export PKG_FILE=$(conda build ${PKG_PATH} --output)
-      conda install ${PKG_FILE}
-      
+      conda activate
     fi
 
 script:
@@ -91,7 +95,18 @@ script:
 
   - |
     if [[ "${TYPE}" == "conda" ]]; then
-      conda install -c mantid/label/nightly mantid-framework=4
+      # TEST: Create test environment and test build
+      mamba create -q -n ${PKG}_test python=$CONDA conda-build=3.17 anaconda-client flake8 pytest;
+      conda activate ${PKG}_test
+      mkdir -p ${CONDA_PREFIX}/conda-bld/linux-64/
+      cp ${PKG_FILE} ${CONDA_PREFIX}/conda-bld/linux-64/
+      conda index ${CONDA_PREFIX}/conda-bld
+      mamba install -c ${CONDA_PREFIX}/conda-bld ${PKG}
+
+      flake8 .
+      python -c "import mantid"
+      python -c "import total_scattering"
+
       python setup.py test;
     fi
 
