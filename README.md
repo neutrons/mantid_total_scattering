@@ -24,12 +24,15 @@ Pre-requiste: Installing `conda`
 ---------------------------------
 The following commands can get you setup (on Linux machine) to get `conda` installed (as miniconda):
 ```
+CONDA_PYTHON=3.6
 MINICONDA_URL="https://repo.continuum.io/miniconda";
-MINICONDA_FILE="Miniconda${CONDA:0:1}-latest-Linux-x86_64.sh";
+MINICONDA_FILE="Miniconda${CONDA_PYTHON}-latest-Linux-x86_64.sh";
 wget "${MINICONDA_URL}/${MINICONDA_FILE}";
 bash ${MINICONDA_FILE} -b -p $HOME/miniconda;
 export PATH="$HOME/miniconda/bin:$PATH";
 ```
+
+NOTE: You can change the python version number via the `CONDA_PYTHON` variable
 
 You will have to excute the last command on every new bash session (`export PATH...`).
 Adding this last line to your `~/.bashrc` will automatically add it on every bash session startup.
