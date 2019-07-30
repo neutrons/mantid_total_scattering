@@ -24,7 +24,7 @@ Pre-requiste: Installing `conda`
 ---------------------------------
 The following commands can get you setup (on Linux machine) to get `conda` installed (as miniconda):
 ```
-CONDA_PYTHON=3.6
+CONDA_PYTHON=3
 MINICONDA_URL="https://repo.continuum.io/miniconda";
 MINICONDA_FILE="Miniconda${CONDA_PYTHON}-latest-Linux-x86_64.sh";
 wget "${MINICONDA_URL}/${MINICONDA_FILE}";
@@ -42,7 +42,7 @@ Mantid Framework Included
 
 ### Anaconda (Recommended)
 
-#### Setup
+#### Setup (w/ pure conda)
 
 Add channels with dependencies, create a conda environment with `python_version` set to either `2.7.14` or `3.6`, and activate the environment
 
@@ -51,6 +51,21 @@ conda config --add channels conda-forge --add channels mantid --add channels man
 conda create -n mantidts_env python=${python_version}
 source activate mantidts_env
 ```
+
+#### Setup (w/ conda + mamba)
+
+NOTE: [Mamba](https://github.com/QuantStack/mamba) is still in "beta". 
+
+```
+python_version=3.6
+conda config --add channels conda-forge --add channels mantid --add channels mantid/label/nightly
+conda install mamba -c conda-forge
+mamba update mamba -c conda-forge
+mamba create -n mantidts_env python=${python_version}
+source activate mantidts_env
+```
+
+Simply replace `conda` -> `mamba` in "Install" instruction commands
 
 #### Install (or Update)
 
