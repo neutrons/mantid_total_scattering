@@ -20,6 +20,20 @@ Structure factor S(Q) -> Pair Distribution Function G(r)
 Installation
 ===========================================================
 
+Pre-requiste: Installing `conda`
+---------------------------------
+The following commands can get you setup (on Linux machine) to get `conda` installed (as miniconda):
+```
+MINICONDA_URL="https://repo.continuum.io/miniconda";
+MINICONDA_FILE="Miniconda${CONDA:0:1}-latest-Linux-x86_64.sh";
+wget "${MINICONDA_URL}/${MINICONDA_FILE}";
+bash ${MINICONDA_FILE} -b -p $HOME/miniconda;
+export PATH="$HOME/miniconda/bin:$PATH";
+```
+
+You will have to excute the last command on every new bash session (`export PATH...`).
+Adding this last line to your `~/.bashrc` will automatically add it on every bash session startup.
+
 Mantid Framework Included
 -----------------------------------------------------------
 
