@@ -29,6 +29,7 @@ from mantid.simpleapi import \
     PDDetermineCharacterizations, \
     PropertyManagerDataService, \
     Rebin, \
+    ResampleX, \
     SetSample, \
     SetUncertainties, \
     StripVanadiumPeaks
@@ -41,35 +42,18 @@ from total_scattering.inelastic.placzek import \
     GetIncidentSpectrumFromMonitor
 
 # Utilities
+def generate_cropping_table(qmin, qmax):
+    ''' Generate a Table workspace that can be used to crop
+    another workspace in reciprocal space (ie MomentumTransfer)
 
+    :param qmin: list of Qmin values to crop each spectra by
+    :type qmin: str (example: '0.2,0.4,1.0')
+    :param qmax: list of Qmax values to crop each spectra by
+    :type qmax: str (example: '10.5,12.0,40.0')
 
-def myMatchingBins(leftWorkspace, rightWorkspace):
-    leftXData = mtd[leftWorkspace].dataX(0)
-    rightXData = mtd[rightWorkspace].dataX(0)
-
-    if len(leftXData) != len(rightXData):
-        return False
-
-    if abs(sum(leftXData) - sum(rightXData)) > 1.e-7:
-        print(
-            "Sums do not match: LHS = ",
-            sum(leftXData),
-            "RHS =",
-            sum(rightXData))
-        return False
-
-    leftDeltaX = leftXData[0] - leftXData[1]
-    rightDeltaX = rightXData[0] - rightXData[1]
-
-    if abs(leftDeltaX -
-           rightDeltaX) >= 1e-4 or abs(rightXData[0] -
-                                       leftXData[0]) >= 1e-4:
-        return False
-
-    return True
-
-
-def generateCropingTable(qmin, qmax):
+    :return: Cropping table with columns of ("SpectraList","Xmin","Xmax")
+    :rtype: TableWorkspace
+    '''
     mask_info = CreateEmptyTableWorkspace()
     mask_info.addColumn("str", "SpectraList")
     mask_info.addColumn("double", "XMin")
@@ -81,11 +65,24 @@ def generateCropingTable(qmin, qmax):
 
     return mask_info
 
+def get_each_spectra_xmin_xmax(wksp):
+    ''' Get Xmin and Xmax lists for Workspace, excluding
+    values of inf and NaN
 
-def getQmaxFromData(Workspace=None, WorkspaceIndex=0):
-    if Workspace is None:
-        return None
-    return max(mtd[Workspace].readX(WorkspaceIndex))
+    :param wksp: Workspace to extract the xmin and xmax values from
+    :type qmin: Mantid Workspace
+
+    :return: Lists for XMin and XMax values: 
+    :rtype: (list, list) == (xmin, xmax)
+    '''
+    xmin = list()
+    xmax = list()
+    numSpectra = wksp.getNumberHistograms()
+    for i in range(numSpectra):
+        x = wksp.readX(i)
+        xmin.append(np.nanmin(x[x != -np.inf]))
+        xmax.append(np.nanmax(x[x != np.inf]))
+    return xmin, xmax
 
 # -----------------------------------------------------
 # Function to expand string of ints with dashes
@@ -641,7 +638,7 @@ def TotalScatteringReduction(config=None):
         for a, b in zip(qmin, qmax):
             print('Qrange:', a, b)
         # TODO: Add when we apply Qmin, Qmax cropping
-        # mask_info = generateCropingTable(qmin, qmax)
+        # mask_info = generate_cropping_table(qmin, qmax)
 
     # STEP 1: Subtract Backgrounds
 
@@ -953,58 +950,11 @@ def TotalScatteringReduction(config=None):
             ConvertFromPointData=False)
         Rebin(InputWorkspace=name, OutputWorkspace=name,
               Params=binning, PreserveEvents=True)
-        # if not mtd[name].isDistribution():
-        #    ConvertToDistribution(name)
-    print()
-    print("## Container ##")
-    print("YUnit:", mtd[container].YUnit(), "|", mtd[van_corrected].YUnit())
-    print(
-        "blocksize:",
-        mtd[container].blocksize(),
-        mtd[van_corrected].blocksize())
-    print("dist:", mtd[container].isDistribution(),
-          mtd[van_corrected].isDistribution())
-    print("Do bins match?:", myMatchingBins(container, van_corrected))
-    print(
-        "Distributions?",
-        mtd[container].isDistribution(),
-        mtd[van_corrected].isDistribution())
-    print()
 
     Divide(
         LHSWorkspace=container,
         RHSWorkspace=van_corrected,
         OutputWorkspace=container)
-    # Divide(
-    #    LHSWorkspace=container_raw,
-    #    RHSWorkspace=van_corrected,
-    #    OutputWorkspace=container_raw)
-    # if van_bg is not None:
-    #    Divide(
-    #        LHSWorkspace=van_bg,
-    #        RHSWorkspace=van_corrected,
-    #        OutputWorkspace=van_bg)
-    # if container_bg is not None:
-    #    Divide(
-    #       LHSWorkspace=container_bg,
-    #        RHSWorkspace=van_corrected,
-    #        OutputWorkspace=container_bg)
-
-    print()
-    print("## Container After Divide##")
-    print("YUnit:", mtd[container].YUnit(), "|", mtd[van_corrected].YUnit())
-    print(
-        "blocksize:",
-        mtd[container].blocksize(),
-        mtd[van_corrected].blocksize())
-    print("dist:", mtd[container].isDistribution(),
-          mtd[van_corrected].isDistribution())
-    print("Do bins match?:", myMatchingBins(container, van_corrected))
-    print(
-        "Distributions?",
-        mtd[container].isDistribution(),
-        mtd[van_corrected].isDistribution())
-    print()
 
     container_title += '_normalized'
     save_banks(InputWorkspace=container,
@@ -1267,31 +1217,34 @@ def TotalScatteringReduction(config=None):
                  Target="TOF",
                  EMode="Elastic")
 
-    ConvertToHistogram(InputWorkspace=sam_corrected,
-                       OutputWorkspace=sam_corrected)
+    # ConvertToHistogram(InputWorkspace=sam_corrected,
+    #                    OutputWorkspace=sam_corrected)
+    
+    xmin, xmax = get_each_spectra_xmin_xmax(mtd[sam_corrected])
 
-    Rebin(InputWorkspace=sam_corrected,
-          OutputWorkspace=sam_corrected,
-          Params="350.0,-0.0001,26233.0")
-    xmin = "450.0,1100.0,2050.0,3400.0,4500.0"
-    xmax = "11000.0,11000.0,11000.0,11000.0,11000.0"
-    CropWorkspaceRagged(InputWorkspace=sam_corrected,
-                        OutputWorkspace=sam_corrected,
-                        Xmin=xmin,
-                        Xmax=xmax)
+    print(xmin)
+    print(xmax)
+
+    # xmin = ",".join([str(x) for x in xmin])
+    # xmax = ",".join([str(x) for x in xmax])
+    # print(xmin, xmax)
+    ResampleX(
+        InputWorkspace=sam_corrected,
+        OutputWorkspace=sam_corrected,
+        XMin=xmin,
+        XMax=xmax,
+        NumberBins=300,
+        LogBinning=True)
+
+    SaveGSS(InputWorkspace=sam_corrected,
+        Filename=os.path.join(OutputDir,title+".gsa"),
+        SplitFiles=False,
+        Append=False,
+        MultiplyByBinWidth=True,
+        Format="SLOG",
+        ExtendedHeader=True)
+
     return mtd[sam_corrected]
-    # ResampleX(InputWorkspace=sam_corrected,
-    #          OutputWorkspace=sam_corrected,
-    #          NumberBins=3000,
-    #          LogBinning=True)
-
-    # SaveGSS(InputWorkspace=sam_corrected,
-    #        Filename=os.path.join(OutputDir,title+".gsa"),
-    #        SplitFiles=False,
-    #        Append=False,
-    #        MultiplyByBinWidth=True,
-    #        Format="SLOG",
-    #        ExtendedHeader=True)
     # process the run
     '''
     SNSPowderReduction(
@@ -1392,7 +1345,11 @@ def TotalScatteringReduction(config=None):
     # Merged S(Q) and F(Q)
 
     save_banks(InputWorkspace="FQ_banks_ws",
-               Filename=nexus_filename,
+      entry_points={
+        'console_scripts': [
+            "addie = addie.main:main"
+        ]
+    },             Filename=nexus_filename,
                Title="FQ_banks",
                OutputDir=OutputDir,
                Binning=binning)
@@ -1438,3 +1395,8 @@ def TotalScatteringReduction(config=None):
                     % (','.join([ str(i) for i in wkspIndices]), \
                     fitParams.cell('Value', 0), fitParams.cell('Value', 1)) ]
 '''
+    entry_points={
+        'console_scripts': [
+            "addie = addie.main:main"
+        ]
+    },
