@@ -30,6 +30,7 @@ from mantid.simpleapi import \
     PropertyManagerDataService, \
     Rebin, \
     ResampleX, \
+    SaveGSS, \
     SetSample, \
     SetUncertainties, \
     StripVanadiumPeaks
@@ -1217,27 +1218,28 @@ def TotalScatteringReduction(config=None):
                  Target="TOF",
                  EMode="Elastic")
 
-    # ConvertToHistogram(InputWorkspace=sam_corrected,
-    #                    OutputWorkspace=sam_corrected)
+    ConvertToHistogram(InputWorkspace=sam_corrected,
+                       OutputWorkspace=sam_corrected)
     
     xmin, xmax = get_each_spectra_xmin_xmax(mtd[sam_corrected])
 
-    print(xmin)
-    print(xmax)
+    CropWorkspaceRagged(InputWorkspace=sam_corrected,
+                        OutputWorkspace=sam_corrected,
+                        Xmin=xmin,
+                        Xmax=xmax)
+    
+    xmin_rebin = min(xmin)
+    xmax_rebin = max(xmax)
+    tof_binning = "{xmin},-0.01,{xmax}".format(xmin=xmin_rebin, xmax=xmax_rebin)
 
-    # xmin = ",".join([str(x) for x in xmin])
-    # xmax = ",".join([str(x) for x in xmax])
-    # print(xmin, xmax)
-    ResampleX(
+    Rebin(
         InputWorkspace=sam_corrected,
         OutputWorkspace=sam_corrected,
-        XMin=xmin,
-        XMax=xmax,
-        NumberBins=300,
-        LogBinning=True)
+        Params=tof_binning)
+         
 
     SaveGSS(InputWorkspace=sam_corrected,
-        Filename=os.path.join(OutputDir,title+".gsa"),
+        Filename=os.path.join(os.path.abspath(OutputDir),title+".gsa"),
         SplitFiles=False,
         Append=False,
         MultiplyByBinWidth=True,
@@ -1345,11 +1347,7 @@ def TotalScatteringReduction(config=None):
     # Merged S(Q) and F(Q)
 
     save_banks(InputWorkspace="FQ_banks_ws",
-      entry_points={
-        'console_scripts': [
-            "addie = addie.main:main"
-        ]
-    },             Filename=nexus_filename,
+               Filename=nexus_filename,
                Title="FQ_banks",
                OutputDir=OutputDir,
                Binning=binning)
@@ -1395,8 +1393,3 @@ def TotalScatteringReduction(config=None):
                     % (','.join([ str(i) for i in wkspIndices]), \
                     fitParams.cell('Value', 0), fitParams.cell('Value', 1)) ]
 '''
-    entry_points={
-        'console_scripts': [
-            "addie = addie.main:main"
-        ]
-    },
