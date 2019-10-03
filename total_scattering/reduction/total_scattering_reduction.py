@@ -29,7 +29,6 @@ from mantid.simpleapi import \
     PDDetermineCharacterizations, \
     PropertyManagerDataService, \
     Rebin, \
-    ResampleX, \
     SaveGSS, \
     SetSample, \
     SetUncertainties, \
@@ -41,6 +40,7 @@ from total_scattering.inelastic.placzek import \
     CalculatePlaczekSelfScattering, \
     FitIncidentSpectrum, \
     GetIncidentSpectrumFromMonitor
+
 
 # Utilities
 def generate_cropping_table(qmin, qmax):
@@ -66,6 +66,7 @@ def generate_cropping_table(qmin, qmax):
 
     return mask_info
 
+
 def get_each_spectra_xmin_xmax(wksp):
     ''' Get Xmin and Xmax lists for Workspace, excluding
     values of inf and NaN
@@ -73,7 +74,7 @@ def get_each_spectra_xmin_xmax(wksp):
     :param wksp: Workspace to extract the xmin and xmax values from
     :type qmin: Mantid Workspace
 
-    :return: Lists for XMin and XMax values: 
+    :return: Lists for XMin and XMax values:
     :rtype: (list, list) == (xmin, xmax)
     '''
     xmin = list()
@@ -555,12 +556,13 @@ def TotalScatteringReduction(config=None):
     print("# Sample Container")
     print("#-----------------------------------#")
     container = load('container', container_scans, **alignAndFocusArgs)
-    save_banks(InputWorkspace=container,
-               Filename=nexus_filename,
-               Title=container,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=container,
+        Filename=nexus_filename,
+        Title=container,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     # Load Sample Container Background
 
@@ -572,12 +574,13 @@ def TotalScatteringReduction(config=None):
             'container_background',
             container_bg,
             **alignAndFocusArgs)
-        save_banks(InputWorkspace=container_bg,
-                   Filename=nexus_filename,
-                   Title=container_bg,
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+        save_banks(
+            InputWorkspace=container_bg,
+            Filename=nexus_filename,
+            Title=container_bg,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
 
     # Load Vanadium
 
@@ -593,15 +596,16 @@ def TotalScatteringReduction(config=None):
         **alignAndFocusArgs)
     vanadium_title = "vanadium_and_background"
 
-    save_banks(InputWorkspace=van_wksp,
-               Filename=nexus_filename,
-               Title=vanadium_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=van_wksp,
+        Filename=nexus_filename,
+        Title=vanadium_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
-    van_molecular_mass = mtd[van_wksp].sample(
-    ).getMaterial().relativeMolecularMass()
+    van_material = mtd[van_wksp].sample().getMaterial()
+    van_molecular_mass = van_material.relativeMolecularMass()
     nvan_atoms = getNumberAtoms(
         1.0,
         van_mass_density,
@@ -620,12 +624,13 @@ def TotalScatteringReduction(config=None):
         print("#-----------------------------------#")
         van_bg = load('vanadium_background', van_bg_scans, **alignAndFocusArgs)
         vanadium_bg_title = "vanadium_background"
-        save_banks(InputWorkspace=van_bg,
-                   Filename=nexus_filename,
-                   Title=vanadium_bg_title,
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+        save_banks(
+            InputWorkspace=van_bg,
+            Filename=nexus_filename,
+            Title=vanadium_bg_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
 
     # Load Instrument Characterizations
     if characterizations:
@@ -649,8 +654,9 @@ def TotalScatteringReduction(config=None):
         OutputWorkspace=sam_raw)  # for later
 
     container_raw = 'container_raw'
-    CloneWorkspace(InputWorkspace=container,
-                   OutputWorkspace=container_raw)  # for later
+    CloneWorkspace(
+        InputWorkspace=container,
+        OutputWorkspace=container_raw)  # for later
 
     if van_bg is not None:
         Minus(
@@ -668,41 +674,46 @@ def TotalScatteringReduction(config=None):
             OutputWorkspace=container)
 
     for wksp in [container, van_wksp, sam_wksp]:
-        ConvertUnits(InputWorkspace=wksp,
-                     OutputWorkspace=wksp,
-                     Target="MomentumTransfer",
-                     EMode="Elastic")
+        ConvertUnits(
+            InputWorkspace=wksp,
+            OutputWorkspace=wksp,
+            Target="MomentumTransfer",
+            EMode="Elastic")
     container_title = "container_minus_back"
     vanadium_title = "vanadium_minus_back"
     sample_title = "sample_minus_back"
-    save_banks(InputWorkspace=container,
-               Filename=nexus_filename,
-               Title=container_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
-    save_banks(InputWorkspace=van_wksp,
-               Filename=nexus_filename,
-               Title=vanadium_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
-    save_banks(InputWorkspace=sam_wksp,
-               Filename=nexus_filename,
-               Title=sample_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=container,
+        Filename=nexus_filename,
+        Title=container_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
+    save_banks(
+        InputWorkspace=van_wksp,
+        Filename=nexus_filename,
+        Title=vanadium_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
+    save_banks(
+        InputWorkspace=sam_wksp,
+        Filename=nexus_filename,
+        Title=sample_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     # STEP 2.0: Prepare vanadium as normalization calibrant
 
     # Multiple-Scattering and Absorption (Steps 2-4) for Vanadium
 
     van_corrected = 'van_corrected'
-    ConvertUnits(InputWorkspace=van_wksp,
-                 OutputWorkspace=van_corrected,
-                 Target="Wavelength",
-                 EMode="Elastic")
+    ConvertUnits(
+        InputWorkspace=van_wksp,
+        OutputWorkspace=van_corrected,
+        Target="Wavelength",
+        EMode="Elastic")
 
     if "Type" in van_abs_corr:
         if van_abs_corr['Type'] == 'Carpenter' \
@@ -714,13 +725,15 @@ def TotalScatteringReduction(config=None):
         elif van_abs_corr['Type'] == 'Mayers' \
                 or van_ms_corr['Type'] == 'Mayers':
             if van_ms_corr['Type'] == 'Mayers':
-                MayersSampleCorrection(InputWorkspace=van_corrected,
-                                       OutputWorkspace=van_corrected,
-                                       MultipleScattering=True)
+                MayersSampleCorrection(
+                    InputWorkspace=van_corrected,
+                    OutputWorkspace=van_corrected,
+                    MultipleScattering=True)
             else:
-                MayersSampleCorrection(InputWorkspace=van_corrected,
-                                       OutputWorkspace=van_corrected,
-                                       MultipleScattering=False)
+                MayersSampleCorrection(
+                    InputWorkspace=van_corrected,
+                    OutputWorkspace=van_corrected,
+                    MultipleScattering=False)
         else:
             print("NO VANADIUM absorption or multiple scattering!")
     else:
@@ -728,71 +741,86 @@ def TotalScatteringReduction(config=None):
             InputWorkspace=van_corrected,
             OutputWorkspace=van_corrected)
 
-    ConvertUnits(InputWorkspace=van_corrected,
-                 OutputWorkspace=van_corrected,
-                 Target='MomentumTransfer',
-                 EMode='Elastic')
+    ConvertUnits(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        Target='MomentumTransfer',
+        EMode='Elastic')
     vanadium_title += "_ms_abs_corrected"
-    save_banks(InputWorkspace=van_corrected,
-               Filename=nexus_filename,
-               Title=vanadium_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
-    save_banks(InputWorkspace=van_corrected,
-               Filename=nexus_filename,
-               Title=vanadium_title + "_with_peaks",
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=van_corrected,
+        Filename=nexus_filename,
+        Title=vanadium_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
+    save_banks(
+        InputWorkspace=van_corrected,
+        Filename=nexus_filename,
+        Title=vanadium_title + "_with_peaks",
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     # TODO subtract self-scattering of vanadium (According to Eq. 7 of Howe,
     # McGreevey, and Howells, JPCM, 1989)
 
     # Smooth Vanadium (strip peaks plus smooth)
 
-    ConvertUnits(InputWorkspace=van_corrected,
-                 OutputWorkspace=van_corrected,
-                 Target='dSpacing',
-                 EMode='Elastic')
+    ConvertUnits(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        Target='dSpacing',
+        EMode='Elastic')
+
     # After StripVanadiumPeaks, the workspace goes from EventWorkspace ->
     # Workspace2D
-    StripVanadiumPeaks(InputWorkspace=van_corrected,
-                       OutputWorkspace=van_corrected,
-                       BackgroundType='Quadratic')
-    ConvertUnits(InputWorkspace=van_corrected,
-                 OutputWorkspace=van_corrected,
-                 Target='MomentumTransfer',
-                 EMode='Elastic')
+    StripVanadiumPeaks(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        BackgroundType='Quadratic')
+    ConvertUnits(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        Target='MomentumTransfer',
+        EMode='Elastic')
     vanadium_title += '_peaks_stripped'
-    save_banks(InputWorkspace=van_corrected,
-               Filename=nexus_filename,
-               Title=vanadium_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=van_corrected,
+        Filename=nexus_filename,
+        Title=vanadium_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
-    ConvertUnits(InputWorkspace=van_corrected,
-                 OutputWorkspace=van_corrected,
-                 Target='TOF',
-                 EMode='Elastic')
-    FFTSmooth(InputWorkspace=van_corrected,
-              OutputWorkspace=van_corrected,
-              Filter="Butterworth",
-              Params='20,2',
-              IgnoreXBins=True,
-              AllSpectra=True)
-    ConvertUnits(InputWorkspace=van_corrected,
-                 OutputWorkspace=van_corrected,
-                 Target='MomentumTransfer',
-                 EMode='Elastic')
+    ConvertUnits(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        Target='TOF',
+        EMode='Elastic')
+
+    FFTSmooth(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        Filter="Butterworth",
+        Params='20,2',
+        IgnoreXBins=True,
+        AllSpectra=True)
+
+    ConvertUnits(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        Target='MomentumTransfer',
+        EMode='Elastic')
+
     vanadium_title += '_smoothed'
-    save_banks(InputWorkspace=van_corrected,
-               Filename=nexus_filename,
-               Title=vanadium_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=van_corrected,
+        Filename=nexus_filename,
+        Title=vanadium_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     # Inelastic correction
     if van_inelastic_corr['Type'] == "Placzek":
@@ -807,94 +835,118 @@ def TotalScatteringReduction(config=None):
             OutputWorkspace=van_incident_wksp)
 
         fit_type = van['InelasticCorrection']['FitSpectrumWith']
-        FitIncidentSpectrum(InputWorkspace=van_incident_wksp,
-                            OutputWorkspace=van_incident_wksp,
-                            FitSpectrumWith=fit_type,
-                            BinningForFit=lambda_binning_fit,
-                            BinningForCalc=lambda_binning_calc,
-                            PlotDiagnostics=False)
+        FitIncidentSpectrum(
+            InputWorkspace=van_incident_wksp,
+            OutputWorkspace=van_incident_wksp,
+            FitSpectrumWith=fit_type,
+            BinningForFit=lambda_binning_fit,
+            BinningForCalc=lambda_binning_calc,
+            PlotDiagnostics=False)
 
         van_placzek = 'van_placzek'
 
-        SetSample(InputWorkspace=van_incident_wksp,
-                  Material={'ChemicalFormula': str(van_material),
-                            'SampleMassDensity': str(van_mass_density)})
-        CalculatePlaczekSelfScattering(IncidentWorkspace=van_incident_wksp,
-                                       ParentWorkspace=van_corrected,
-                                       OutputWorkspace=van_placzek,
-                                       L1=19.5,
-                                       L2=alignAndFocusArgs['L2'],
-                                       Polar=alignAndFocusArgs['Polar'])
-        ConvertToHistogram(InputWorkspace=van_placzek,
-                           OutputWorkspace=van_placzek)
+        SetSample(
+            InputWorkspace=van_incident_wksp,
+            Material={'ChemicalFormula': str(van_material),
+                      'SampleMassDensity': str(van_mass_density)})
+
+        CalculatePlaczekSelfScattering(
+            IncidentWorkspace=van_incident_wksp,
+            ParentWorkspace=van_corrected,
+            OutputWorkspace=van_placzek,
+            L1=19.5,
+            L2=alignAndFocusArgs['L2'],
+            Polar=alignAndFocusArgs['Polar'])
+
+        ConvertToHistogram(
+            InputWorkspace=van_placzek,
+            OutputWorkspace=van_placzek)
 
         # Save before rebin in Q
         for wksp in [van_placzek, van_corrected]:
-            ConvertUnits(InputWorkspace=wksp,
-                         OutputWorkspace=wksp,
-                         Target='MomentumTransfer',
-                         EMode='Elastic')
-            Rebin(InputWorkspace=wksp, OutputWorkspace=wksp,
-                  Params=binning, PreserveEvents=True)
+            ConvertUnits(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Target='MomentumTransfer',
+                EMode='Elastic')
 
-        save_banks(InputWorkspace=van_placzek,
-                   Filename=nexus_filename,
-                   Title="vanadium_placzek",
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+            Rebin(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Params=binning,
+                PreserveEvents=True)
+
+        save_banks(
+            InputWorkspace=van_placzek,
+            Filename=nexus_filename,
+            Title="vanadium_placzek",
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
 
         # Rebin in Wavelength
         for wksp in [van_placzek, van_corrected]:
-            ConvertUnits(InputWorkspace=wksp,
-                         OutputWorkspace=wksp,
-                         Target='Wavelength',
-                         EMode='Elastic')
-            Rebin(InputWorkspace=wksp, OutputWorkspace=wksp,
-                  Params=lambda_binning_calc, PreserveEvents=True)
+            ConvertUnits(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Target='Wavelength',
+                EMode='Elastic')
+            Rebin(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Params=lambda_binning_calc,
+                PreserveEvents=True)
 
         # Save after rebin in Q
         for wksp in [van_placzek, van_corrected]:
-            ConvertUnits(InputWorkspace=wksp,
-                         OutputWorkspace=wksp,
-                         Target='MomentumTransfer',
-                         EMode='Elastic')
+            ConvertUnits(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Target='MomentumTransfer',
+                EMode='Elastic')
 
         # Subtract correction in Wavelength
         for wksp in [van_placzek, van_corrected]:
-            ConvertUnits(InputWorkspace=wksp,
-                         OutputWorkspace=wksp,
-                         Target='Wavelength',
-                         EMode='Elastic')
+            ConvertUnits(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Target='Wavelength',
+                EMode='Elastic')
             if not mtd[wksp].isDistribution():
                 ConvertToDistribution(wksp)
 
-        Minus(LHSWorkspace=van_corrected,
-              RHSWorkspace=van_placzek,
-              OutputWorkspace=van_corrected)
+        Minus(
+            LHSWorkspace=van_corrected,
+            RHSWorkspace=van_placzek,
+            OutputWorkspace=van_corrected)
 
         # Save after subtraction
         for wksp in [van_placzek, van_corrected]:
-            ConvertUnits(InputWorkspace=wksp,
-                         OutputWorkspace=wksp,
-                         Target='MomentumTransfer',
-                         EMode='Elastic')
+            ConvertUnits(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Target='MomentumTransfer',
+                EMode='Elastic')
+
         vanadium_title += '_placzek_corrected'
-        save_banks(InputWorkspace=van_corrected,
-                   Filename=nexus_filename,
-                   Title=vanadium_title,
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+        save_banks(
+            InputWorkspace=van_corrected,
+            Filename=nexus_filename,
+            Title=vanadium_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
 
-    ConvertUnits(InputWorkspace=van_corrected,
-                 OutputWorkspace=van_corrected,
-                 Target='MomentumTransfer',
-                 EMode='Elastic')
+    ConvertUnits(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        Target='MomentumTransfer',
+        EMode='Elastic')
 
-    SetUncertainties(InputWorkspace=van_corrected,
-                     OutputWorkspace=van_corrected,
-                     SetError='zero')
+    SetUncertainties(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        SetError='zero')
 
     # STEP 2.1: Normalize by Vanadium
 
@@ -905,42 +957,51 @@ def TotalScatteringReduction(config=None):
             Target='MomentumTransfer',
             EMode='Elastic',
             ConvertFromPointData=False)
-        Rebin(InputWorkspace=name, OutputWorkspace=name,
-              Params=binning, PreserveEvents=True)
-        # if not mtd[name].isDistribution():
-        #    ConvertToDistribution(name)
 
+        Rebin(
+            InputWorkspace=name,
+            OutputWorkspace=name,
+            Params=binning,
+            PreserveEvents=True)
+
+    # Save the sample - back / normalized
     Divide(
         LHSWorkspace=sam_wksp,
         RHSWorkspace=van_corrected,
         OutputWorkspace=sam_wksp)
-    # Divide(
-    #    LHSWorkspace=sam_raw,
-    #    RHSWorkspace=van_corrected,
-    #    OutputWorkspace=sam_raw)
 
     sample_title += "_normalized"
-    save_banks(InputWorkspace=sam_wksp,
-               Filename=nexus_filename,
-               Title=sample_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
-    save_banks(InputWorkspace=sam_raw,
-               Filename=nexus_filename,
-               Title="sample_normalized",
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=sam_wksp,
+        Filename=nexus_filename,
+        Title=sample_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
+
+    # Save the sample / normalized (ie no background subtraction)
+    Divide(
+       LHSWorkspace=sam_raw,
+       RHSWorkspace=van_corrected,
+       OutputWorkspace=sam_raw)
+
+    save_banks(
+        InputWorkspace=sam_raw,
+        Filename=nexus_filename,
+        Title="sample_normalized",
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     # Output an initial I(Q) for sample
     iq_filename = title + '_initial_iofq_banks.nxs'
-    save_banks(InputWorkspace=sam_wksp,
-               Filename=iq_filename,
-               Title="IQ_banks",
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=sam_wksp,
+        Filename=iq_filename,
+        Title="IQ_banks",
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     for name in [container, van_corrected]:
         ConvertUnits(
@@ -949,9 +1010,14 @@ def TotalScatteringReduction(config=None):
             Target='MomentumTransfer',
             EMode='Elastic',
             ConvertFromPointData=False)
-        Rebin(InputWorkspace=name, OutputWorkspace=name,
-              Params=binning, PreserveEvents=True)
 
+        Rebin(
+            InputWorkspace=name,
+            OutputWorkspace=name,
+            Params=binning,
+            PreserveEvents=True)
+
+    # Save the container - container_background / normalized
     Divide(
         LHSWorkspace=container,
         RHSWorkspace=van_corrected,
@@ -964,30 +1030,52 @@ def TotalScatteringReduction(config=None):
                OutputDir=OutputDir,
                GroupingWorkspace=grp_wksp,
                Binning=binning)
-    save_banks(InputWorkspace=container_raw,
-               Filename=nexus_filename,
-               Title="container_normalized",
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
 
-    # if container_bg is not None:
-    #    container_bg_title += "_normalised"
-    #    save_banks(InputWorkspace=container_bg,
-    #               Filename=nexus_filename,
-    #               Title=container_bg_title,
-    #               OutputDir=OutputDir,
-    #               GroupingWorkspace=grp_wksp,
-    #               Binning=binning)
+    # Save the container / normalized (ie no background subtraction)
+    Divide(
+       LHSWorkspace=container_raw,
+       RHSWorkspace=van_corrected,
+       OutputWorkspace=container_raw)
 
-    # if van_bg is not None:
-    #    vanadium_bg_title += "_normalized"
-    #    save_banks(InputWorkspace=van_bg,
-    #               Filename=nexus_filename,
-    #               Title=vanadium_bg_title,
-    #               OutputDir=OutputDir,
-    #               GroupingWorkspace=grp_wksp,
-    #               Binning=binning)
+    save_banks(
+        InputWorkspace=container_raw,
+        Filename=nexus_filename,
+        Title="container_normalized",
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
+
+    # Save the container_background / normalized
+    if container_bg is not None:
+        Divide(
+            LHSWorkspace=container_bg,
+            RHSWorkspace=van_corrected,
+            OutputWorkspace=container_bg)
+
+        container_bg_title = "container_back_normalized"
+        save_banks(
+            InputWorkspace=container_bg,
+            Filename=nexus_filename,
+            Title=container_bg_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
+
+    # Save the vanadium_background / normalized
+    if van_bg is not None:
+        Divide(
+            LHSWorkspace=van_bg,
+            RHSWorkspace=van_corrected,
+            OutputWorkspace=van_bg)
+
+        vanadium_bg_title += "_normalized"
+        save_banks(
+            InputWorkspace=van_bg,
+            Filename=nexus_filename,
+            Title=vanadium_bg_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
 
     # STEP 3 & 4: Subtract multiple scattering and apply absorption correction
 
@@ -1008,13 +1096,15 @@ def TotalScatteringReduction(config=None):
         elif sam_abs_corr['Type'] == 'Mayers' \
                 or sam_ms_corr['Type'] == 'Mayers':
             if sam_ms_corr['Type'] == 'Mayers':
-                MayersSampleCorrection(InputWorkspace=sam_wksp,
-                                       OutputWorkspace=sam_corrected,
-                                       MultipleScattering=True)
+                MayersSampleCorrection(
+                    InputWorkspace=sam_wksp,
+                    OutputWorkspace=sam_corrected,
+                    MultipleScattering=True)
             else:
-                MayersSampleCorrection(InputWorkspace=sam_wksp,
-                                       OutputWorkspace=sam_corrected,
-                                       MultipleScattering=False)
+                MayersSampleCorrection(
+                    InputWorkspace=sam_wksp,
+                    OutputWorkspace=sam_corrected,
+                    MultipleScattering=False)
         else:
             print("NO SAMPLE absorption or multiple scattering!")
             CloneWorkspace(
@@ -1026,47 +1116,61 @@ def TotalScatteringReduction(config=None):
             OutputWorkspace=sam_corrected,
             Target='MomentumTransfer',
             EMode='Elastic')
+
         sample_title += "_ms_abs_corrected"
-        save_banks(InputWorkspace=sam_corrected,
-                   Filename=nexus_filename,
-                   Title=sample_title,
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+        save_banks(
+            InputWorkspace=sam_corrected,
+            Filename=nexus_filename,
+            Title=sample_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
     else:
         CloneWorkspace(InputWorkspace=sam_wksp, OutputWorkspace=sam_corrected)
 
     # STEP 5: Divide by number of atoms in sample
 
     mtd[sam_corrected] = (nvan_atoms / natoms) * mtd[sam_corrected]
-    ConvertUnits(InputWorkspace=sam_corrected, OutputWorkspace=sam_corrected,
-                 Target='MomentumTransfer', EMode='Elastic')
+    ConvertUnits(
+        InputWorkspace=sam_corrected,
+        OutputWorkspace=sam_corrected,
+        Target='MomentumTransfer',
+        EMode='Elastic')
+
     sample_title += "_norm_by_atoms"
-    save_banks(InputWorkspace=sam_corrected,
-               Filename=nexus_filename,
-               Title=sample_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=sam_corrected,
+        Filename=nexus_filename,
+        Title=sample_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     # STEP 6: Divide by total scattering length squared = total scattering
     # cross-section over 4 * pi
-    sigma_v = mtd[van_corrected].sample().getMaterial().totalScatterXSection()
+    van_material = mtd[van_corrected].sample().getMaterial()
+    sigma_v = van_material.totalScatterXSection()
     prefactor = (sigma_v / (4. * np.pi))
-    print("Total scattering cross-section of Vanadium:",
-          sigma_v, " sigma_v / 4*pi:", prefactor)
+    msg = "Total scattering cross-section of Vanadium:{} sigma_v / 4*pi: {}"
+    print(msg.format(sigma_v, prefactor))
+
     mtd[sam_corrected] = prefactor * mtd[sam_corrected]
     sample_title += '_multiply_by_vanSelfScat'
-    save_banks(InputWorkspace=sam_corrected,
-               Filename=nexus_filename,
-               Title=sample_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=sam_corrected,
+        Filename=nexus_filename,
+        Title=sample_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     # STEP 7: Inelastic correction
-    ConvertUnits(InputWorkspace=sam_corrected, OutputWorkspace=sam_corrected,
-                 Target='Wavelength', EMode='Elastic')
+    ConvertUnits(
+        InputWorkspace=sam_corrected,
+        OutputWorkspace=sam_corrected,
+        Target='Wavelength',
+        EMode='Elastic')
+
     if sam_inelastic_corr['Type'] == "Placzek":
         if sam_material is None:
             error = "For Placzek correction, must specifiy a sample material."
@@ -1081,65 +1185,81 @@ def TotalScatteringReduction(config=None):
                 OutputWorkspace=sam_incident_wksp)
 
             fit_type = sample['InelasticCorrection']['FitSpectrumWith']
-            FitIncidentSpectrum(InputWorkspace=sam_incident_wksp,
-                                OutputWorkspace=sam_incident_wksp,
-                                FitSpectrumWith=fit_type,
-                                BinningForFit=lambda_binning_fit,
-                                BinningForCalc=lambda_binning_calc)
+            FitIncidentSpectrum(
+                InputWorkspace=sam_incident_wksp,
+                OutputWorkspace=sam_incident_wksp,
+                FitSpectrumWith=fit_type,
+                BinningForFit=lambda_binning_fit,
+                BinningForCalc=lambda_binning_calc)
 
             sam_placzek = 'sam_placzek'
-            SetSample(InputWorkspace=sam_incident_wksp,
-                      Material={'ChemicalFormula': str(sam_material),
-                                'SampleMassDensity': str(sam_mass_density)})
-            CalculatePlaczekSelfScattering(IncidentWorkspace=sam_incident_wksp,
-                                           ParentWorkspace=sam_corrected,
-                                           OutputWorkspace=sam_placzek,
-                                           L1=19.5,
-                                           L2=alignAndFocusArgs['L2'],
-                                           Polar=alignAndFocusArgs['Polar'])
-            ConvertToHistogram(InputWorkspace=sam_placzek,
-                               OutputWorkspace=sam_placzek)
+            SetSample(
+                InputWorkspace=sam_incident_wksp,
+                Material={'ChemicalFormula': str(sam_material),
+                          'SampleMassDensity': str(sam_mass_density)})
+            CalculatePlaczekSelfScattering(
+                IncidentWorkspace=sam_incident_wksp,
+                ParentWorkspace=sam_corrected,
+                OutputWorkspace=sam_placzek,
+                L1=19.5,
+                L2=alignAndFocusArgs['L2'],
+                Polar=alignAndFocusArgs['Polar'])
+
+            ConvertToHistogram(
+                InputWorkspace=sam_placzek,
+                OutputWorkspace=sam_placzek)
 
         # Save before rebin in Q
         for wksp in [sam_placzek, sam_corrected]:
-            ConvertUnits(InputWorkspace=wksp,
-                         OutputWorkspace=wksp,
-                         Target='MomentumTransfer',
-                         EMode='Elastic')
-            Rebin(InputWorkspace=wksp, OutputWorkspace=wksp,
-                  Params=binning, PreserveEvents=True)
+            ConvertUnits(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Target='MomentumTransfer',
+                EMode='Elastic')
 
-        save_banks(InputWorkspace=sam_placzek,
-                   Filename=nexus_filename,
-                   Title="sample_placzek",
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+            Rebin(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Params=binning,
+                PreserveEvents=True)
+
+        save_banks(
+            InputWorkspace=sam_placzek,
+            Filename=nexus_filename,
+            Title="sample_placzek",
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
 
         # Save after rebin in Q
         for wksp in [sam_placzek, sam_corrected]:
-            ConvertUnits(InputWorkspace=wksp,
-                         OutputWorkspace=wksp,
-                         Target='MomentumTransfer',
-                         EMode='Elastic')
+            ConvertUnits(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Target='MomentumTransfer',
+                EMode='Elastic')
 
-        Minus(LHSWorkspace=sam_corrected,
-              RHSWorkspace=sam_placzek,
-              OutputWorkspace=sam_corrected)
+        Minus(
+            LHSWorkspace=sam_corrected,
+            RHSWorkspace=sam_placzek,
+            OutputWorkspace=sam_corrected)
 
         # Save after subtraction
         for wksp in [sam_placzek, sam_corrected]:
-            ConvertUnits(InputWorkspace=wksp,
-                         OutputWorkspace=wksp,
-                         Target='MomentumTransfer',
-                         EMode='Elastic')
+            ConvertUnits(
+                InputWorkspace=wksp,
+                OutputWorkspace=wksp,
+                Target='MomentumTransfer',
+                EMode='Elastic')
+
         sample_title += '_placzek_corrected'
-        save_banks(InputWorkspace=sam_corrected,
-                   Filename=nexus_filename,
-                   Title=sample_title,
-                   OutputDir=OutputDir,
-                   GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+        save_banks(
+            InputWorkspace=sam_corrected,
+            Filename=nexus_filename,
+            Title=sample_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
 
     # STEP 7: Output spectrum
 
@@ -1153,7 +1273,8 @@ def TotalScatteringReduction(config=None):
             OutputWorkspace=sam_corrected)
 
     # F(Q) bank-by-bank Section
-    CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace='FQ_banks_ws')
+    fq_banks_wksp = "FQ_banks_wksp"
+    CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace=fq_banks_wksp)
     # TODO: Add the following when implemented - FQ_banks = 'FQ_banks'
 
     # S(Q) bank-by-bank Section
@@ -1163,45 +1284,52 @@ def TotalScatteringReduction(config=None):
     bcoh_avg_sqrd = material.cohScatterLength() * material.cohScatterLength()
     btot_sqrd_avg = material.totalScatterLengthSqrd()
     laue_monotonic_diffuse_scat = btot_sqrd_avg / bcoh_avg_sqrd
-    CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace='SQ_banks_ws')
+    sq_banks_wksp = 'SQ_banks_wksp'
+    CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace=sq_banks_wksp)
 
     # TODO: Add the following when implemented
     '''
     SQ_banks = (1. / bcoh_avg_sqrd) * \
-        mtd['SQ_banks_ws'] - laue_monotonic_diffuse_scat + 1.
+        mtd[sq_banks_wksp] - laue_monotonic_diffuse_scat + 1.
     '''
 
-    save_banks(InputWorkspace="FQ_banks_ws",
-               Filename=nexus_filename,
-               Title="FQ_banks",
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
-    save_banks(InputWorkspace="SQ_banks_ws",
-               Filename=nexus_filename,
-               Title="SQ_banks",
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    # Save S(Q) and F(Q) to diagnostics NeXus file
+    save_banks(
+        InputWorkspace=fq_banks_wksp,
+        Filename=nexus_filename,
+        Title="FQ_banks",
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
+
+    save_banks(
+        InputWorkspace=sq_banks_wksp,
+        Filename=nexus_filename,
+        Title="SQ_banks",
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     # Output a main S(Q) and F(Q) file
     fq_filename = title + '_fofq_banks_corrected.nxs'
-    save_banks(InputWorkspace="FQ_banks_ws",
-               Filename=fq_filename,
-               Title="FQ_banks",
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=fq_banks_wksp,
+        Filename=fq_filename,
+        Title="FQ_banks",
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     sq_filename = title + '_sofq_banks_corrected.nxs'
-    save_banks(InputWorkspace="SQ_banks_ws",
-               Filename=sq_filename,
-               Title="SQ_banks",
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=sq_banks_wksp,
+        Filename=sq_filename,
+        Title="SQ_banks",
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
-    # STOP HERE FOR NOW
+    # Print log information
     print("<b>^2:", bcoh_avg_sqrd)
     print("<b^2>:", btot_sqrd_avg)
     print("Laue term:", laue_monotonic_diffuse_scat)
@@ -1213,21 +1341,24 @@ def TotalScatteringReduction(config=None):
         mtd[van_corrected].sample().getMaterial().totalScatterXSection())
 
     # Output Bragg Diffraction
-    ConvertUnits(InputWorkspace=sam_corrected,
-                 OutputWorkspace=sam_corrected,
-                 Target="TOF",
-                 EMode="Elastic")
+    ConvertUnits(
+        InputWorkspace=sam_corrected,
+        OutputWorkspace=sam_corrected,
+        Target="TOF",
+        EMode="Elastic")
 
-    ConvertToHistogram(InputWorkspace=sam_corrected,
-                       OutputWorkspace=sam_corrected)
-    
+    ConvertToHistogram(
+        InputWorkspace=sam_corrected,
+        OutputWorkspace=sam_corrected)
+
     xmin, xmax = get_each_spectra_xmin_xmax(mtd[sam_corrected])
 
-    CropWorkspaceRagged(InputWorkspace=sam_corrected,
-                        OutputWorkspace=sam_corrected,
-                        Xmin=xmin,
-                        Xmax=xmax)
-    
+    CropWorkspaceRagged(
+        InputWorkspace=sam_corrected,
+        OutputWorkspace=sam_corrected,
+        Xmin=xmin,
+        Xmax=xmax)
+
     xmin_rebin = min(xmin)
     xmax_rebin = max(xmax)
     tof_binning = "{xmin},-0.01,{xmax}".format(xmin=xmin_rebin, xmax=xmax_rebin)
@@ -1236,10 +1367,10 @@ def TotalScatteringReduction(config=None):
         InputWorkspace=sam_corrected,
         OutputWorkspace=sam_corrected,
         Params=tof_binning)
-         
 
-    SaveGSS(InputWorkspace=sam_corrected,
-        Filename=os.path.join(os.path.abspath(OutputDir),title+".gsa"),
+    SaveGSS(
+        InputWorkspace=sam_corrected,
+        Filename=os.path.join(os.path.abspath(OutputDir), title+".gsa"),
         SplitFiles=False,
         Append=False,
         MultiplyByBinWidth=True,
@@ -1247,7 +1378,8 @@ def TotalScatteringReduction(config=None):
         ExtendedHeader=True)
 
     return mtd[sam_corrected]
-    # process the run
+
+    # TODO: Remove commented dead code below
     '''
     SNSPowderReduction(
         Filename=sam_scans,
@@ -1346,12 +1478,12 @@ def TotalScatteringReduction(config=None):
 
     # Merged S(Q) and F(Q)
 
-    save_banks(InputWorkspace="FQ_banks_ws",
+    save_banks(InputWorkspace=fq_banks_wksp,
                Filename=nexus_filename,
                Title="FQ_banks",
                OutputDir=OutputDir,
                Binning=binning)
-    save_banks(InputWorkspace="SQ_banks_ws",
+    save_banks(InputWorkspace=sq_banks_wksp,
                Filename=nexus_filename,
                Title="SQ_banks",
                OutputDir=OutputDir,
