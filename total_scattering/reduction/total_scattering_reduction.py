@@ -950,7 +950,8 @@ def TotalScatteringReduction(config=None):
 
     # STEP 2.1: Normalize by Vanadium
 
-    for name in [sam_wksp, van_corrected]:
+    wksp_list = [sam_wksp, sam_raw, van_corrected]
+    for name in wksp_list:
         ConvertUnits(
             InputWorkspace=name,
             OutputWorkspace=name,
@@ -1003,7 +1004,13 @@ def TotalScatteringReduction(config=None):
         GroupingWorkspace=grp_wksp,
         Binning=binning)
 
-    for name in [container, van_corrected]:
+    wksp_list = [container, container_raw, van_corrected]
+    if container_bg is not None:
+        wksp_list.append(container_bg)
+    if van_bg is not None:
+        wksp_list.append(van_bg)
+
+    for name in wksp_list:
         ConvertUnits(
             InputWorkspace=name,
             OutputWorkspace=name,
@@ -1024,12 +1031,13 @@ def TotalScatteringReduction(config=None):
         OutputWorkspace=container)
 
     container_title += '_normalized'
-    save_banks(InputWorkspace=container,
-               Filename=nexus_filename,
-               Title=container_title,
-               OutputDir=OutputDir,
-               GroupingWorkspace=grp_wksp,
-               Binning=binning)
+    save_banks(
+        InputWorkspace=container,
+        Filename=nexus_filename,
+        Title=container_title,
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
     # Save the container / normalized (ie no background subtraction)
     Divide(
