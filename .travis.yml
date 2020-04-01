@@ -20,10 +20,63 @@ matrix:
     env: TYPE="conda" CONDA=3.6.7    PKG="mantid-total-scattering-python-wrapper"
     sudo: required
 
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.8    PKG="mantid-total-scattering-python-wrapper"
+    sudo: required
+
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.9    PKG="mantid-total-scattering-python-wrapper"
+    sudo: required
+
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.10    PKG="mantid-total-scattering-python-wrapper"
+    sudo: required
+
   # Conda w/ mantid-framework
   - os: linux
     env: TYPE="conda" CONDA=3.6.7    PKG="mantid-total-scattering"
     sudo: required
+
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.8    PKG="mantid-total-scattering"
+    sudo: required
+
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.9    PKG="mantid-total-scattering"
+    sudo: required
+
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.10    PKG="mantid-total-scattering"
+    sudo: required
+
+  # Allowed failures
+  allow_failures:
+
+    # Conda w/o mantid-framework
+    - os: linux
+      env: TYPE="conda" CONDA=3.6.8    PKG="mantid-total-scattering-python-wrapper"
+      sudo: required
+
+    - os: linux
+      env: TYPE="conda" CONDA=3.6.9    PKG="mantid-total-scattering-python-wrapper"
+      sudo: required
+
+    - os: linux
+      env: TYPE="conda" CONDA=3.6.10    PKG="mantid-total-scattering-python-wrapper"
+      sudo: required
+
+    # Conda w/ mantid-framework
+    - os: linux
+      env: TYPE="conda" CONDA=3.6.8    PKG="mantid-total-scattering"
+      sudo: required
+
+    - os: linux
+      env: TYPE="conda" CONDA=3.6.9    PKG="mantid-total-scattering"
+      sudo: required
+
+    - os: linux
+      env: TYPE="conda" CONDA=3.6.10    PKG="mantid-total-scattering"
+      sudo: required
 
 before_install:
   - | 
