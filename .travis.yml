@@ -17,27 +17,65 @@ matrix:
 
   # Conda w/o mantid-framework
   - os: linux
-    env: TYPE="conda" CONDA=2.7    PKG="mantid-total-scattering-python-wrapper"
+    env: TYPE="conda" CONDA=3.6.7    PKG="mantid-total-scattering-python-wrapper"
     sudo: required
+
   - os: linux
-    env: TYPE="conda" CONDA=3.6    PKG="mantid-total-scattering-python-wrapper"
+    env: TYPE="conda" CONDA=3.6.8    PKG="mantid-total-scattering-python-wrapper"
+    sudo: required
+
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.9    PKG="mantid-total-scattering-python-wrapper"
+    sudo: required
+
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.10    PKG="mantid-total-scattering-python-wrapper"
     sudo: required
 
   # Conda w/ mantid-framework
   - os: linux
-    env: TYPE="conda" CONDA=2.7 PKG="mantid-total-scattering"
-    sudo: required
-  - os: linux
-    env: TYPE="conda" CONDA=3.6    PKG="mantid-total-scattering"
+    env: TYPE="conda" CONDA=3.6.7    PKG="mantid-total-scattering"
     sudo: required
 
-  # Since Mantid Framework is prone to seg faults
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.8    PKG="mantid-total-scattering"
+    sudo: required
+
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.9    PKG="mantid-total-scattering"
+    sudo: required
+
+  - os: linux
+    env: TYPE="conda" CONDA=3.6.10    PKG="mantid-total-scattering"
+    sudo: required
+
+  # Allowed failures
   allow_failures:
+
+    # Conda w/o mantid-framework
     - os: linux
-      env: TYPE="conda" CONDA=2.7 PKG="mantid-total-scattering"
+      env: TYPE="conda" CONDA=3.6.8    PKG="mantid-total-scattering-python-wrapper"
       sudo: required
+
     - os: linux
-      env: TYPE="conda" CONDA=3.6    PKG="mantid-total-scattering"
+      env: TYPE="conda" CONDA=3.6.9    PKG="mantid-total-scattering-python-wrapper"
+      sudo: required
+
+    - os: linux
+      env: TYPE="conda" CONDA=3.6.10    PKG="mantid-total-scattering-python-wrapper"
+      sudo: required
+
+    # Conda w/ mantid-framework
+    - os: linux
+      env: TYPE="conda" CONDA=3.6.8    PKG="mantid-total-scattering"
+      sudo: required
+
+    - os: linux
+      env: TYPE="conda" CONDA=3.6.9    PKG="mantid-total-scattering"
+      sudo: required
+
+    - os: linux
+      env: TYPE="conda" CONDA=3.6.10    PKG="mantid-total-scattering"
       sudo: required
 
 before_install:
@@ -78,7 +116,7 @@ install:
       mamba info -a
 
       # BUILD: Create mts build environment
-      mamba create -q -n ${PKG}_build python=$CONDA conda-build=3.17 conda-verify;
+      mamba create -q -n ${PKG}_build python=$CONDA conda-build conda-verify;
       conda activate ${PKG}_build
       PKG_PATH="./conda.recipe/${PKG}"
       mamba build ${PKG_PATH}
@@ -96,7 +134,7 @@ script:
   - |
     if [[ "${TYPE}" == "conda" ]]; then
       # TEST: Create test environment and test build
-      mamba create -q -n ${PKG}_test python=$CONDA conda-build=3.17 anaconda-client flake8 pytest;
+      mamba create -q -n ${PKG}_test python=$CONDA conda-build anaconda-client flake8 pytest;
       conda activate ${PKG}_test
       mkdir -p ${CONDA_PREFIX}/conda-bld/linux-64/
       cp ${PKG_FILE} ${CONDA_PREFIX}/conda-bld/linux-64/
