@@ -63,7 +63,7 @@ install:
       mamba info -a
 
       # BUILD: Create mts build environment
-      mamba create -q -n ${PKG}_build python=$CONDA conda-build=3.17 conda-verify;
+      mamba create -q -n ${PKG}_build python=$CONDA conda-build conda-verify;
       conda activate ${PKG}_build
       PKG_PATH="./conda.recipe/${PKG}"
       mamba build ${PKG_PATH}
@@ -81,7 +81,7 @@ script:
   - |
     if [[ "${TYPE}" == "conda" ]]; then
       # TEST: Create test environment and test build
-      mamba create -q -n ${PKG}_test python=$CONDA conda-build=3.17 anaconda-client flake8 pytest;
+      mamba create -q -n ${PKG}_test python=$CONDA conda-build anaconda-client flake8 pytest;
       conda activate ${PKG}_test
       mkdir -p ${CONDA_PREFIX}/conda-bld/linux-64/
       cp ${PKG_FILE} ${CONDA_PREFIX}/conda-bld/linux-64/
