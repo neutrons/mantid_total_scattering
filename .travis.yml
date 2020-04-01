@@ -20,7 +20,7 @@ matrix:
     env: TYPE="conda" CONDA=2.7    PKG="mantid-total-scattering-python-wrapper"
     sudo: required
   - os: linux
-    env: TYPE="conda" CONDA=3.6    PKG="mantid-total-scattering-python-wrapper"
+    env: TYPE="conda" CONDA=3.6.7    PKG="mantid-total-scattering-python-wrapper"
     sudo: required
 
   # Conda w/ mantid-framework
@@ -28,7 +28,7 @@ matrix:
     env: TYPE="conda" CONDA=2.7 PKG="mantid-total-scattering"
     sudo: required
   - os: linux
-    env: TYPE="conda" CONDA=3.6    PKG="mantid-total-scattering"
+    env: TYPE="conda" CONDA=3.6.7    PKG="mantid-total-scattering"
     sudo: required
 
   # Since Mantid Framework is prone to seg faults
