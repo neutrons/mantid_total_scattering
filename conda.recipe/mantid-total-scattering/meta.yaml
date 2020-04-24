@@ -13,12 +13,12 @@ build:
 
 requirements:
   build:
-    - mantid-framework=4
+    - mantid-framework=5
     - python
     - setuptools
 
   run:
-    - mantid-framework=4
+    - mantid-framework=5
     - python
 
 test:
