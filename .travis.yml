@@ -121,7 +121,6 @@ install:
       PKG_PATH="./conda.recipe/${PKG}"
       mamba build ${PKG_PATH}
       export PKG_FILE=$(conda build ${PKG_PATH} --output)
-      conda activate
     fi
 
 script:
@@ -130,33 +129,9 @@ script:
       docker run -t test-env /bin/bash -c "$test_cmd";
       sudo python setup.py install;
     fi
-
-  - |
-    if [[ "${TYPE}" == "conda" ]]; then
-      # TEST: Create test environment and test build
-      mamba create -n ${PKG}_test python=$CONDA conda-build anaconda-client flake8 pytest;
-      conda activate ${PKG}_test
-      echo "Activated env..."
-      mkdir -p ${CONDA_PREFIX}/conda-bld/linux-64/
-      cp ${PKG_FILE} ${CONDA_PREFIX}/conda-bld/linux-64/
-      echo "Conda indexing build..."
-      conda index ${CONDA_PREFIX}/conda-bld
-      echo "Conda indexed! Installing from conda-bld..."
-      mamba install -c ${CONDA_PREFIX}/conda-bld ${PKG}
-      echo "Installed! Installing mantid framework..."
-
-      if [[ "${PKG}" == "mantid-total-scattering-python-wrapper" ]]; then
-        mamba install mantid-framework -c mantid/label/nightly;
-      fi
-      
-      echo "Installed framework! Linting..."
-
-      flake8 .
-      python -c "import mantid"
-      python -c "import total_scattering"
-
-      python setup.py test;
-    fi
+    
+   - |
+     flake8 .
 
 deploy:
 
