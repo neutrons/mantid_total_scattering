@@ -111,7 +111,7 @@ install:
       conda config --add channels conda-forge --add channels mantid --add channels mantid/label/nightly;
 
       # Install mamba
-      conda install mamba -c conda-forge
+      conda install mamba=0.2.4 -c conda-forge
       mamba update mamba -c conda-forge
       mamba info -a
 
