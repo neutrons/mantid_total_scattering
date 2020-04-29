@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 language: generic
 
 services:
@@ -78,7 +78,9 @@ matrix:
       env: TYPE="conda" CONDA=3.6.10    PKG="mantid-total-scattering"
       sudo: required
 
-before_install:
+before_install:  
+  - sudo apt-get install flake8
+  
   - | 
     if [[ "${TYPE}" == "docker" ]]; then
       docker build -t test-env -f .ci/Dockerfile.nightly_ubuntu16.04_python3 .;
@@ -111,7 +113,7 @@ install:
       conda config --add channels conda-forge --add channels mantid --add channels mantid/label/nightly;
 
       # Install mamba
-      conda install mamba=0.2.4 -c conda-forge
+      conda install mamba -c conda-forge
       mamba update mamba -c conda-forge
       mamba info -a
 
