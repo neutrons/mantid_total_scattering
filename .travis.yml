@@ -130,7 +130,7 @@ script:
       sudo python setup.py install;
     fi
     
-   - flake8 .
+  - flake8 .
 
 deploy:
 
