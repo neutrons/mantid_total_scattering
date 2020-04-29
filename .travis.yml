@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 language: generic
 
 services:
@@ -78,7 +78,9 @@ matrix:
       env: TYPE="conda" CONDA=3.6.10    PKG="mantid-total-scattering"
       sudo: required
 
-before_install:
+before_install:  
+  - sudo apt-get install flake8
+  
   - | 
     if [[ "${TYPE}" == "docker" ]]; then
       docker build -t test-env -f .ci/Dockerfile.nightly_ubuntu16.04_python3 .;
@@ -116,12 +118,11 @@ install:
       mamba info -a
 
       # BUILD: Create mts build environment
-      mamba create -q -n ${PKG}_build python=$CONDA conda-build conda-verify;
+      mamba create -n ${PKG}_build python=$CONDA conda-build conda-verify;
       conda activate ${PKG}_build
       PKG_PATH="./conda.recipe/${PKG}"
       mamba build ${PKG_PATH}
       export PKG_FILE=$(conda build ${PKG_PATH} --output)
-      conda activate
     fi
 
 script:
@@ -130,27 +131,8 @@ script:
       docker run -t test-env /bin/bash -c "$test_cmd";
       sudo python setup.py install;
     fi
-
-  - |
-    if [[ "${TYPE}" == "conda" ]]; then
-      # TEST: Create test environment and test build
-      mamba create -q -n ${PKG}_test python=$CONDA conda-build anaconda-client flake8 pytest;
-      conda activate ${PKG}_test
-      mkdir -p ${CONDA_PREFIX}/conda-bld/linux-64/
-      cp ${PKG_FILE} ${CONDA_PREFIX}/conda-bld/linux-64/
-      conda index ${CONDA_PREFIX}/conda-bld
-      mamba install -c ${CONDA_PREFIX}/conda-bld ${PKG}
-
-      if [[ "${PKG}" == "mantid-total-scattering-python-wrapper" ]]; then
-        mamba install mantid-framework -c mantid/label/nightly;
-      fi
-
-      flake8 .
-      python -c "import mantid"
-      python -c "import total_scattering"
-
-      python setup.py test;
-    fi
+    
+  - flake8 .
 
 deploy:
 
