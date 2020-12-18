@@ -110,7 +110,8 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         PDDetermineCharacterizations(InputWorkspace=abs_input,
                                      Characterizations=chars,
                                      ReductionProperties="__absreductionprops",
-                                     FrequencyLogNames="LambdaRequest,lambda,skf12.lambda,freq")
+                                     FrequencyLogNames="LambdaRequest,lambda,skf12.lambda,"
+                                                       "BL1B:Det:TH:BL:Lambda")
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
     # If neither run characterization properties or char files were given, try to guess from input
@@ -118,7 +119,8 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         print("No props or characterizations were given, determining props from input file")
         PDDetermineCharacterizations(InputWorkspace=abs_input,
                                      ReductionProperties="__absreductionprops",
-                                     FrequencyLogNames="LambdaRequest,lambda,skf12.lambda,freq")
+                                     FrequencyLogNames="LambdaRequest,lambda,skf12.lambda,"
+                                                       "BL1B:Det:TH:BL:Lambda")
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
     # Setup the donor workspace for absorption correction
@@ -127,10 +129,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                                                                geometry=geometry,
                                                                environment=environment)
     except RuntimeError as e:
-        Logger("TotalScatteringReduction:create_absorption_wksp")\
-            .error("Could not create absorption correction donor workspace: {}".format(e))
-        # Return '' (the default value for an absorption corr ws in AlignAndFocusPowderFromFiles)
-        return '', ''
+        raise RuntimeError("Could not create absorption correction donor workspace: {}".format(e))
 
     abs_s, abs_c = AbsorptionCorrUtils.calc_absorption_corr_using_wksp(donor_ws, abs_method)
 
