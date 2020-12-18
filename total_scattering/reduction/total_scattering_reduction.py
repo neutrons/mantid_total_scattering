@@ -471,7 +471,7 @@ def TotalScatteringReduction(config=None):
 
     # Warn about having absorption correction and multiple scattering correction set
     if sam_abs_corr and sam_ms_corr:
-        log.warn("The multiple scattering option should not be used with the absorption correction set")
+        log.warning("The multiple scattering option should not be used with the absorption correction set")
 
     # Compute the absorption correction on the sample if it was provided
     sam_abs_ws = ''
@@ -492,7 +492,7 @@ def TotalScatteringReduction(config=None):
 
     # Warn about having absorption correction and multiple scattering correction set
     if van_abs_corr and van_ms_corr:
-        log.warn("The multiple scattering option should not be used with the absorption correction set")
+        log.warning("The multiple scattering option should not be used with the absorption correction set")
 
     # Compute the absorption correction for the vanadium if provided
     van_abs_corr_ws = ''
