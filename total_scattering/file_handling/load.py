@@ -88,10 +88,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     # Check against supported absorption correction methods so we can error out early if needed
     valid_methods = ["SampleOnly", "SampleAndContainer", "FullPaalmanPings"]
     if abs_method not in valid_methods:
-        Logger("TotalScatteringReduction:create_absorption_wksp")\
-            .error("Unrecognized absorption correction method '{}'".format(abs_method))
-        # Return '' (the default value for an absorption corr ws in AlignAndFocusPowderFromFiles)
-        return '', ''
+        raise RuntimeError("Unrecognized absorption correction method '{}'".format(abs_method))
 
     abs_input = Load(filename, MetaDataOnly=True)
 
@@ -111,7 +108,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                                      Characterizations=chars,
                                      ReductionProperties="__absreductionprops",
                                      FrequencyLogNames="LambdaRequest,lambda,skf12.lambda,"
-                                                       "BL1B:Det:TH:BL:Lambda")
+                                                       "BL1B:Det:TH:BL:Lambda,freq")
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
     # If neither run characterization properties or char files were given, try to guess from input
@@ -120,7 +117,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         PDDetermineCharacterizations(InputWorkspace=abs_input,
                                      ReductionProperties="__absreductionprops",
                                      FrequencyLogNames="LambdaRequest,lambda,skf12.lambda,"
-                                                       "BL1B:Det:TH:BL:Lambda")
+                                                       "BL1B:Det:TH:BL:Lambda,freq")
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
     # Setup the donor workspace for absorption correction
