@@ -1,5 +1,8 @@
+from mantid.kernel import Logger
 from mantid.simpleapi import \
-    AlignAndFocusPowderFromFiles, NormaliseByCurrent, SetSample, ConvertUnits
+    AlignAndFocusPowderFromFiles, Load, NormaliseByCurrent, PDDetermineCharacterizations, \
+    PDLoadCharacterizations, PropertyManagerDataService, SetSample, ConvertUnits
+from mantid.utils import AbsorptionCorrUtils
 
 
 required_shape_keys = {
@@ -15,10 +18,11 @@ def load(
         geometry=None,
         chemical_formula=None,
         mass_density=None,
+        absorption_wksp='',
         **align_and_focus_args):
     AlignAndFocusPowderFromFiles(OutputWorkspace=ws_name,
                                  Filename=input_files,
-                                 Absorption=None,
+                                 AbsorptionWorkspace=absorption_wksp,
                                  **align_and_focus_args)
     NormaliseByCurrent(InputWorkspace=ws_name,
                        OutputWorkspace=ws_name,
@@ -74,3 +78,60 @@ def add_required_shape_keys(mydict, shape):
             new_dict[key] = mydict[key]
     new_dict['Shape'] = shape
     return new_dict
+
+
+def create_absorption_wksp(filename, abs_method, geometry, material,
+                           environment=None, props=None, characterization_files=None):
+    if abs_method is None:
+        return '', ''
+
+    # Check against supported absorption correction methods so we can error out early if needed
+    valid_methods = ["SampleOnly", "SampleAndContainer", "FullPaalmanPings"]
+    if abs_method not in valid_methods:
+        Logger("TotalScatteringReduction:create_absorption_wksp")\
+            .error("Unrecognized absorption correction method '{}'".format(abs_method))
+        # Return '' (the default value for an absorption corr ws in AlignAndFocusPowderFromFiles)
+        return '', ''
+
+    abs_input = Load(filename, MetaDataOnly=True)
+
+    # If no run characterization properties were given, load them if any files were provided
+    if not props and characterization_files:
+        print("No props were given, but determining from characterization files")
+        charfile = characterization_files
+        # Reduce to a string if multiple files were provided
+        if isinstance(charfile, list):
+            charfile = ','.join(characterization_files)
+        charTable = PDLoadCharacterizations(Filename=charfile)
+        chars = charTable[0]
+
+        # Create the properties for the absorption workspace
+        #  Note: Should BackRun, NormRun, and NormBackRun be specified here?
+        PDDetermineCharacterizations(InputWorkspace=abs_input,
+                                     Characterizations=chars,
+                                     ReductionProperties="__absreductionprops",
+                                     FrequencyLogNames="LambdaRequest,lambda,skf12.lambda,freq")
+        props = PropertyManagerDataService.retrieve("__absreductionprops")
+
+    # If neither run characterization properties or char files were given, try to guess from input
+    if not (props and characterization_files):
+        print("No props or characterizations were given, determining props from input file")
+        PDDetermineCharacterizations(InputWorkspace=abs_input,
+                                     ReductionProperties="__absreductionprops",
+                                     FrequencyLogNames="LambdaRequest,lambda,skf12.lambda,freq")
+        props = PropertyManagerDataService.retrieve("__absreductionprops")
+
+    # Setup the donor workspace for absorption correction
+    try:
+        donor_ws = AbsorptionCorrUtils.create_absorption_input(filename, props, material=material,
+                                                               geometry=geometry,
+                                                               environment=environment)
+    except RuntimeError as e:
+        Logger("TotalScatteringReduction:create_absorption_wksp")\
+            .error("Could not create absorption correction donor workspace: {}".format(e))
+        # Return '' (the default value for an absorption corr ws in AlignAndFocusPowderFromFiles)
+        return '', ''
+
+    abs_s, abs_c = AbsorptionCorrUtils.calc_absorption_corr_using_wksp(donor_ws, abs_method)
+
+    return abs_s, abs_c

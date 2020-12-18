@@ -7,6 +7,7 @@ import numpy as np
 from scipy.constants import Avogadro
 
 from mantid import mtd
+from mantid.kernel import Logger
 from mantid.simpleapi import \
     CarpenterSampleCorrection, \
     CloneWorkspace, \
@@ -34,7 +35,7 @@ from mantid.simpleapi import \
     SetUncertainties, \
     StripVanadiumPeaks
 
-from total_scattering.file_handling.load import load
+from total_scattering.file_handling.load import load, create_absorption_wksp
 from total_scattering.file_handling.save import save_banks
 from total_scattering.inelastic.placzek import \
     CalculatePlaczekSelfScattering, \
@@ -361,6 +362,9 @@ def TotalScatteringReduction(config=None):
     title = config['Title']
     instr = config['Instrument']
 
+    # Get an instance to Mantid's logger
+    log = Logger("TotalScatteringReduction")
+
     # Get sample info
     sample = get_sample(config)
     sam_mass_density = sample.get('MassDensity', None)
@@ -465,6 +469,17 @@ def TotalScatteringReduction(config=None):
     sam_inelastic_corr = SetInelasticCorrection(
         sample.get('InelasticCorrection', None))
 
+    # Warn about having absorption correction and multiple scattering correction set
+    if sam_abs_corr and sam_ms_corr:
+        log.warn("The multiple scattering option should not be used with the absorption correction set")
+
+    # Compute the absorption correction on the sample if it was provided
+    sam_abs_ws = ''
+    con_abs_ws = ''
+    if sam_abs_corr:
+        log.notice("Applying '{}' absorption correction to sample".format(sam_abs_corr["Type"]))
+        sam_abs_ws, con_abs_ws = create_absorption_wksp(sam_scans, sam_abs_corr["Type"], sam_geometry, sam_material)
+
     # Get vanadium corrections
     van_mass_density = van.get('MassDensity', van_mass_density)
     van_packing_fraction = van.get(
@@ -474,6 +489,16 @@ def TotalScatteringReduction(config=None):
     van_ms_corr = van.get("MultipleScatteringCorrection", {"Type": None})
     van_inelastic_corr = SetInelasticCorrection(
         van.get('InelasticCorrection', None))
+
+    # Warn about having absorption correction and multiple scattering correction set
+    if van_abs_corr and van_ms_corr:
+        log.warn("The multiple scattering option should not be used with the absorption correction set")
+
+    # Compute the absorption correction for the vanadium if provided
+    van_abs_corr_ws = ''
+    if van_abs_corr:
+        log.notice("Applying '{}' absorption correction to vanadium".format(van_abs_corr["Type"]))
+        van_abs_corr_ws = create_absorption_wksp(van_scans, van_abs_corr["Type"], van_geometry, van_material)
 
     alignAndFocusArgs = dict()
     alignAndFocusArgs['CalFilename'] = config['Calibration']['Filename']
@@ -531,6 +556,7 @@ def TotalScatteringReduction(config=None):
         sam_geometry,
         sam_material,
         sam_mass_density,
+        sam_abs_ws,
         **alignAndFocusArgs)
     sample_title = "sample_and_container"
     print(os.path.join(OutputDir, sample_title + ".dat"))
@@ -555,7 +581,7 @@ def TotalScatteringReduction(config=None):
     print("#-----------------------------------#")
     print("# Sample Container")
     print("#-----------------------------------#")
-    container = load('container', container_scans, **alignAndFocusArgs)
+    container = load('container', container_scans, absorption_wksp=con_abs_ws, **alignAndFocusArgs)
     save_banks(
         InputWorkspace=container,
         Filename=nexus_filename,
@@ -593,6 +619,7 @@ def TotalScatteringReduction(config=None):
         van_geometry,
         van_material,
         van_mass_density,
+        van_abs_corr_ws,
         **alignAndFocusArgs)
     vanadium_title = "vanadium_and_background"
 

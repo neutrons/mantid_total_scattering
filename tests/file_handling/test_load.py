@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from total_scattering.file_handling.load import load
+from total_scattering.file_handling.load import load, create_absorption_wksp
 from tests import EXAMPLE_DIR, TEST_DATA_DIR
 
 from mantid.simpleapi import mtd
@@ -43,6 +43,32 @@ class TestLoad(unittest.TestCase):
                       geometry=geometry,
                       chemical_formula=formula,
                       mass_density=mass_density,
+                      **self.align_and_focus_args)
+        actual = mtd[actual]
+        self.assertEqual(actual.sample().getMaterial().name(), 'Si')
+        mtd.clear()
+
+    def test_load_with_abscorr(self):
+        ws_name = 'test-sample'
+        geometry = {'Shape': 'Cylinder',
+                    'Radius': 0.3175,
+                    'Center': [0.0, 0.0, 0.0],
+                    'Height': 4.0}
+        formula = 'Si'
+        mass_density = 2.328
+
+        a_sample, a_container = create_absorption_wksp(self.sample_file_path, "SampleOnly",
+                                                       geometry=geometry,
+                                                       material={"ChemicalFormula": formula,
+                                                                 "SampleMassDensity": mass_density})
+        self.assertIsNotNone(a_sample)
+
+        actual = load(ws_name=ws_name,
+                      input_files=self.sample_file_path,
+                      geometry=geometry,
+                      chemical_formula=formula,
+                      mass_density=mass_density,
+                      absorption_wksp=a_sample,
                       **self.align_and_focus_args)
         actual = mtd[actual]
         self.assertEqual(actual.sample().getMaterial().name(), 'Si')
