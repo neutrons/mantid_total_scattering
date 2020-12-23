@@ -120,6 +120,18 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                                                        "BL1B:Det:TH:BL:Lambda,freq")
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
+        if "BL1B:Det:TH:BL:Lambda" in abs_input.run() and props["wavelength_max"].value == 0:
+            props["wavelength_max"] = abs_input.run()["BL1B:Det:TH:BL:Lambda"].lastValue()
+
+        elif "LambdaRequest" in abs_input.run() and props["wavelength_max"].value == 0:
+            props["wavelength_max"] = abs_input.run()["LambdaRequest"].lastValue()
+
+        elif "lambda" in abs_input.run() and props["wavelength_max"].value == 0:
+            props["wavelength_max"] = abs_input.run()["lambda"].lastValue()
+
+        elif "skf12.lambda" in abs_input.run() and props["wavelength_max"].value == 0:
+            props["wavelength_max"] = abs_input.run()["skf12.lambda"].lastValue()
+
     # Setup the donor workspace for absorption correction
     try:
         if props['wavelength_max'].value == 0 and "BL1B:Det:TH:BL:Lambda" in abs_input.run():
