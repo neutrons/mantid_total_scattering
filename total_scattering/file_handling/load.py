@@ -107,7 +107,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         PDDetermineCharacterizations(InputWorkspace=abs_input,
                                      Characterizations=chars,
                                      ReductionProperties="__absreductionprops",
-                                     FrequencyLogNames="LambdaRequest,lambda,skf12.lambda,"
+                                     WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
                                                        "BL1B:Det:TH:BL:Lambda,freq")
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
@@ -116,12 +116,15 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         print("No props or characterizations were given, determining props from input file")
         PDDetermineCharacterizations(InputWorkspace=abs_input,
                                      ReductionProperties="__absreductionprops",
-                                     FrequencyLogNames="LambdaRequest,lambda,skf12.lambda,"
+                                     WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
                                                        "BL1B:Det:TH:BL:Lambda,freq")
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
     # Setup the donor workspace for absorption correction
     try:
+        if props['wavelength_max'].value == 0 and "BL1B:Det:TH:BL:Lambda" in abs_input.run():
+            props['wavelength_max'] = abs_input.run()['BL1B:Det:TH:BL:Lambda'].lastValue()
+
         donor_ws = AbsorptionCorrUtils.create_absorption_input(filename, props, material=material,
                                                                geometry=geometry,
                                                                environment=environment)
