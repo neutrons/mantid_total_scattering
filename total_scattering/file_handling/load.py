@@ -1,4 +1,3 @@
-from mantid.kernel import Logger
 from mantid.simpleapi import \
     AlignAndFocusPowderFromFiles, Load, NormaliseByCurrent, PDDetermineCharacterizations, \
     PDLoadCharacterizations, PropertyManagerDataService, SetSample, ConvertUnits
@@ -108,7 +107,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                                      Characterizations=chars,
                                      ReductionProperties="__absreductionprops",
                                      WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
-                                                       "BL1B:Det:TH:BL:Lambda,freq")
+                                                        "BL1B:Det:TH:BL:Lambda,freq")
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
     # If neither run characterization properties or char files were given, try to guess from input
@@ -117,7 +116,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         PDDetermineCharacterizations(InputWorkspace=abs_input,
                                      ReductionProperties="__absreductionprops",
                                      WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
-                                                       "BL1B:Det:TH:BL:Lambda,freq")
+                                                        "BL1B:Det:TH:BL:Lambda,freq")
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
         if "BL1B:Det:TH:BL:Lambda" in abs_input.run() and props["wavelength_max"].value == 0:
