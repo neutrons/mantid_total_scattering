@@ -39,3 +39,4 @@ jobs:
       - name: Test
         shell: bash -l {0}
         run: pytest
+        continue-on-error: true
