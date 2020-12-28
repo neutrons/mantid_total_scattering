@@ -484,15 +484,14 @@ def TotalScatteringReduction(config=None):
     sam_abs_ws = ''
     con_abs_ws = ''
     if sam_abs_corr:
-        log.notice("Applying '{}' absorption correction to sample".format(sam_abs_corr["Type"]))
-        sam_abs_ws, con_abs_ws = create_absorption_wksp(sam_scans, sam_abs_corr["Type"], sam_geometry, sam_material, **wavelength)
         msg = "Applying '{}' absorption correction to sample"
         log.notice(msg.format(sam_abs_corr["Type"]))
         sam_abs_ws, con_abs_ws = create_absorption_wksp(
             sam_scans,
             sam_abs_corr["Type"],
             sam_geometry,
-            sam_material)
+            sam_material,
+            **wavelength)
 
     # Get vanadium corrections
     van_mass_density = van.get('MassDensity', van_mass_density)
@@ -511,15 +510,14 @@ def TotalScatteringReduction(config=None):
     # Compute the absorption correction for the vanadium if provided
     van_abs_corr_ws = ''
     if van_abs_corr:
-        log.notice("Applying '{}' absorption correction to vanadium".format(van_abs_corr["Type"]))
-        van_abs_corr_ws = create_absorption_wksp(van_scans, van_abs_corr["Type"], van_geometry, van_material, **wavelength)
         msg = "Applying '{}' absorption correction to vanadium"
         log.notice(msg.format(van_abs_corr["Type"]))
         van_abs_corr_ws = create_absorption_wksp(
             van_scans,
             van_abs_corr["Type"],
             van_geometry,
-            van_material)
+            van_material,
+            **wavelength)
 
     alignAndFocusArgs = dict()
     alignAndFocusArgs['CalFilename'] = config['Calibration']['Filename']
