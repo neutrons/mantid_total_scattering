@@ -7,27 +7,35 @@ from tests import EXAMPLE_DIR, TEST_DATA_DIR
 
 from mantid.simpleapi import mtd
 
-# Expected number densities & packing fraction for absorption correction type tests
+# Expected number densities & packing fraction for absorption correction tests
 LAB6_NUMBER_DENSITY = 0.09764445211504061
 LAB6_NUMBER_DENSITY_EFFECTIVE = 0.09764445211504061
 LAB6_PACKING_FRACTION = 1.0
+
 
 class TestLoad(unittest.TestCase):
 
     def setUp(self):
         # Set args, cropped workspace for basic load tests
         self.polaris_align_and_focus_args = {
-            'CalFilename': os.path.join(EXAMPLE_DIR, 'isis', 'polaris_grouping.cal'),
+            'CalFilename': os.path.join(
+                EXAMPLE_DIR,
+                'isis',
+                'polaris_grouping.cal'),
             'ResampleX': -6000,
             'DSpacing': False,
             'PreserveEvents': False,
             'MaxChunkSize': 8,
             'ReductionProperties': '__powderreduction'
         }
-        self.si_polaris_file_path = os.path.join(TEST_DATA_DIR, 'POLARIS00097947-min.nxs')
+        self.si_polaris_file_path = os.path.join(
+            TEST_DATA_DIR,
+            'POLARIS00097947-min.nxs')
 
         # Set args, cropped workspace, etc. for testing different abscorr types
-        self.lab6_nomad_file_path = os.path.join(TEST_DATA_DIR, 'NOM_144992.nxs')
+        self.lab6_nomad_file_path = os.path.join(
+            TEST_DATA_DIR,
+            'NOM_144992.nxs')
         self.nomad_align_and_focus_args = {
             'CalFilename': os.path.join(EXAMPLE_DIR, 'sns', 'nomad_cal.h5'),
             'ResampleX': -6000,
@@ -51,7 +59,10 @@ class TestLoad(unittest.TestCase):
 
     def test_basic_load(self):
         ws_name = 'test-sample'
-        actual = load(ws_name, self.si_polaris_file_path, **self.polaris_align_and_focus_args)
+        actual = load(
+            ws_name,
+            self.si_polaris_file_path,
+            **self.polaris_align_and_focus_args)
         actual = mtd[actual]
         self.assertEqual(actual.name(), ws_name)
         self.assertEqual(actual.getNumberHistograms(), 5)
@@ -66,14 +77,16 @@ class TestLoad(unittest.TestCase):
                     'Height': 4.0}
         formula = 'Si'
         mass_density = 2.328
-        actual = load(ws_name=ws_name,
-                      input_files=self.si_polaris_file_path,
-                      geometry=geometry,
-                      chemical_formula=formula,
-                      mass_density=mass_density,
-                      **self.polaris_align_and_focus_args)
+        actual = load(
+            ws_name=ws_name,
+            input_files=self.si_polaris_file_path,
+            geometry=geometry,
+            chemical_formula=formula,
+            mass_density=mass_density,
+            **self.polaris_align_and_focus_args)
+
         actual = mtd[actual]
-        self.assertEqual(actual.sample().getMaterial().name(), 'Si')
+        assert actual.sample().getMaterial().name() == 'Si'
         mtd.clear()
 
     def test_load_with_abscorr(self):
@@ -85,99 +98,126 @@ class TestLoad(unittest.TestCase):
         formula = 'Si'
         mass_density = 2.328
 
-        a_sample, a_container = create_absorption_wksp(self.si_polaris_file_path, "SampleOnly",
-                                                       geometry=geometry,
-                                                       material={"ChemicalFormula": formula,
-                                                                 "SampleMassDensity": mass_density})
+        a_sample, a_container = create_absorption_wksp(
+            self.si_polaris_file_path, "SampleOnly",
+            geometry=geometry,
+            material={"ChemicalFormula": formula,
+                      "SampleMassDensity": mass_density})
+
         self.assertIsNotNone(a_sample)
 
-        actual = load(ws_name=ws_name,
-                      input_files=self.si_polaris_file_path,
-                      geometry=geometry,
-                      chemical_formula=formula,
-                      mass_density=mass_density,
-                      absorption_wksp=a_sample,
-                      **self.polaris_align_and_focus_args)
+        actual = load(
+            ws_name=ws_name,
+            input_files=self.si_polaris_file_path,
+            geometry=geometry,
+            chemical_formula=formula,
+            mass_density=mass_density,
+            absorption_wksp=a_sample,
+            **self.polaris_align_and_focus_args)
+
         actual = mtd[actual]
-        self.assertEqual(actual.sample().getMaterial().name(), 'Si')
+        assert actual.sample().getMaterial().name() == 'Si'
         mtd.clear()
 
     def test_load_sampleonly(self):
         ws_name = 'test-sample'
 
-        a_sample, a_container = create_absorption_wksp(self.lab6_nomad_file_path,
-                                                       "SampleOnly",
-                                                       geometry=self.type_test_geometry,
-                                                       material=self.type_test_material,
-                                                       environment=self.type_test_environment,
-                                                       **self.nomad_align_and_focus_args)
+        a_sample, a_container = create_absorption_wksp(
+            self.lab6_nomad_file_path,
+            "SampleOnly",
+            geometry=self.type_test_geometry,
+            material=self.type_test_material,
+            environment=self.type_test_environment,
+            **self.nomad_align_and_focus_args)
+
         self.assertIsNotNone(a_sample)
 
-        actual = load(ws_name=ws_name,
-                      input_files=self.lab6_nomad_file_path,
-                      geometry=self.type_test_geometry,
-                      chemical_formula=self.type_test_material['ChemicalFormula'],
-                      mass_density=self.type_test_material['SampleMassDensity'],
-                      absorption_wksp=a_sample,
-                      **self.nomad_align_and_focus_args)
+        actual = load(
+            ws_name=ws_name,
+            input_files=self.lab6_nomad_file_path,
+            geometry=self.type_test_geometry,
+            chemical_formula=self.type_test_material['ChemicalFormula'],
+            mass_density=self.type_test_material['SampleMassDensity'],
+            absorption_wksp=a_sample,
+            **self.nomad_align_and_focus_args)
+
         actual = mtd[actual]
-        self.assertEqual(actual.sample().getMaterial().name(), 'La1 B6')
-        assert actual.sample().getShape().volume() == np.pi * np.square(0.003) * 0.018
-        assert actual.sample().getMaterial().numberDensity == LAB6_NUMBER_DENSITY
-        assert actual.sample().getMaterial().numberDensityEffective == LAB6_NUMBER_DENSITY_EFFECTIVE
-        assert actual.sample().getMaterial().packingFraction == LAB6_PACKING_FRACTION
+
+        volume = actual.sample().getShape().volume()
+        assert volume == np.pi * np.square(0.003) * 0.018
+
+        material = actual.sample().getMaterial()
+        assert material.name() == 'La1 B6'
+        assert material.numberDensity == LAB6_NUMBER_DENSITY
+        assert material.numberDensityEffective == LAB6_NUMBER_DENSITY_EFFECTIVE
+        assert material.packingFraction == LAB6_PACKING_FRACTION
         mtd.clear()
 
     def test_load_samplecontainer(self):
         ws_name = 'test-sample'
 
-        a_sample, a_container = create_absorption_wksp(self.lab6_nomad_file_path,
-                                                       "SampleAndContainer",
-                                                       geometry=self.type_test_geometry,
-                                                       material=self.type_test_material,
-                                                       environment=self.type_test_environment,
-                                                       **self.nomad_align_and_focus_args)
+        a_sample, a_container = create_absorption_wksp(
+            self.lab6_nomad_file_path,
+            "SampleAndContainer",
+            geometry=self.type_test_geometry,
+            material=self.type_test_material,
+            environment=self.type_test_environment,
+            **self.nomad_align_and_focus_args)
+
         self.assertIsNotNone(a_sample)
 
-        actual = load(ws_name=ws_name,
-                      input_files=self.lab6_nomad_file_path,
-                      geometry=self.type_test_geometry,
-                      chemical_formula=self.type_test_material['ChemicalFormula'],
-                      mass_density=self.type_test_material['SampleMassDensity'],
-                      absorption_wksp=a_sample,
-                      **self.nomad_align_and_focus_args)
+        actual = load(
+            ws_name=ws_name,
+            input_files=self.lab6_nomad_file_path,
+            geometry=self.type_test_geometry,
+            chemical_formula=self.type_test_material['ChemicalFormula'],
+            mass_density=self.type_test_material['SampleMassDensity'],
+            absorption_wksp=a_sample,
+            **self.nomad_align_and_focus_args)
+
         actual = mtd[actual]
-        self.assertEqual(actual.sample().getMaterial().name(), 'La1 B6')
-        assert actual.sample().getShape().volume() == np.pi * np.square(0.003) * 0.018
-        assert actual.sample().getMaterial().numberDensity == LAB6_NUMBER_DENSITY
-        assert actual.sample().getMaterial().numberDensityEffective == LAB6_NUMBER_DENSITY_EFFECTIVE
-        assert actual.sample().getMaterial().packingFraction == LAB6_PACKING_FRACTION
+
+        volume = actual.sample().getShape().volume()
+        assert volume == np.pi * np.square(0.003) * 0.018
+
+        material = actual.sample().getMaterial()
+        assert material.name() == 'La1 B6'
+        assert material.numberDensity == LAB6_NUMBER_DENSITY
+        assert material.numberDensityEffective == LAB6_NUMBER_DENSITY_EFFECTIVE
+        assert material.packingFraction == LAB6_PACKING_FRACTION
         mtd.clear()
 
     def test_load_fullpaalmanpings(self):
         ws_name = 'test-sample'
 
-        a_sample, a_container = create_absorption_wksp(self.lab6_nomad_file_path,
-                                                       "FullPaalmanPings",
-                                                       geometry=self.type_test_geometry,
-                                                       material=self.type_test_material,
-                                                       environment=self.type_test_environment,
-                                                       **self.nomad_align_and_focus_args)
+        a_sample, a_container = create_absorption_wksp(
+            self.lab6_nomad_file_path,
+            "FullPaalmanPings",
+            geometry=self.type_test_geometry,
+            material=self.type_test_material,
+            environment=self.type_test_environment,
+            **self.nomad_align_and_focus_args)
         self.assertIsNotNone(a_sample)
 
-        actual = load(ws_name=ws_name,
-                      input_files=self.lab6_nomad_file_path,
-                      geometry=self.type_test_geometry,
-                      chemical_formula=self.type_test_material['ChemicalFormula'],
-                      mass_density=self.type_test_material['SampleMassDensity'],
-                      absorption_wksp=a_sample,
-                      **self.nomad_align_and_focus_args)
+        actual = load(
+            ws_name=ws_name,
+            input_files=self.lab6_nomad_file_path,
+            geometry=self.type_test_geometry,
+            chemical_formula=self.type_test_material['ChemicalFormula'],
+            mass_density=self.type_test_material['SampleMassDensity'],
+            absorption_wksp=a_sample,
+            **self.nomad_align_and_focus_args)
+
         actual = mtd[actual]
-        self.assertEqual(actual.sample().getMaterial().name(), 'La1 B6')
-        assert actual.sample().getShape().volume() == np.pi * np.square(0.003) * 0.018
-        assert actual.sample().getMaterial().numberDensity == LAB6_NUMBER_DENSITY
-        assert actual.sample().getMaterial().numberDensityEffective == LAB6_NUMBER_DENSITY_EFFECTIVE
-        assert actual.sample().getMaterial().packingFraction == LAB6_PACKING_FRACTION
+
+        volume = actual.sample().getShape().volume()
+        assert volume == np.pi * np.square(0.003) * 0.018
+
+        material = actual.sample().getMaterial()
+        assert material.name() == 'La1 B6'
+        assert material.numberDensity == LAB6_NUMBER_DENSITY
+        assert material.numberDensityEffective == LAB6_NUMBER_DENSITY_EFFECTIVE
+        assert material.packingFraction == LAB6_PACKING_FRACTION
         mtd.clear()
 
 
