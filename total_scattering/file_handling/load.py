@@ -80,7 +80,8 @@ def add_required_shape_keys(mydict, shape):
 
 
 def create_absorption_wksp(filename, abs_method, geometry, material,
-                           environment=None, props=None, characterization_files=None):
+                           environment=None, props=None, characterization_files=None, **align_and_focus_args):
+    
     if abs_method is None:
         return '', ''
 
@@ -119,11 +120,17 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                                                         "BL1B:Det:TH:BL:Lambda,freq")
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
-        # Set wavelength max from logs if not set
-        wl_lognames = ["LambdaRequest", "lambda", "skf12.lambda", "BL1B:Det:TH:BL:Lambda", "freq"]
-        for logname_wl in wl_lognames:
-            if logname_wl in abs_input.run() and props["wavelength_max"].value == 0:
-                props["wavelength_max"] = abs_input.run()[logname_wl].lastValue()
+        # Default to wavelength from JSON input / align and focus args
+        if "TMin" and "TMax" in align_and_focus_args:
+            props["wavelength_min"] = align_and_focus_args['TMin']
+            props["wavelength_max"] = align_and_focus_args['TMax']
+
+        # But set wavelength max from logs if not set
+        else:
+            wl_lognames = ["LambdaRequest", "lambda", "skf12.lambda", "BL1B:Det:TH:BL:Lambda", "freq"]
+            for logname_wl in wl_lognames:
+                if logname_wl in abs_input.run() and props["wavelength_max"].value == 0:
+                    props["wavelength_max"] = abs_input.run()[logname_wl].lastValue()
 
     # Setup the donor workspace for absorption correction
     try:
