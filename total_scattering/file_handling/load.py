@@ -132,6 +132,8 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                 if logname_wl in abs_input.run() and props["wavelength_max"].value == 0:
                     props["wavelength_max"] = abs_input.run()[logname_wl].lastValue()
 
+        print(props["wavelength_min"].value, props["wavelength_max"].value)
+
     # Setup the donor workspace for absorption correction
     try:
         donor_ws = AbsorptionCorrUtils.create_absorption_input(filename, props, material=material,

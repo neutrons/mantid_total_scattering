@@ -12,7 +12,6 @@ LAB6_NUMBER_DENSITY = 0.09764445211504061
 LAB6_NUMBER_DENSITY_EFFECTIVE = 0.09764445211504061
 LAB6_PACKING_FRACTION = 1.0
 
-
 class TestLoad(unittest.TestCase):
 
     def setUp(self):
@@ -110,7 +109,8 @@ class TestLoad(unittest.TestCase):
                                                        "SampleOnly",
                                                        geometry=self.type_test_geometry,
                                                        material=self.type_test_material,
-                                                       environment=self.type_test_environment)
+                                                       environment=self.type_test_environment,
+                                                       **self.nomad_align_and_focus_args)
         self.assertIsNotNone(a_sample)
 
         actual = load(ws_name=ws_name,
@@ -135,7 +135,8 @@ class TestLoad(unittest.TestCase):
                                                        "SampleAndContainer",
                                                        geometry=self.type_test_geometry,
                                                        material=self.type_test_material,
-                                                       environment=self.type_test_environment)
+                                                       environment=self.type_test_environment,
+                                                       **self.nomad_align_and_focus_args)
         self.assertIsNotNone(a_sample)
 
         actual = load(ws_name=ws_name,
@@ -160,7 +161,8 @@ class TestLoad(unittest.TestCase):
                                                        "FullPaalmanPings",
                                                        geometry=self.type_test_geometry,
                                                        material=self.type_test_material,
-                                                       environment=self.type_test_environment)
+                                                       environment=self.type_test_environment,
+                                                       **self.nomad_align_and_focus_args)
         self.assertIsNotNone(a_sample)
 
         actual = load(ws_name=ws_name,
