@@ -9,6 +9,7 @@ THIS_DIR = os.path.dirname(__file__)
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+
 # Package requirements helper
 def read_requirements_from_file(filepath):
     '''Read a list of requirements from the given file and split into a
@@ -19,6 +20,7 @@ def read_requirements_from_file(filepath):
     '''
     with open(filepath, 'rU') as req_file:
         return req_file.readlines()
+
 
 setup_args = dict(
     install_requires=read_requirements_from_file(
@@ -42,7 +44,7 @@ setup(
     name='mantid_total_scattering',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    author=','.join(authors)
+    author=','.join(authors),
     author_email='mcondonnellmd@ornl.gov',
     url='https://github.com/neutrons/mantid_total_scattering',
     description='Mantid Total Scattering Reduction',
