@@ -35,3 +35,7 @@ jobs:
       - name: Lint
         shell: bash -l {0}
         run: flake8 . --count
+
+      - name: Test
+        shell: bash -l {0}
+        run: pytest
