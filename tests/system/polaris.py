@@ -22,7 +22,9 @@ class PolarisTotalScatteringSystemTest(unittest.TestCase):
             config = json.load(handle)
         actual = TotalScatteringReduction(config)
         self.assertEqual(actual.getNumberHistograms(), 5)
-        self.assertEqual(actual.getTitle(), "10: Silicon 640b, 700MeV, chopper stopped")
+        self.assertEqual(
+            actual.getTitle(),
+            "10: Silicon 640b, 700MeV, chopper stopped")
         self.assertEqual(actual.getInstrument().getFullName(), "POLARIS")
 
 
