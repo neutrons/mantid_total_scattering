@@ -63,8 +63,11 @@ def GetSampleSpeciesInfo(InputWorkspace):
     atom_species = collections.OrderedDict()
     for atom, stoich in zip(material[0], material[1]):
         print(atom.neutron()['tot_scatt_length'])
-        b_sqrd_bar = mtd[InputWorkspace].sample().getMaterial().totalScatterXSection(
-        ) / (4. * np.pi)  # <b^2> == sigma_s / 4*pi (in barns)
+
+        # <b^2> == scatter_xsection / 4*pi (in barns)
+        material = mtd[InputWorkspace].sample().getMaterial()
+        b_sqrd_bar = material.totalScatterXSection() / (4. * np.pi)
+
         atom_species[atom.symbol] = {'mass': atom.mass,
                                      'stoich': stoich,
                                      'b_sqrd_bar': b_sqrd_bar}
@@ -101,7 +104,9 @@ def CalculatePlaczekSelfScattering(
         ParentWorkspace=None):
 
     # constants and conversions
-    factor = 1. / scipy.constants.physical_constants['atomic mass unit-kilogram relationship'][0]
+    key = 'atomic mass unit-kilogram relationship'
+    amu_kg = scipy.constants.physical_constants[key][0]
+    factor = 1. / amu_kg
     neutron_mass = factor * scipy.constants.m_n
 
     # get sample information: mass, total scattering length, and concentration
@@ -149,14 +154,16 @@ def CalculatePlaczekSelfScattering(
 
     # Placzek
     '''
-    Original Placzek inelastic correction Ref (for constant wavelength, reactor source):
+    Original Placzek inelastic correction Ref (for constant wavelength):
         Placzek, Phys. Rev v86, (1952), pp. 377-388
-    First Placzek correction for time-of-flight, pulsed source (also shows reactor eqs.):
+    First Placzek correction for time-of-flight, pulsed source (also reactor):
         Powles, Mol. Phys., v6 (1973), pp.1325-1350
     Nomenclature and calculation for this program follows Ref:
-         Howe, McGreevy, and Howells, J. Phys.: Condens. Matter v1, (1989), pp. 3433-3451
+         Howe, McGreevy, and Howells, J. Phys.: Condens. Matter v1,
+            (1989), pp. 3433-3451
 
-    NOTE: Powles's Equation for inelastic self-scattering is equal to Howe's Equation for P(theta)
+    NOTE: Powles's Equation for inelastic self-scattering is equal
+    to Howe's Equation for P(theta)
     by adding the elastic self-scattering
     '''
     x_lambdas = np.array([])
@@ -175,7 +182,8 @@ def CalculatePlaczekSelfScattering(
 
         # per_bank_q = ConvertLambdaToQ(x_lambda,theta) - See Eq. (A1.14) of
         inelastic_placzek_self_correction = 2. * \
-            (term1 - term2 + term3) * sin_theta_by_2 * sin_theta_by_2 * summation_term
+            (term1 - term2 + term3) \
+            * sin_theta_by_2 * sin_theta_by_2 * summation_term
         x_lambdas = np.append(x_lambdas, x_lambda)
         placzek_correction = np.append(
             placzek_correction,
@@ -203,12 +211,10 @@ def CalculatePlaczekSelfScattering(
 
     return mtd[OutputWorkspace]
 
-# --------------------------------------------------------------------------------------------- #
 # Start Placzek calculations
 
 
 if '__main__' == __name__:
-    # ----------------------------------------------------------------------------------------- #
     # Get input parameters
     configfile = sys.argv[1]
     with open(configfile) as handle:
@@ -218,7 +224,6 @@ if '__main__' == __name__:
     sample = config['Sample']
     opts = sample['InelasticCorrection']
 
-    # ----------------------------------------------------------------------------------------- #
     # Get incident spectrum
     runs = sample["Runs"].split(',')
     runs = ["%s_%s" % (config["Instrument"], run) for run in runs]
@@ -227,7 +232,6 @@ if '__main__' == __name__:
     incident_ws = 'incident_ws'
     GetIncidentSpectrumFromMonitor(runs[0], OutputWorkspace=incident_ws)
 
-    # ----------------------------------------------------------------------------------------- #
     # Fit incident spectrum
     incident_fit = 'incident_fit'
     fit_type = opts['FitSpectrumWith']

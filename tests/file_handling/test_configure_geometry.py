@@ -1,5 +1,7 @@
 import unittest
-from total_scattering.file_handling.load import configure_geometry, add_required_shape_keys
+from total_scattering.file_handling.load import \
+    add_required_shape_keys, \
+    configure_geometry
 
 
 class TestConfigureGeometry(unittest.TestCase):

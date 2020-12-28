@@ -17,7 +17,6 @@ from mantid.simpleapi import \
     ResampleX, \
     SplineSmoothing
 
-# ----------------------------------------------------------------------------------------- #
 # Functions for fitting the incident spectrum
 
 
@@ -72,8 +71,9 @@ def fitHowellsFunction(x_fit, y_fit, x):
 
     def calc_HowellsFunction1stDerivative(
             lambdas, phi_max, phi_epi, lam_t, lam_1, lam_2, a):
-        term1 = (((2 * lam_t**2) / lambdas**2) - 5.) * (1. / lambdas) * \
-            phi_max * ((lam_t**4.) / lambdas**5.) * np.exp(-(lam_t / lambdas)**2.)
+        term1 = (((2 * lam_t**2) / lambdas**2) - 5.) * (1. / lambdas) \
+            * phi_max * ((lam_t**4.) / lambdas**5.) \
+            * np.exp(-(lam_t / lambdas)**2.)
         term2 = ((1 + 2 * a) / lambdas) \
             * (1. / lambdas) * (phi_epi / (lambdas ** (1. + 2. * a))) \
             * (1. / (1 + np.exp((lambdas - lam_1) / lam_2)))
@@ -103,7 +103,6 @@ def fitCubicSplineWithGaussConv(x_fit, y_fit, x, sigma=3):
     return fit, fit_prime
 
 
-# ----------------------------------------------------------------------------------------- #
 # Get incident spectrum from Monitor
 
 def plotIncidentSpectrum(x, y, x_fit, fit, fit_prime, title=None):
@@ -160,7 +159,7 @@ def GetIncidentSpectrumFromMonitor(
 
     lam = mtd[monitor].readX(IncidentIndex)    # wavelength in A
     bm = mtd[monitor].readY(IncidentIndex)     # neutron counts / microsecond
-    p = 0.000794807                       # Pressure (empirically adjusted to match eff.)
+    p = 0.000794807                       # Pressure
     thickness = .1                        # 1 mm = .1 cm
     abs_xs_3He = 5333.0                   # barns for lambda == 1.798 A
     p_to_rho = 2.43e-5                    # pressure to rho (atoms/angstroms^3)
@@ -272,7 +271,6 @@ if '__main__' == __name__:
     run_file = False
     nomad_test = True
     if run_file:
-        # ------------------------------------------------------------------------------------- #
         # Get input parameters
         configfile = sys.argv[1]
         with open(configfile) as handle:
@@ -281,7 +279,6 @@ if '__main__' == __name__:
         sample = config['Sample']
         opts = sample['InelasticCorrection']
 
-        # ------------------------------------------------------------------------------------- #
         # Get incident spectrum test for NOMAD
         runs = sample["Runs"].split(',')
         runs = ["%s_%s" % (config["Instrument"], run) for run in runs]
@@ -290,13 +287,17 @@ if '__main__' == __name__:
 
         if nomad_test:
             runs[0] = "NOM_33943"
-            binning = "0.0212406,0.00022,3.39828"  # matches read_bm.pro for lambda[100:15999]
+            # matches read_bm.pro for lambda[100:15999]
+            binning = "0.0212406,0.00022,3.39828"
         print("Processing Scan: ", runs[0])
 
         monitor = 'monitor'
         incident_ws = 'incident_ws'
 
-        fig, (ax_bm, ax_bmeff) = plt.subplots(2, subplot_kw={'projection': 'mantid'}, sharex=True)
+        fig, (ax_bm, ax_bmeff) = plt.subplots(
+            2,
+            subplot_kw={'projection': 'mantid'},
+            sharex=True)
 
         # Beam Monitor
         LoadNexusMonitors(Filename=runs[0], OutputWorkspace=monitor)
@@ -308,49 +309,79 @@ if '__main__' == __name__:
               Params=binning,
               PreserveEvents=False)
 
-        ax_bm.plot(mtd[monitor], '-', wkspIndex=0, label='Monitor', distribution=True)
+        ax_bm.plot(
+            mtd[monitor],
+            '-',
+            wkspIndex=0,
+            label='Monitor',
+            distribution=True)
+
         ax_bm.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
 
         # Use sample info
-        CalculateEfficiencyCorrection(InputWorkspace=monitor,
-                                      ChemicalFormula="(He3)",
-                                      DensityType="Number Density",
-                                      Density=1.93138101e-08,
-                                      Thickness=.1,
-                                      OutputWorkspace=incident_ws)
+        CalculateEfficiencyCorrection(
+            InputWorkspace=monitor,
+            ChemicalFormula="(He3)",
+            DensityType="Number Density",
+            Density=1.93138101e-08,
+            Thickness=.1,
+            OutputWorkspace=incident_ws)
 
-        Divide(LHSWorkspace=monitor, RHSWorkspace=incident_ws, OutputWorkspace=incident_ws)
+        Divide(
+            LHSWorkspace=monitor,
+            RHSWorkspace=incident_ws,
+            OutputWorkspace=incident_ws)
 
-        ax_bmeff.plot(mtd[incident_ws], '-', wkspIndex=0, label='Incident Spectrum (density)',
-                      distribution=True)
+        ax_bmeff.plot(
+            mtd[incident_ws],
+            '-',
+            wkspIndex=0,
+            label='Incident Spectrum (density)',
+            distribution=True)
 
         # Use measured efficiency
-        CalculateEfficiencyCorrection(InputWorkspace=monitor,
-                                      ChemicalFormula="(He3)",
-                                      Efficiency=1.03e-5,
-                                      OutputWorkspace=incident_ws)
+        CalculateEfficiencyCorrection(
+            InputWorkspace=monitor,
+            ChemicalFormula="(He3)",
+            Efficiency=1.03e-5,
+            OutputWorkspace=incident_ws)
 
-        Divide(LHSWorkspace=monitor, RHSWorkspace=incident_ws, OutputWorkspace=incident_ws)
+        Divide(
+            LHSWorkspace=monitor,
+            RHSWorkspace=incident_ws,
+            OutputWorkspace=incident_ws)
 
-        ax_bmeff.plot(mtd[incident_ws], 'o', wkspIndex=0, label='Incident Spectrum (efficiency)',
-                      distribution=True)
+        ax_bmeff.plot(
+            mtd[incident_ws],
+            'o',
+            wkspIndex=0,
+            label='Incident Spectrum (efficiency)',
+            distribution=True)
 
         # Use alpha
-        CalculateEfficiencyCorrection(InputWorkspace=monitor,
-                                      Alpha=-5.72861786781e-06,
-                                      OutputWorkspace=incident_ws)
+        CalculateEfficiencyCorrection(
+            InputWorkspace=monitor,
+            Alpha=-5.72861786781e-06,
+            OutputWorkspace=incident_ws)
 
-        Divide(LHSWorkspace=monitor, RHSWorkspace=incident_ws, OutputWorkspace=incident_ws)
+        Divide(
+            LHSWorkspace=monitor,
+            RHSWorkspace=incident_ws,
+            OutputWorkspace=incident_ws)
 
-        ax_bmeff.plot(mtd[incident_ws], '--', wkspIndex=0, label='Incident Spectrum (alpha)',
-                      distribution=True)
+        ax_bmeff.plot(
+            mtd[incident_ws],
+            '--',
+            wkspIndex=0,
+            label='Incident Spectrum (alpha)',
+            distribution=True)
 
         # Plot all
         ax_bm.legend()
         ax_bmeff.legend()
         plt.show()
         exit()
-    # ----------------------------------------------------------------------------------------- #
+
     # Howells incident spectrum for testing
     howells_test = True
     if howells_test:
@@ -404,7 +435,7 @@ if '__main__' == __name__:
             'lam_2': 0.06075
         }
 
-        incident_spectrums['Ambient 300K poisoned (Gd "meat" in polyethylene slabs)'] = {
+        incident_spectrums['Ambient 300K poisoned (Gd / polyethylene)'] = {
             'phi_max': 1200,
             'phi_epi': 786,
             'lam_t': 1.58,
@@ -434,7 +465,10 @@ if '__main__' == __name__:
             'lam_4': 0.0486
         }
 
-        fig, (ax_bm, ax_eff) = plt.subplots(2, subplot_kw={'projection': 'mantid'}, sharex=True)
+        fig, (ax_bm, ax_eff) = plt.subplots(
+            2,
+            subplot_kw={'projection': 'mantid'},
+            sharex=True)
 
         # Using Mantid
         lam_lo = 0.2
@@ -445,27 +479,58 @@ if '__main__' == __name__:
             color = next(ax_bm._get_lines.prop_cycler)['color']
 
             incident_ws = 'howells_%s' % moderator
-            CreateWorkspace(OutputWorkspace=incident_ws, NSpec=1, DataX=[0], DataY=[0],
-                            UnitX='Wavelength', VerticalAxisUnit='Text',
-                            VerticalAxisValues='IncidentSpectrum')
-            Rebin(InputWorkspace=incident_ws, OutputWorkspace=incident_ws, Params=binning)
-            ConvertToPointData(InputWorkspace=incident_ws, OutputWorkspace=incident_ws)
+            CreateWorkspace(
+                OutputWorkspace=incident_ws,
+                NSpec=1,
+                DataX=[0],
+                DataY=[0],
+                UnitX='Wavelength',
+                VerticalAxisUnit='Text',
+                VerticalAxisValues='IncidentSpectrum')
+
+            Rebin(
+                InputWorkspace=incident_ws,
+                OutputWorkspace=incident_ws,
+                Params=binning)
+
+            ConvertToPointData(
+                InputWorkspace=incident_ws,
+                OutputWorkspace=incident_ws)
 
             wavelengths = mtd[incident_ws].readX(0)
-            incident_spectrum = calc_HowellsFunction(wavelengths, **spectrum_params)
+            incident_spectrum = calc_HowellsFunction(
+                wavelengths,
+                **spectrum_params)
+
             mtd[incident_ws].setY(0, incident_spectrum)
-            ax_bm.plot(mtd[incident_ws], '-', color=color, wkspIndex=0, label=moderator)
+            ax_bm.plot(
+                mtd[incident_ws],
+                '-', color=color,
+                wkspIndex=0,
+                label=moderator)
 
             eff_ws = 'efficiency'
-            CalculateEfficiencyCorrection(InputWorkspace=incident_ws,
-                                          Alpha=-0.693,
-                                          OutputWorkspace=eff_ws)
-            ConvertToPointData(InputWorkspace=eff_ws, OutputWorkspace=eff_ws)
+            CalculateEfficiencyCorrection(
+                InputWorkspace=incident_ws,
+                Alpha=-0.693,
+                OutputWorkspace=eff_ws)
 
-            ax_eff.plot(mtd[eff_ws], '-', color=color, wkspIndex=0, label=moderator + ' efficiency')
+            ConvertToPointData(
+                InputWorkspace=eff_ws,
+                OutputWorkspace=eff_ws)
+
+            ax_eff.plot(
+                mtd[eff_ws],
+                '-',
+                color=color,
+                wkspIndex=0,
+                label=moderator + ' efficiency')
 
             sample_ws = 'sample_ws'
-            Multiply(LHSWorkspace=incident_ws, RHSWorkspace=eff_ws, OutputWorkspace=sample_ws)
+            Multiply(
+                LHSWorkspace=incident_ws,
+                RHSWorkspace=eff_ws,
+                OutputWorkspace=sample_ws)
 
             ax_bm.plot(mtd[sample_ws], 'o',
                        color=color,
@@ -477,13 +542,14 @@ if '__main__' == __name__:
         plt.show()
 
     exit()
-    # ----------------------------------------------------------------------------------------- #
+
     # Fit incident spectrum
     incident_fit = 'incident_fit'
     fit_type = sample['InelasticCorrection']['FitSpectrumWith']
-    FitIncidentSpectrum(InputWorkspace=incident_ws,
-                        OutputWorkspace=incident_fit,
-                        FitSpectrumWith=fit_type,
-                        BinningForFit=opts['LambdaBinningForFit'],
-                        BinningForCalc=opts['LambdaBinningForCalc'],
-                        PlotDiagnostics=opts['PlotFittingDiagnostics'])
+    FitIncidentSpectrum(
+        InputWorkspace=incident_ws,
+        OutputWorkspace=incident_fit,
+        FitSpectrumWith=fit_type,
+        BinningForFit=opts['LambdaBinningForFit'],
+        BinningForCalc=opts['LambdaBinningForCalc'],
+        PlotDiagnostics=opts['PlotFittingDiagnostics'])

@@ -3,14 +3,15 @@ import os
 import unittest
 
 from total_scattering.reduction import TotalScatteringReduction
-from total_scattering.isis.polaris.generate_input import generate_input_json, POLARIS_DIR
-from tests import IN_TRAVIS
+from total_scattering.isis.polaris.generate_input import \
+    generate_input_json, \
+    POLARIS_DIR
 
 run_test = False
 
 
 class PolarisTotalScatteringSystemTest(unittest.TestCase):
-    @unittest.skipIf(IN_TRAVIS or not run_test, 'Do not run thest on build servers')
+    @unittest.skipIf(not run_test, 'Do not run thest on build servers')
     def test_silicon(self):
         """
         Run polaris silicon data through total scattering script
@@ -21,7 +22,9 @@ class PolarisTotalScatteringSystemTest(unittest.TestCase):
             config = json.load(handle)
         actual = TotalScatteringReduction(config)
         self.assertEqual(actual.getNumberHistograms(), 5)
-        self.assertEqual(actual.getTitle(), "10: Silicon 640b, 700MeV, chopper stopped")
+        self.assertEqual(
+            actual.getTitle(),
+            "10: Silicon 640b, 700MeV, chopper stopped")
         self.assertEqual(actual.getInstrument().getFullName(), "POLARIS")
 
 
