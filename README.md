@@ -1,6 +1,6 @@
 | Health | Main Release (w/ Mantid Framework) | Dev Release (w/o Mantid Framework) |
 |--------|------------------------------------|------------------------------------|
-| [![Build Status](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering.svg?branch=master)](https://travis-ci.org/marshallmcdonnell/mantid_total_scattering) | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/version.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering) | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering-python-wrapper/badges/version.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering-python-wrapper) |
+|  | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/version.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering) | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering-python-wrapper/badges/version.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering-python-wrapper) |
 | [![codecov](https://codecov.io/gh/marshallmcdonnell/mantid_total_scattering/branch/master/graph/badge.svg)](https://codecov.io/gh/marshallmcdonnell/mantid_total_scattering) | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/platforms.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering) | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering-python-wrapper/badges/platforms.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering-python-wrapper) |
 | |  | [![PyPI version](https://badge.fury.io/py/mantid-total-scattering.svg)](https://badge.fury.io/py/mantid-total-scattering) |
 
@@ -146,19 +146,6 @@ Clone the repository to a local directory
 git clone https://github.com/marshallmcdonnell/mantid_total_scattering.git
 cd mantid_total_scattering
 ```
-
-Pipenv
------------------------------------------------------------
-
-To setup the development environment with [pipenv](https://pipenv.readthedocs.io):
-
-1.  Install `pipenv`: `pip install --user pipenv` or read [this](https://pipenv.readthedocs.io/en/latest/install/)
-2.  Setup virtualenv with dependencies and `mantid_total_scattering` installed: `pipenv install -e .`
-3.  Activate the environment to run interatively: `pipenv shell`
-
-NOTE: On Step 3, if you get something like
-"Shell for UNKNOWN_VIRTUAL_ENVIRONMENT already activated.", the shell is already running from install.
-Usually, do a `deactivate` and then repeat Step 3.
 
 Tests
 ===========================================================
