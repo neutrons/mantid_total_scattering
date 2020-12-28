@@ -89,9 +89,9 @@ def add_required_shape_keys(mydict, shape):
 
 
 def create_absorption_wksp(filename, abs_method, geometry, material,
-                           environment=None, props=None, 
+                           environment=None, props=None,
                            characterization_files=None,
-                            **align_and_focus_args):
+                           **align_and_focus_args):
     '''Create absorption workspace'''
     if abs_method is None:
         return '', ''
