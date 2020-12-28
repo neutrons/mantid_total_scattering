@@ -367,6 +367,7 @@ def TotalScatteringReduction(config=None):
     facility = config['Facility']
     title = config['Title']
     instr = config['Instrument']
+    wavelength = config['AlignAndFocusArgs']
 
     # Get an instance to Mantid's logger
     log = Logger("TotalScatteringReduction")
@@ -484,7 +485,7 @@ def TotalScatteringReduction(config=None):
     con_abs_ws = ''
     if sam_abs_corr:
         log.notice("Applying '{}' absorption correction to sample".format(sam_abs_corr["Type"]))
-        sam_abs_ws, con_abs_ws = create_absorption_wksp(sam_scans, sam_abs_corr["Type"], sam_geometry, sam_material)
+        sam_abs_ws, con_abs_ws = create_absorption_wksp(sam_scans, sam_abs_corr["Type"], sam_geometry, sam_material, **wavelength)
         msg = "Applying '{}' absorption correction to sample"
         log.notice(msg.format(sam_abs_corr["Type"]))
         sam_abs_ws, con_abs_ws = create_absorption_wksp(
@@ -511,7 +512,7 @@ def TotalScatteringReduction(config=None):
     van_abs_corr_ws = ''
     if van_abs_corr:
         log.notice("Applying '{}' absorption correction to vanadium".format(van_abs_corr["Type"]))
-        van_abs_corr_ws = create_absorption_wksp(van_scans, van_abs_corr["Type"], van_geometry, van_material)
+        van_abs_corr_ws = create_absorption_wksp(van_scans, van_abs_corr["Type"], van_geometry, van_material, **wavelength)
         msg = "Applying '{}' absorption correction to vanadium"
         log.notice(msg.format(van_abs_corr["Type"]))
         van_abs_corr_ws = create_absorption_wksp(
