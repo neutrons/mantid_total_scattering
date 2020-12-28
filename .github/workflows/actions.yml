@@ -1,0 +1,37 @@
+name: mantid_total_scattering_ci
+
+env: {}
+
+on:
+  push:
+    branches:
+      - '*'
+    tags:
+      - 'v*'
+
+jobs:
+  linux:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04]
+        python-version: ["3.6"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          channels: conda-forge,mantid/label/nightly
+
+      - name: Conda install deps
+        shell: bash -l {0}
+        run: |
+          conda install mantid-framework
+          conda install --file requirements.txt --file requirements-dev.txt
+
+      - name:
+        shell: bash -l {0}
+        run: flake8 . --count
