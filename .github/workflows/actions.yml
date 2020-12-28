@@ -32,6 +32,6 @@ jobs:
           conda install mantid-framework
           conda install --file requirements.txt --file requirements-dev.txt
 
-      - name:
+      - name: Lint
         shell: bash -l {0}
         run: flake8 . --count
