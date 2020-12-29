@@ -676,8 +676,7 @@ def TotalScatteringReduction(config=None):
         print("#-----------------------------------#")
         print("# Vanadium Background")
         print("#-----------------------------------#")
-        #van_bg = load('vanadium_background', van_bg_scans, **alignAndFocusArgs)
-        van_bg = load('vanadium_background', van_bg, **alignAndFocusArgs)
+        van_bg = load('vanadium_background', van_bg_scans, **alignAndFocusArgs)
         vanadium_bg_title = "vanadium_background"
         save_banks(
             InputWorkspace=van_bg,
