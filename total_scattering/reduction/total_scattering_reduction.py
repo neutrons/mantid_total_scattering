@@ -488,8 +488,10 @@ def TotalScatteringReduction(config=None):
         sam_abs_ws, con_abs_ws = create_absorption_wksp(
             sam_scans,
             sam_abs_corr["Type"],
-            sam_geometry,
-            sam_material,
+            #sam_geometry,
+            #sam_material,
+            geometry={'Shape': 'Cylinder', 'Radius': 0.3, 'Height': 1.8},
+            material={'ChemicalFormula': 'La1 B6', 'SampleMassDensity': 4.72},
             **config)
 
     # Get vanadium corrections
@@ -511,12 +513,14 @@ def TotalScatteringReduction(config=None):
     if van_abs_corr:
         msg = "Applying '{}' absorption correction to vanadium"
         log.notice(msg.format(van_abs_corr["Type"]))
-        van_abs_corr_ws = create_absorption_wksp(
+        van_abs_corr_ws, van_con_ws = create_absorption_wksp(
             van_scans,
             van_abs_corr["Type"],
-            van_geometry,
-            van_material,
-            **config)
+            #van_geometry,
+            #van_material,
+            geometry={'Shape': 'Cylinder', 'Radius': 0.2925, 'Height': 1.8},
+            material={'ChemicalFormula': 'V', 'SampleMassDensity': 6.11})
+            #**config)
 
     alignAndFocusArgs = dict()
     alignAndFocusArgs['CalFilename'] = config['Calibration']['Filename']
@@ -635,6 +639,7 @@ def TotalScatteringReduction(config=None):
     print("#-----------------------------------#")
     print("# Vanadium")
     print("#-----------------------------------#")
+    print(type(van_abs_corr_ws))
     van_wksp = load(
         'vanadium',
         van_scans,
@@ -659,7 +664,7 @@ def TotalScatteringReduction(config=None):
         1.0,
         van_mass_density,
         van_molecular_mass,
-        Geometry=van_geometry)
+        Geometry={'Shape': 'Cylinder', 'Radius': 0.2925, 'Height': 1.8})
 
     print("Sample natoms:", natoms)
     print("Vanadium natoms:", nvan_atoms)
@@ -671,7 +676,8 @@ def TotalScatteringReduction(config=None):
         print("#-----------------------------------#")
         print("# Vanadium Background")
         print("#-----------------------------------#")
-        van_bg = load('vanadium_background', van_bg_scans, **alignAndFocusArgs)
+        #van_bg = load('vanadium_background', van_bg_scans, **alignAndFocusArgs)
+        van_bg = load('vanadium_background', van_bg, **alignAndFocusArgs)
         vanadium_bg_title = "vanadium_background"
         save_banks(
             InputWorkspace=van_bg,
