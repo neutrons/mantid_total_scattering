@@ -45,6 +45,8 @@ class TestLoad(unittest.TestCase):
             'TMin': 300.0,
             'TMax': 16667.0,
             'ReductionProperties': '__powderreduction'}
+        self.other_align_and_focus_args = {
+            'AlignAndFocusArgs': {'TMin': 300.0, 'TMax': 16667.0}}
 
         self.type_test_geometry = {
             'Shape': 'Cylinder',
@@ -128,7 +130,7 @@ class TestLoad(unittest.TestCase):
             geometry=self.type_test_geometry,
             material=self.type_test_material,
             environment=self.type_test_environment,
-            **self.nomad_align_and_focus_args)
+            **self.other_align_and_focus_args)
 
         self.assertIsNotNone(a_sample)
 
@@ -162,7 +164,7 @@ class TestLoad(unittest.TestCase):
             geometry=self.type_test_geometry,
             material=self.type_test_material,
             environment=self.type_test_environment,
-            **self.nomad_align_and_focus_args)
+            **self.other_align_and_focus_args)
 
         self.assertIsNotNone(a_sample)
 
@@ -196,7 +198,7 @@ class TestLoad(unittest.TestCase):
             geometry=self.type_test_geometry,
             material=self.type_test_material,
             environment=self.type_test_environment,
-            **self.nomad_align_and_focus_args)
+            **self.other_align_and_focus_args)
         self.assertIsNotNone(a_sample)
 
         actual = load(

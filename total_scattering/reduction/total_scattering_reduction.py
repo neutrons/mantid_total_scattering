@@ -367,7 +367,6 @@ def TotalScatteringReduction(config=None):
     facility = config['Facility']
     title = config['Title']
     instr = config['Instrument']
-    wavelength = config['AlignAndFocusArgs']
 
     # Get an instance to Mantid's logger
     log = Logger("TotalScatteringReduction")
@@ -491,7 +490,7 @@ def TotalScatteringReduction(config=None):
             sam_abs_corr["Type"],
             sam_geometry,
             sam_material,
-            **wavelength)
+            **config)
 
     # Get vanadium corrections
     van_mass_density = van.get('MassDensity', van_mass_density)
@@ -517,7 +516,7 @@ def TotalScatteringReduction(config=None):
             van_abs_corr["Type"],
             van_geometry,
             van_material,
-            **wavelength)
+            **config)
 
     alignAndFocusArgs = dict()
     alignAndFocusArgs['CalFilename'] = config['Calibration']['Filename']
