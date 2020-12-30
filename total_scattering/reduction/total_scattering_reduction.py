@@ -30,6 +30,7 @@ from mantid.simpleapi import \
     PDDetermineCharacterizations, \
     PropertyManagerDataService, \
     Rebin, \
+    RebinToWorkspace, \
     SaveGSS, \
     SetSample, \
     SetUncertainties, \
@@ -716,23 +717,33 @@ def TotalScatteringReduction(config=None):
         OutputWorkspace=container_raw)  # for later
 
     if van_bg is not None:
+        RebinToWorkspace(
+            WorkspaceToRebin=van_bg,
+            WorkspaceToMatch=van_wksp,
+            OutputWorkspace=van_bg)
         Minus(
             LHSWorkspace=van_wksp,
             RHSWorkspace=van_bg,
-            OutputWorkspace=van_wksp,
-            AllowDifferentNumberSpectra=True)
+            OutputWorkspace=van_wksp)
 
+    RebinToWorkspace(
+        WorkspaceToRebin=container,
+        WorkspaceToMatch=sam_wksp,
+        OutputWorkspace=container)
     Minus(
         LHSWorkspace=sam_wksp,
         RHSWorkspace=container,
-        OutputWorkspace=sam_wksp,
-        AllowDifferentNumberSpectra=True)
+        OutputWorkspace=sam_wksp)
+
     if container_bg is not None:
+        RebinToWorkspace(
+            WorkspaceToRebin=container_bg,
+            WorkspaceToMatch=container,
+            OutputWorkspace=container_bg)
         Minus(
             LHSWorkspace=container,
             RHSWorkspace=container_bg,
-            OutputWorkspace=container,
-            AllowDifferentNumberSpectra=True)
+            OutputWorkspace=container)
 
     for wksp in [container, van_wksp, sam_wksp]:
         ConvertUnits(
