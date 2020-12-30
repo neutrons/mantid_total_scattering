@@ -162,6 +162,10 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
 
     # Setup the donor workspace for absorption correction
     try:
+        if isinstance(filename, str):
+            list_filenames = filename.split(",")
+            filename = list_filenames[0]
+
         donor_ws = AbsorptionCorrUtils.create_absorption_input(
             filename,
             props,
