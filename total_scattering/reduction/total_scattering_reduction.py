@@ -672,7 +672,7 @@ def TotalScatteringReduction(config=None):
         1.0,
         van_mass_density,
         van_molecular_mass,
-        Geometry={'Shape': 'Cylinder', 'Radius': 0.2925, 'Height': 1.8})
+        Geometry=van_geometry)
 
     print("Sample natoms:", natoms)
     print("Vanadium natoms:", nvan_atoms)
