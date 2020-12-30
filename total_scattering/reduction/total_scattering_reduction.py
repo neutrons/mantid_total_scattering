@@ -384,6 +384,8 @@ def TotalScatteringReduction(config=None):
                     'Height': config['Sample']['Geometry']['Height']}
     sam_mat_dict = {'ChemicalFormula': sam_material,
                     'SampleMassDensity': sam_mass_density}
+    sam_env_dict = {'Name': 'InAir',
+                    'Container': config['Environment']['Container']}
 
     # Get normalization info
     van = get_normalization(config)
@@ -503,6 +505,7 @@ def TotalScatteringReduction(config=None):
             sam_abs_corr["Type"],
             sam_geo_dict,
             sam_mat_dict,
+            sam_env_dict,
             **config)
 
     # Get vanadium corrections
