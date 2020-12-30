@@ -381,7 +381,8 @@ def TotalScatteringReduction(config=None):
     sam_geo_dict = {'Shape': 'Cylinder',
                     'Radius': config['Sample']['Geometry']['Radius'],
                     'Height': config['Sample']['Geometry']['Height']}
-    sam_mat_dict = {'ChemicalFormula': sam_material, 'SampleMassDensity': sam_mass_density}
+    sam_mat_dict = {'ChemicalFormula': sam_material,
+                    'SampleMassDensity': sam_mass_density}
 
     # Get normalization info
     van = get_normalization(config)
@@ -393,8 +394,8 @@ def TotalScatteringReduction(config=None):
     van_geo_dict = {'Shape': 'Cylinder',
                     'Radius': config['Normalization']['Geometry']['Radius'],
                     'Height': config['Normalization']['Geometry']['Height']}
-    van_mat_dict = {'ChemicalFormula': van_material, 'SampleMassDensity': van_mass_density}
-
+    van_mat_dict = {'ChemicalFormula': van_material,
+                    'SampleMassDensity': van_mass_density}
 
     # Get calibration, characterization, and other settings
     merging = config['Merging']
