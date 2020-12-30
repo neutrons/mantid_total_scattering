@@ -545,7 +545,6 @@ def TotalScatteringReduction(config=None):
         otherArgs = config["AlignAndFocusArgs"]
         alignAndFocusArgs.update(otherArgs)
 
-    print(alignAndFocusArgs)
     # Setup grouping
     output_grouping = False
     grp_wksp = "wksp_output_group"
@@ -589,9 +588,6 @@ def TotalScatteringReduction(config=None):
         sam_abs_ws,
         **alignAndFocusArgs)
     sample_title = "sample_and_container"
-    print(os.path.join(OutputDir, sample_title + ".dat"))
-    print("HERE:", mtd[sam_wksp].getNumberHistograms())
-    print(grp_wksp)
     save_banks(InputWorkspace=sam_wksp,
                Filename=nexus_filename,
                Title=sample_title,
@@ -647,7 +643,6 @@ def TotalScatteringReduction(config=None):
     print("#-----------------------------------#")
     print("# Vanadium")
     print("#-----------------------------------#")
-    print(type(van_abs_corr_ws))
     van_wksp = load(
         'vanadium',
         van_scans,
