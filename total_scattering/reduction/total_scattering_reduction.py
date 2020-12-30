@@ -384,9 +384,12 @@ def TotalScatteringReduction(config=None):
                     'Height': config['Sample']['Geometry']['Height']}
     sam_mat_dict = {'ChemicalFormula': sam_material,
                     'SampleMassDensity': sam_mass_density}
-    sam_env_dict = {'Name': 'InAir',
-                    'Container': config['Environment']['Container']}
-
+    if 'Environment' in config:
+        sam_env_dict = {'Name': config['Environment']['Name'],
+                        'Container': config['Environment']['Container']}
+    else:
+        sam_env_dict = {'Name': 'InAir',
+                        'Container': 'PAC06'}
     # Get normalization info
     van = get_normalization(config)
     van_mass_density = van.get('MassDensity', None)
