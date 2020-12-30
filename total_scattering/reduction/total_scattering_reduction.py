@@ -378,12 +378,23 @@ def TotalScatteringReduction(config=None):
     sam_geometry = sample.get('Geometry', None)
     sam_material = sample.get('Material', None)
 
+    sam_geo_dict = {'Shape': 'Cylinder',
+                    'Radius': config['Sample']['Geometry']['Radius'],
+                    'Height': config['Sample']['Geometry']['Height']}
+    sam_mat_dict = {'ChemicalFormula': sam_material, 'SampleMassDensity': sam_mass_density}
+
     # Get normalization info
     van = get_normalization(config)
     van_mass_density = van.get('MassDensity', None)
     van_packing_fraction = van.get('PackingFraction', 1.0)
     van_geometry = van.get('Geometry', None)
     van_material = van.get('Material', 'V')
+
+    van_geo_dict = {'Shape': 'Cylinder',
+                    'Radius': config['Normalization']['Geometry']['Radius'],
+                    'Height': config['Normalization']['Geometry']['Height']}
+    van_mat_dict = {'ChemicalFormula': van_material, 'SampleMassDensity': van_mass_density}
+
 
     # Get calibration, characterization, and other settings
     merging = config['Merging']
@@ -488,10 +499,8 @@ def TotalScatteringReduction(config=None):
         sam_abs_ws, con_abs_ws = create_absorption_wksp(
             sam_scans,
             sam_abs_corr["Type"],
-            #sam_geometry,
-            #sam_material,
-            geometry={'Shape': 'Cylinder', 'Radius': 0.3, 'Height': 1.8},
-            material={'ChemicalFormula': 'La1 B6', 'SampleMassDensity': 4.72},
+            sam_geo_dict,
+            sam_mat_dict,
             **config)
 
     # Get vanadium corrections
@@ -516,11 +525,9 @@ def TotalScatteringReduction(config=None):
         van_abs_corr_ws, van_con_ws = create_absorption_wksp(
             van_scans,
             van_abs_corr["Type"],
-            #van_geometry,
-            #van_material,
-            geometry={'Shape': 'Cylinder', 'Radius': 0.2925, 'Height': 1.8},
-            material={'ChemicalFormula': 'V', 'SampleMassDensity': 6.11})
-            #**config)
+            van_geo_dict,
+            van_mat_dict,
+            **config)
 
     alignAndFocusArgs = dict()
     alignAndFocusArgs['CalFilename'] = config['Calibration']['Filename']
@@ -716,16 +723,20 @@ def TotalScatteringReduction(config=None):
         Minus(
             LHSWorkspace=van_wksp,
             RHSWorkspace=van_bg,
-            OutputWorkspace=van_wksp)
+            OutputWorkspace=van_wksp,
+            AllowDifferentNumberSpectra=True)
+
     Minus(
         LHSWorkspace=sam_wksp,
         RHSWorkspace=container,
-        OutputWorkspace=sam_wksp)
+        OutputWorkspace=sam_wksp,
+        AllowDifferentNumberSpectra=True)
     if container_bg is not None:
         Minus(
             LHSWorkspace=container,
             RHSWorkspace=container_bg,
-            OutputWorkspace=container)
+            OutputWorkspace=container,
+            AllowDifferentNumberSpectra=True)
 
     for wksp in [container, van_wksp, sam_wksp]:
         ConvertUnits(
@@ -1148,7 +1159,7 @@ def TotalScatteringReduction(config=None):
         EMode="Elastic")
 
     sam_corrected = 'sam_corrected'
-    if sam_abs_corr:
+    if sam_abs_corr and sam_ms_corr:
         if sam_abs_corr['Type'] == 'Carpenter' \
                 or sam_ms_corr['Type'] == 'Carpenter':
             CarpenterSampleCorrection(
