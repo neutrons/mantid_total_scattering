@@ -139,11 +139,13 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
         # Default to wavelength from JSON input / align and focus args
-        if "TMin" and "TMax" in align_and_focus_args:
-            props["wavelength_min"] = align_and_focus_args['TMin']
-            props["wavelength_max"] = align_and_focus_args['TMax']
+        if "AlignAndFocusArgs" in align_and_focus_args:
+            input_wl = align_and_focus_args["AlignAndFocusArgs"]
+            if "TMin" and "TMax" in input_wl:
+                props["wavelength_min"] = input_wl["TMin"]
+                props["wavelength_max"] = input_wl["TMax"]
 
-        # But set wavelength max from logs if not set
+        # But set wavelength max from logs if not set in JSON or elsewhere
         else:
             wl_lognames = [
                 "LambdaRequest",
@@ -158,10 +160,12 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                 if logname_wl in run and is_max_wavelength_zero:
                     props["wavelength_max"] = run[logname_wl].lastValue()
 
-        print(props["wavelength_min"].value, props["wavelength_max"].value)
-
     # Setup the donor workspace for absorption correction
     try:
+        if isinstance(filename, str):
+            list_filenames = filename.split(",")
+            filename = list_filenames[0]
+
         donor_ws = AbsorptionCorrUtils.create_absorption_input(
             filename,
             props,
