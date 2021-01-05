@@ -7,7 +7,7 @@ from mantid.simpleapi import \
     PDLoadCharacterizations, \
     PropertyManagerDataService, \
     SetSample
-from mantid.utils import AbsorptionCorrUtils
+from mantid.utils import absorptioncorrutils
 
 _shared_shape_keys = ["Shape", "Height", "Center"]
 required_shape_keys = {
@@ -166,7 +166,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             list_filenames = filename.split(",")
             filename = list_filenames[0]
 
-        donor_ws = AbsorptionCorrUtils.create_absorption_input(
+        donor_ws = absorptioncorrutils.create_absorption_input(
             filename,
             props,
             material=material,
@@ -177,7 +177,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         msg = "Could not create absorption correction donor workspace: {}"
         raise RuntimeError(msg.format(e))
 
-    abs_s, abs_c = AbsorptionCorrUtils.calc_absorption_corr_using_wksp(
+    abs_s, abs_c = absorptioncorrutils.calc_absorption_corr_using_wksp(
             donor_ws,
             abs_method)
 
