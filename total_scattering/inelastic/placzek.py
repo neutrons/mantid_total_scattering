@@ -15,23 +15,6 @@ from total_scattering.inelastic.incident_spectrum import \
 
 # -------------------------------------------------------------------------
 # Placzek - 1st order inelastic correction
-
-def plotPlaczek(x, y, fit, fit_prime, title=None):
-    plt.plot(x, y, 'bo', x, fit, '--')
-    plt.legend(['Incident Spectrum', 'Fit f(x)'], loc='best')
-    if title is not None:
-        plt.title(title)
-    plt.show()
-
-    plt.plot(x, x * fit_prime / fit, 'x--', label="Fit x*f'(x)/f(x)")
-    plt.xlabel('Wavelength')
-    plt.legend()
-    if title is not None:
-        plt.title(title)
-    plt.show()
-    return
-
-
 def GetLogBinning(start, stop, num=100):
     return np.logspace(
         np.log(start),
@@ -269,41 +252,3 @@ if '__main__' == __name__:
                                    L2=L2,
                                    Polar=Polar,
                                    ParentWorkspace=parent)
-
-    # print(mtd[parent].getNumberHistograms())
-    # print(mtd[placzek].getNumberHistograms())
-    '''
-    ConvertUnits(InputWorkspace=placzek,
-             OutputWorkspace=placzek,
-             Target='MomentumTransfer',
-             EMode='Elastic')
-    '''
-
-    plot = True
-    if plot:
-        import matplotlib.pyplot as plt
-        bank_colors = ['k', 'r', 'b', 'g', 'y', 'c']
-        nbanks = range(mtd[placzek].getNumberHistograms())
-        for bank, theta in zip(nbanks, Polar):
-            x_lambda = mtd[placzek].readX(bank)
-            q = ConvertLambdaToQ(x_lambda, theta)
-            per_bank_placzek = mtd[placzek].readY(bank)
-            label = 'Bank: %d at Theta %d' % (bank, int(theta))
-            plt.plot(
-                q,
-                1. +
-                per_bank_placzek,
-                bank_colors[bank] +
-                '-',
-                label=label)
-
-        material = ' '.join([symbol +
-                             str(int(props['stoich'])) +
-                             ' ' for symbol, props in atom_species.iteritems()])
-        plt.title('Placzek vs. Q for ' + material)
-        plt.xlabel('Q (Angstroms^-1')
-        plt.ylabel('1 - P(Q)')
-        axes = plt.gca()
-        # axes.set_ylim([0.96, 1.0])
-        plt.legend()
-        plt.show()
