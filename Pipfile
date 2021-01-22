@@ -12,8 +12,6 @@ tox = "*"
 tox-conda = "*"
 
 [packages]
-tox = "*"
-tox-conda = "*"
 
 [requires]
 python_version = "3.6"
