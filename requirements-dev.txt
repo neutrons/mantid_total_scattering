@@ -1,2 +1,6 @@
-pytest
+bandit
 flake8
+pytest
+pytest-cov
+tox
+tox-conda
