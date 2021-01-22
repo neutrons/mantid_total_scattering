@@ -59,7 +59,12 @@ JSON_MSG = """
 
 
 def generate_input_json():
-    calib_path = os.path.join(ROOT_DIR, 'examples', 'isis', 'polaris_grouping.cal')
+    calib_path = os.path.join(
+        ROOT_DIR,
+        'examples',
+        'isis',
+        'polaris_grouping.cal')
+
     character_path = os.path.join(POLARIS_DIR, 'character.txt')
     cache_path = os.path.join(ROOT_DIR, 'cache')
     output_path = os.path.join(ROOT_DIR, 'output')
