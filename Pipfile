@@ -8,10 +8,10 @@ bandit = "*"
 flake8 = "*"
 pytest = "*"
 pytest-cov = "*"
-tox = "*"
 tox-conda = "*"
+tox = "*"
 
 [packages]
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"
