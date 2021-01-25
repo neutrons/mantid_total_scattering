@@ -1,7 +1,7 @@
 | Health | Main Release (w/ Mantid Framework) | Dev Release (w/o Mantid Framework) |
 |--------|------------------------------------|------------------------------------|
-|[![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fneutrons%2Fmantid_total_scattering%2Fbadge%3Fref%3Dmaster&style=plastic)](https://actions-badge.atrox.dev/neutrons/mantid_total_scattering/goto?ref=master)  | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/version.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering) | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering-python-wrapper/badges/version.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering-python-wrapper) |
-| [![codecov](https://codecov.io/gh/neutrons/mantid_total_scattering/branch/master/graph/badge.svg)](https://codecov.io/gh/neutrons/mantid_total_scattering) | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering/badges/platforms.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering) | [![Anaconda-Server Badge](https://anaconda.org/marshallmcdonnell/mantid-total-scattering-python-wrapper/badges/platforms.svg)](https://anaconda.org/marshallmcdonnell/mantid-total-scattering-python-wrapper) |
+|[![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fneutrons%2Fmantid_total_scattering%2Fbadge%3Fref%3Dmaster&style=plastic)](https://actions-badge.atrox.dev/neutrons/mantid_total_scattering/goto?ref=master)  | [![Anaconda-Server Badge](https://anaconda.org/neutrons/mantid-total-scattering/badges/version.svg)](https://anaconda.org/neutrons/mantid-total-scattering) | [![Anaconda-Server Badge](https://anaconda.org/neutrons/mantid-total-scattering-python-wrapper/badges/version.svg)](https://anaconda.org/neutrons/mantid-total-scattering-python-wrapper) |
+| [![codecov](https://codecov.io/gh/neutrons/mantid_total_scattering/branch/master/graph/badge.svg)](https://codecov.io/gh/neutrons/mantid_total_scattering) | [![Anaconda-Server Badge](https://anaconda.org/neutrons/mantid-total-scattering/badges/platforms.svg)](https://anaconda.org/neutrons/mantid-total-scattering) | [![Anaconda-Server Badge](https://anaconda.org/neutrons/mantid-total-scattering-python-wrapper/badges/platforms.svg)](https://anaconda.org/neutrons/mantid-total-scattering-python-wrapper) |
 | |  | [![PyPI version](https://badge.fury.io/py/mantid-total-scattering.svg)](https://badge.fury.io/py/mantid-total-scattering) |
 
 Total Scattering Data Reduction using Mantid Framework
@@ -15,7 +15,7 @@ This is the future backend for the [ADDIE project](https://github.com/neutrons/a
 
 Structure factor S(Q) -> Pair Distribution Function G(r)
 -----------------------------------------------------------
-![alt text](https://raw.githubusercontent.com/marshallmcdonnell/mantid_total_scattering/master/images/sofq_to_gofr.png)
+![alt text](https://raw.githubusercontent.com/neutrons/mantid_total_scattering/master/images/sofq_to_gofr.png)
 
 Installation
 ===========================================================
@@ -70,7 +70,7 @@ Simply replace `conda` -> `mamba` in "Install" instruction commands
 #### Install (or Update)
 
 ```bash
-conda install -c marshallmcdonnell mantid-total-scattering
+conda install -c neutrons mantid-total-scattering
 ```
 
 Go here for how to delete an [environment](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#removing-an-environment) or use:
@@ -134,7 +134,7 @@ conda activate mantidts_env
 #### Install
 
 ```bash
-conda install -c marshallmcdonnell mantid-total-scattering-python-wrapper
+conda install -c neutrons mantid-total-scattering-python-wrapper
 ```
 
 Development
@@ -143,7 +143,7 @@ Development
 Clone the repository to a local directory
 
 ```bash
-git clone https://github.com/marshallmcdonnell/mantid_total_scattering.git
+git clone https://github.com/neutrons/mantid_total_scattering.git
 cd mantid_total_scattering
 ```
 
