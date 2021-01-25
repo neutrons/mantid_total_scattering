@@ -27,7 +27,7 @@ test:
     - total_scattering.inelastic
 
 about:
-  home: https://github.com/marshallmcdonnell/mantid_total_scattering
+  home: https://github.com/neutrons/mantid_total_scattering
   license: GPL (version 3)
   license_family: GPL3
   license_file: 
