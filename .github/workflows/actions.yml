@@ -55,6 +55,7 @@ jobs:
 
       - name: Deploy full package to Anaconda
         shell: bash -l {0}
+        if: startsWith( github.ref, 'refs/tags/v')
         env:
           ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
         run: |
@@ -65,6 +66,7 @@ jobs:
 
       - name: Deploy python wrapper to Anaconda
         shell: bash -l {0}
+        if: startsWith( github.ref, 'refs/tags/v')
         env:
           ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
         run: |
