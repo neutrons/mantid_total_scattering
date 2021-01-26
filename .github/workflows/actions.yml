@@ -52,3 +52,14 @@ jobs:
           tox -e coverage
           pip install coverage
           bash <(curl -s https://codecov.io/bash)
+
+      - name: Deploy to Anaconda
+        shell: bash -l {0}
+        if: startsWith( github.ref, 'refs/tags/v')
+        env:
+          ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        run: |
+          conda install -y anaconda-client conda-build conda-verify
+          cd conda.recipe
+          conda build --output-folder . .
+          anaconda upload --label main linux-64/*.tar.bz2
