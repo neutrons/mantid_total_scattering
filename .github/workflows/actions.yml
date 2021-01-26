@@ -53,13 +53,24 @@ jobs:
           pip install coverage
           bash <(curl -s https://codecov.io/bash)
 
-      - name: Deploy to Anaconda
+      - name: Deploy full package to Anaconda
         shell: bash -l {0}
         if: startsWith( github.ref, 'refs/tags/v')
         env:
           ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
         run: |
           conda install -y anaconda-client conda-build conda-verify
-          cd conda.recipe
+          cd conda.recipe/mantid-total-scattering
           conda build --output-folder . .
           anaconda upload --label main linux-64/*.tar.bz2
+
+      - name: Deploy python wrapper to Anaconda
+        shell: bash -l {0}
+        if: startsWith( github.ref, 'refs/tags/v')
+        env:
+          ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        run: |
+          conda install -y anaconda-client conda-build conda-verify
+          cd conda.recipe/mantid-total-scattering-python-wrapper
+          conda build --output-folder . .
+          anaconda upload --label main noarch/*.tar.bz2
