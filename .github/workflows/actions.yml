@@ -71,4 +71,4 @@ jobs:
           conda install -y anaconda-client conda-build conda-verify
           cd conda.recipe/mantid-total-scattering-python-wrapper
           conda build --output-folder . .
-          anaconda upload --label main linux-64/*.tar.bz2
+          anaconda upload --label main noarch/*.tar.bz2
