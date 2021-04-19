@@ -522,7 +522,7 @@ def TotalScatteringReduction(config=None):
         van.get('InelasticCorrection', None))
 
     # Warn about having absorption correction and multiple scat correction set
-    if van_abs_corr and van_ms_corr:
+    if van_abs_corr["Type"] and van_ms_corr["Type"]:
         log.warning(MS_AND_ABS_CORR_WARNING)
 
     # Compute the absorption correction for the vanadium if provided
