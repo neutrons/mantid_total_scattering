@@ -142,8 +142,8 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         if "AlignAndFocusArgs" in align_and_focus_args:
             input_wl = align_and_focus_args["AlignAndFocusArgs"]
             if "TMin" and "TMax" in input_wl:
-                props["wavelength_min"] = input_wl["TMin"]
-                props["wavelength_max"] = input_wl["TMax"]
+                props["tof_min"] = input_wl["TMin"]
+                props["tof_max"] = input_wl["TMax"]
 
         # But set wavelength max from logs if not set in JSON or elsewhere
         else:
