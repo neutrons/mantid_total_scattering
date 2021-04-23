@@ -9,6 +9,9 @@ on:
       - '*'
     tags:
       - 'v*'
+  pull_request:
+    types: [ opened, edited, reopened, review_requested ]
+    branches: [ master ] 
 
 jobs:
   linux:
