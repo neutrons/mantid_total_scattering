@@ -152,7 +152,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                 "lambda",
                 "skf12.lambda",
                 "BL1B:Det:TH:BL:Lambda",
-                "freq"]
+                "frequency"]
 
             for logname_wl in wl_lognames:
                 run = abs_input.run()
