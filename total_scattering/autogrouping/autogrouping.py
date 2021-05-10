@@ -83,7 +83,9 @@ def Autogrouping(config):
     output_mask = get_key("OutputMaskFile", config)
 
     wksp = LoadEventAndCompress(Filename=diamond_file, FilterBadPulses=0)
-    mask_wksp = Load(Filename=masking_file)
+    mask_wksp = None
+    if masking_file:
+        mask_wksp = Load(Filename=masking_file)
 
     # Rebin (in TOF)
     # TODO: Double check if this is needed, and if this should only be done for ED case
