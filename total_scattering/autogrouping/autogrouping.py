@@ -1,11 +1,19 @@
 import json
 import numpy as np
 
+from Calibration.tofpd import diagnostics
 from mantid.dataobjects import \
     EventWorkspace, \
     MaskWorkspace
 from mantid.simpleapi import \
-    Load
+    ConvertUnits, \
+    FitPeaks, \
+    LoadEventAndCompress, \
+    Load, \
+    Rebin
+
+# Diamond peak positions to perform multiple peak fitting on
+DIAMOND_PEAKS = (0.8920, 1.0758, 1.2615)
 
 
 def similarity_matrix_crosscorr(wksp: EventWorkspace, mask_wksp: MaskWorkspace):
@@ -18,6 +26,25 @@ def similarity_matrix_degelder(wksp: EventWorkspace, mask_wksp: MaskWorkspace):
 
 def euclidean_distance(wksp: EventWorkspace, mask_wksp: MaskWorkspace,
                        threshold: float):
+    # Create the peak windows from the diamond peak positions
+    peakwindows = diagnostics.get_peakwindows(np.asarray(DIAMOND_PEAKS))
+
+    # Convert from TOF to dspacing
+    wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing", EMode="Elastic")
+
+    # Perform multiple peak fitting
+    output = FitPeaks(InputWorkspace=wksp,
+                      PeakFunction="Bk2BkExpConvPV",
+                      RawPeakParameters=True,
+                      HighBackground=False,
+                      ConstrainPeakPositions=False,
+                      MinimumPeakHeight=3,
+                      PeakCenters=np.asarray(DIAMOND_PEAKS),
+                      FitWindowBoundaryList=peakwindows,
+                      FittedPeaksWorkspace='fitted',
+                      OutputPeakParametersWorkspace='parameters',
+                      OutputParameterFitErrorsWorkspace='fiterrors')
+
     return
 
 
@@ -55,8 +82,12 @@ def Autogrouping(config):
     output_file = get_key("OutputGroupingFile", config)
     output_mask = get_key("OutputMaskFile", config)
 
-    wksp = Load(Filename=diamond_file)
+    wksp = LoadEventAndCompress(Filename=diamond_file, FilterBadPulses=0)
     mask_wksp = Load(Filename=masking_file)
+
+    # Rebin (in TOF)
+    # TODO: Double check if this is needed, and if this should only be done for ED case
+    wksp = Rebin(InputWorkspace=wksp, Params=(300, -0.001, 16666.7))
 
     if method[1] == "DG":
         # Compute the deGelder similarity matrix
