@@ -4,13 +4,15 @@ import numpy as np
 from Calibration.tofpd import diagnostics
 from mantid.dataobjects import \
     EventWorkspace, \
-    MaskWorkspace
+    MaskWorkspace, \
+    TableWorkspace
 from mantid.simpleapi import \
     ConvertUnits, \
     FitPeaks, \
     LoadEventAndCompress, \
     Load, \
-    Rebin
+    Rebin, \
+    mtd
 
 # Diamond peak positions to perform multiple peak fitting on
 DIAMOND_PEAKS = (0.8920, 1.0758, 1.2615)
@@ -24,19 +26,18 @@ def similarity_matrix_degelder(wksp: EventWorkspace, mask_wksp: MaskWorkspace):
     return
 
 
-def euclidean_distance(wksp: EventWorkspace, mask_wksp: MaskWorkspace,
-                       threshold: float):
+def peakfitting(wksp: EventWorkspace, peaks, param_names, param_values):
     # Create the peak windows from the diamond peak positions
-    peakwindows = diagnostics.get_peakwindows(np.asarray(DIAMOND_PEAKS))
+    peakwindows = diagnostics.get_peakwindows(np.asarray(peaks))
 
     # Convert from TOF to dspacing
     wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing", EMode="Elastic")
 
     # Perform multiple peak fitting
     output = FitPeaks(InputWorkspace=wksp,
-                      PeakFunction="Bk2BkExpConvPV",
-                      PeakParameterNames="Intensity, Alpha, Beta, Sigma2, Gamma",
-                      PeakParameterValues="1.0, 0.04, 0.05, 40, 5.0",
+                      PeakFunction="PseudoVoigt",
+                      PeakParameterNames=param_names,
+                      PeakParameterValues=param_values,
                       RawPeakParameters=True,
                       HighBackground=False,
                       ConstrainPeakPositions=False,
@@ -47,7 +48,33 @@ def euclidean_distance(wksp: EventWorkspace, mask_wksp: MaskWorkspace,
                       OutputPeakParametersWorkspace='parameters',
                       OutputParameterFitErrorsWorkspace='fiterrors')
 
-    return
+    return 'parameters', 'fiterrors'
+
+
+def gather_fitparameters(paramws: TableWorkspace, errorws: TableWorkspace, mask,
+                         peaks, threshold: float):
+    '''Generate an array of peak fitting parameters over all spectra from FitPeaks results'''
+
+    paramws = mtd[str(paramws)]
+    errorws = mtd[str(errorws)]
+
+    # The fit function parameters to gather
+    cols = ["Mixing", "Intensity", "PeakCentre", "FWHM"]
+    nprops = len(cols)*len(peaks)
+
+    wsindex = paramws.column("wsindex")
+    wsindex_unique = np.unique(wsindex)
+    n = len(wsindex_unique)
+
+    result = np.ndarray(shape=(n, nprops))
+
+    for i in range(n):
+        for j in range(len(peaks)):
+            row = paramws.row(i+j)
+            for k in range(len(cols)):
+                result[i, j*len(cols)+k] = row[cols[k]]
+
+    return result
 
 
 def get_key(key, config):
@@ -101,7 +128,8 @@ def Autogrouping(config):
         grouping = similarity_matrix_crosscorr(wksp, mask_wksp)
     elif method[1] == "ED":
         # Compute the euclidean distance
-        grouping = euclidean_distance(wksp, mask_wksp, threshold)
+        params, fiterrors = peakfitting(wksp, DIAMOND_PEAKS, "Mixing", "0.6")
+        clustering_input = gather_fitparameters(params, fiterrors, None, DIAMOND_PEAKS, 1.0)
 
     # TODO:
     # Pass result to clustering algorithm
