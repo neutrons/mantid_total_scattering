@@ -35,6 +35,8 @@ def euclidean_distance(wksp: EventWorkspace, mask_wksp: MaskWorkspace,
     # Perform multiple peak fitting
     output = FitPeaks(InputWorkspace=wksp,
                       PeakFunction="Bk2BkExpConvPV",
+                      PeakParameterNames="Intensity, Alpha, Beta, Sigma2, Gamma",
+                      PeakParameterValues="1.0, 0.04, 0.05, 40, 5.0",
                       RawPeakParameters=True,
                       HighBackground=False,
                       ConstrainPeakPositions=False,
