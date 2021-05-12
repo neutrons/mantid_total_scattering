@@ -69,8 +69,9 @@ def gather_fitparameters(paramws: TableWorkspace, errorws: TableWorkspace, mask,
     result = np.ndarray(shape=(n, nprops))
 
     for i in range(n):
+        index = int(np.searchsorted(wsindex, wsindex_unique[i]))
         for j in range(len(peaks)):
-            row = paramws.row(i+j)
+            row = paramws.row(index+j)
             for k in range(len(cols)):
                 result[i, j*len(cols)+k] = row[cols[k]]
 
