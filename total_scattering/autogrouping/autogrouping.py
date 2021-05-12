@@ -8,6 +8,7 @@ from mantid.dataobjects import \
     TableWorkspace
 from mantid.simpleapi import \
     ConvertUnits, \
+    CreateEmptyTableWorkspace, \
     FitPeaks, \
     LoadEventAndCompress, \
     Load, \
@@ -76,6 +77,23 @@ def gather_fitparameters(paramws: TableWorkspace, errorws: TableWorkspace, mask,
                 result[i, j*len(cols)+k] = row[cols[k]]
 
     return result
+
+
+def gathered_parameters_to_tablewksp(wsname: str, result: np.ndarray, peaks):
+    '''Converts the result from gather_fitparameters() to a Mantid TableWorkspace'''
+    cols = ["Mixing", "Intensity", "PeakCentre", "FWHM"]
+    if result.shape != (len(result), len(peaks) * len(cols)):
+        raise ValueError("input array does not match expected size of {}"
+                         .format((len(result), len(peaks) * len(cols))))
+
+    tab = CreateEmptyTableWorkspace(OutputWorkspace=wsname)
+    tab.addColumn("double", "wsindex")
+    for peak in peaks:
+        for col in cols:
+            tab.addColumn("double", "{}-{}".format(col, peak))
+    for i in range(len(result)):
+        tab.addRow(np.insert(result[i], 0, i))
+    return tab
 
 
 def get_key(key, config):
