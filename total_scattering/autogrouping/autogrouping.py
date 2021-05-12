@@ -71,8 +71,26 @@ def gather_fitparameters(paramws: TableWorkspace, errorws: TableWorkspace, mask,
 
     for i in range(n):
         index = int(np.searchsorted(wsindex, wsindex_unique[i]))
+
+        # Get the table rows corresponding to each peak index for this ws index
+        nskip = 0
         for j in range(len(peaks)):
             row = paramws.row(index+j)
+
+            # Skip bad fitting parameters based on fiterror values
+            skip = False
+            nzero = 0
+            for k in range(len(cols)):
+                p = errorws.row(index + j)[cols[k]]
+                if np.isnan(p):
+                    skip = True
+                    break
+                if p <= 0.0:
+                    nzero += 1
+            if skip or nzero == len(cols):
+                nskip += 1
+                continue
+
             for k in range(len(cols)):
                 result[i, j*len(cols)+k] = row[cols[k]]
 
