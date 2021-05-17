@@ -19,12 +19,48 @@ from mantid.simpleapi import \
 DIAMOND_PEAKS = (0.8920, 1.0758, 1.2615)
 
 
-def similarity_matrix_crosscorr(wksp: EventWorkspace, mask_wksp: MaskWorkspace):
-    return
+def is_badfit(err_row, colnames):
+    '''Determine if a single peakindex row for a workspace index has a bad fit result'''
+    isbad = False
+    nzero = 0
+    for k in range(len(colnames)):
+        p = err_row[colnames[k]]
+        if np.isnan(p):
+            isbad = True
+            break
+        if p <= 0.0:
+            nzero += 1
+    # Count as "bad" if parameter errors are nan, or all 0
+    if nzero == len(colnames):
+        isbad = True
+    return isbad
 
 
-def similarity_matrix_degelder(wksp: EventWorkspace, mask_wksp: MaskWorkspace):
-    return
+def get_badfitcount(index, errws, peaks, colnames):
+    '''Returns the number of bad fits in for a given workspace index (including all peakindex rows)'''
+    # Note: index is the global table row (i.e, if ws index = 3000, 3 peaks = 9000)
+    # Skip bad fitting parameters based on fiterror values
+    nbad = 0
+    for j in range(len(peaks)):
+        if is_badfit(errws.row(index + j), colnames):
+            nbad += 1
+    return nbad
+
+
+def get_goodfits(paramws, errws, peaks, colnames):
+    '''Return a list of ws indices containing good fit parameters to include'''
+    skiplist = []
+
+    wsindex = np.asarray(paramws.column("wsindex"))
+    wsindex_unique = np.unique(wsindex)
+    n = len(wsindex_unique)
+    for i in range(n):
+        ind = int(np.searchsorted(wsindex, wsindex_unique[i]))
+        # Add the ws index to list if fit result for ALL peaks are bad
+        if get_badfitcount(ind, errws, peaks, colnames) != len(peaks):
+            skiplist.append(i)
+
+    return skiplist
 
 
 def peakfitting(wksp: EventWorkspace, peaks, param_names, param_values):
@@ -61,38 +97,31 @@ def gather_fitparameters(paramws: TableWorkspace, errorws: TableWorkspace, mask,
 
     # The fit function parameters to gather
     cols = ["Mixing", "Intensity", "PeakCentre", "FWHM"]
-    nprops = len(cols)*len(peaks)
+    nprops = len(cols) * len(peaks)
 
     wsindex = paramws.column("wsindex")
     wsindex_unique = np.unique(wsindex)
-    n = len(wsindex_unique)
+
+    fitlist = get_goodfits(paramws, errorws, peaks, cols)
+    n = len(fitlist)
 
     result = np.ndarray(shape=(n, nprops))
 
     for i in range(n):
-        index = int(np.searchsorted(wsindex, wsindex_unique[i]))
+        # Get mapping to ws index
+        ws_index = fitlist[i]
+        index = int(np.searchsorted(wsindex, wsindex_unique[ws_index]))
 
         # Get the table rows corresponding to each peak index for this ws index
-        nskip = 0
         for j in range(len(peaks)):
-            row = paramws.row(index+j)
+            row = paramws.row(index + j)
 
             # Skip bad fitting parameters based on fiterror values
-            skip = False
-            nzero = 0
-            for k in range(len(cols)):
-                p = errorws.row(index + j)[cols[k]]
-                if np.isnan(p):
-                    skip = True
-                    break
-                if p <= 0.0:
-                    nzero += 1
-            if skip or nzero == len(cols):
-                nskip += 1
+            if is_badfit(errorws.row(index + j), cols):
                 continue
 
             for k in range(len(cols)):
-                result[i, j*len(cols)+k] = row[cols[k]]
+                result[i, j * len(cols) + k] = row[cols[k]]
 
     return result
 
@@ -135,7 +164,6 @@ def get_grouping_method(grouping):
 
 
 def Autogrouping(config):
-
     diamond_file = get_key("DiamondFile", config)
     masking_file = get_key("MaskFile", config)
 
@@ -148,7 +176,10 @@ def Autogrouping(config):
     output_file = get_key("OutputGroupingFile", config)
     output_mask = get_key("OutputMaskFile", config)
 
-    wksp = LoadEventAndCompress(Filename=diamond_file, FilterBadPulses=0)
+    if diamond_file.endswith(".nxs.h5"):
+        wksp = LoadEventAndCompress(Filename=diamond_file, FilterBadPulses=0)
+    else:
+        wksp = Load(Filename=diamond_file)
     mask_wksp = None
     if masking_file:
         mask_wksp = Load(Filename=masking_file)
@@ -177,7 +208,6 @@ def Autogrouping(config):
 
 
 def main(config=None):
-
     # Read in JSON if not provided to main()
     if not config:
         import argparse
