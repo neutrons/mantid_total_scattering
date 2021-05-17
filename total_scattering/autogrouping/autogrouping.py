@@ -19,7 +19,7 @@ from mantid.simpleapi import \
 DIAMOND_PEAKS = (0.8920, 1.0758, 1.2615)
 
 
-def is_badfit(err_row, colnames):
+def is_badfit(err_row, colnames, thresholds=dict()):
     '''Determine if a single peakindex row for a workspace index has a bad fit result'''
     isbad = False
     nzero = 0
@@ -30,24 +30,33 @@ def is_badfit(err_row, colnames):
             break
         if p <= 0.0:
             nzero += 1
+
+        # Restrict fit against parameter thresholds, if any
+        for threshold in thresholds:
+            if colnames[k] == threshold:
+                if p < thresholds[threshold][0] or p > thresholds[threshold][1]:
+                    isbad = True
+                    break
+        if isbad:
+            break
     # Count as "bad" if parameter errors are nan, or all 0
     if nzero == len(colnames):
         isbad = True
     return isbad
 
 
-def get_badfitcount(index, errws, peaks, colnames):
+def get_badfitcount(index, errws, peaks, colnames, thresholds=dict()):
     '''Returns the number of bad fits in for a given workspace index (including all peakindex rows)'''
     # Note: index is the global table row (i.e, if ws index = 3000, 3 peaks = 9000)
     # Skip bad fitting parameters based on fiterror values
     nbad = 0
     for j in range(len(peaks)):
-        if is_badfit(errws.row(index + j), colnames):
+        if is_badfit(errws.row(index + j), colnames, thresholds):
             nbad += 1
     return nbad
 
 
-def get_goodfits(paramws, errws, peaks, colnames):
+def get_goodfits(paramws, errws, peaks, colnames, thresholds=dict()):
     '''Return a list of ws indices containing good fit parameters to include'''
     skiplist = []
 
@@ -57,7 +66,7 @@ def get_goodfits(paramws, errws, peaks, colnames):
     for i in range(n):
         ind = int(np.searchsorted(wsindex, wsindex_unique[i]))
         # Add the ws index to list if fit result for ALL peaks are bad
-        if get_badfitcount(ind, errws, peaks, colnames) != len(peaks):
+        if get_badfitcount(ind, errws, peaks, colnames, thresholds) != len(peaks):
             skiplist.append(i)
 
     return skiplist
@@ -102,7 +111,9 @@ def gather_fitparameters(paramws: TableWorkspace, errorws: TableWorkspace, mask,
     wsindex = paramws.column("wsindex")
     wsindex_unique = np.unique(wsindex)
 
-    fitlist = get_goodfits(paramws, errorws, peaks, cols)
+    thresholds = {"Mixing": (0.0, threshold)}
+
+    fitlist = get_goodfits(paramws, errorws, peaks, cols, thresholds)
     n = len(fitlist)
 
     result = np.ndarray(shape=(n, nprops))
@@ -117,7 +128,7 @@ def gather_fitparameters(paramws: TableWorkspace, errorws: TableWorkspace, mask,
             row = paramws.row(index + j)
 
             # Skip bad fitting parameters based on fiterror values
-            if is_badfit(errorws.row(index + j), cols):
+            if is_badfit(errorws.row(index + j), cols, thresholds):
                 continue
 
             for k in range(len(cols)):
