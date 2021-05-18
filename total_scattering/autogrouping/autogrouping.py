@@ -110,7 +110,7 @@ def gather_fitparameters(paramws: TableWorkspace, cols, mask,
     paramws = mtd[str(paramws)]
 
     # The fit function parameters to gather
-    nprops = len(cols) * len(peaks)
+    nprops = len(cols) * len(peaks) + 1
 
     wsindex = paramws.column("wsindex")
     wsindex_unique = np.unique(wsindex)
@@ -126,6 +126,7 @@ def gather_fitparameters(paramws: TableWorkspace, cols, mask,
         index = int(np.searchsorted(wsindex, wsindex_unique[ws_index]))
 
         # Get the table rows corresponding to each peak index for this ws index
+        result[i, 0] = ws_index
         for j in range(len(peaks)):
             row = paramws.row(index + j)
 
@@ -134,16 +135,16 @@ def gather_fitparameters(paramws: TableWorkspace, cols, mask,
                 continue
 
             for k in range(len(cols)):
-                result[i, j * len(cols) + k] = row[cols[k]]
+                result[i, j * len(cols) + k + 1] = row[cols[k]]
 
     return result
 
 
 def gathered_parameters_to_tablewksp(wsname: str, result: np.ndarray, peaks, cols):
     '''Converts the result from gather_fitparameters() to a Mantid TableWorkspace'''
-    if result.shape != (len(result), len(peaks) * len(cols)):
+    if result.shape != (len(result), len(peaks) * len(cols) + 1):
         raise ValueError("input array does not match expected size of {}"
-                         .format((len(result), len(peaks) * len(cols))))
+                         .format((len(result), len(peaks) * len(cols) + 1)))
 
     tab = CreateEmptyTableWorkspace(OutputWorkspace=wsname)
     tab.addColumn("double", "wsindex")
@@ -151,7 +152,7 @@ def gathered_parameters_to_tablewksp(wsname: str, result: np.ndarray, peaks, col
         for col in cols:
             tab.addColumn("double", "{}-{}".format(col, peak))
     for i in range(len(result)):
-        tab.addRow(np.insert(result[i], 0, i))
+        tab.addRow(result[i])
     return tab
 
 
@@ -244,6 +245,7 @@ def Autogrouping(config):
     # TODO: Double check if this is needed, and if this should only be done for ED case
     wksp = Rebin(InputWorkspace=wksp, Params=(300, -0.001, 16666.7))
 
+    wsindex = None
     clustering_input = None
     if method[1] == "DG":
         # Compute the deGelder similarity matrix
@@ -280,25 +282,37 @@ def Autogrouping(config):
                 SaveNexusProcessed(InputWorkspace=params, Filename=cachefile)
 
         clustering_input = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds)
+
+        # Extract the first column to keep wsindex for later
+        wsindex = clustering_input[..., 0]
+        clustering_input = clustering_input[..., 1:]
+
         display_parameter_stats(clustering_input, diamond_peaks, fitparams)
 
         fig, ax = plot_features(clustering_input, diamond_peaks, fitparams)
 
+    model = None
     if method[0] == "KMEANS":
-        model = KMeans(n_clusters=num_groups)
-        model.fit(clustering_input)
-
-        labels = model.labels_
+        model = KMeans(n_clusters=num_groups).fit(clustering_input)
         centroids = model.cluster_centers_
-
-        print("Centroids: {}".format(centroids))
-        print("Labels: {}".format(labels))
-        print("Unique labels = {}".format(np.unique(labels)))
-
-        fig, ax = plot_features(clustering_input, diamond_peaks, fitparams, labels)
+        print("KMeans centroids: {}".format(centroids))
+        print("KMeans inertia: {}".format(model.inertia_))
     elif method[0] == "DBSCAN":
-        model = DBSCAN(eps=1.0)
-        model.fit(clustering_input)
+        model = DBSCAN(eps=1.0).fit(clustering_input)
+    else:
+        raise ValueError("Invalid grouping method '{}'. Must be KMEANS or DBSCAN".format(method[0]))
+
+    labels = model.labels_
+    print("Labels: {}".format(labels))
+    print("Unique labels = {}".format(np.unique(labels)))
+
+    if method[1] == "ED":
+        fig, ax = plot_features(clustering_input, diamond_peaks, fitparams, labels)
+
+    fig, ax = plt.subplots()
+    ax.scatter(wsindex, labels, c=labels)
+    ax.set_xlabel("pixel")
+    ax.set_ylabel("cluster/grouping")
 
     plt.show(block=True)
 
