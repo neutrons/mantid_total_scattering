@@ -15,16 +15,13 @@ from mantid.simpleapi import \
     Rebin, \
     mtd
 
-# Diamond peak positions to perform multiple peak fitting on
-DIAMOND_PEAKS = (0.8920, 1.0758, 1.2615)
 
-
-def is_badfit(err_row, colnames, thresholds=dict()):
+def is_badfit(row, colnames, thresholds=dict()):
     '''Determine if a single peakindex row for a workspace index has a bad fit result'''
     isbad = False
     nzero = 0
     for k in range(len(colnames)):
-        p = err_row[colnames[k]]
+        p = row[colnames[k]]
         if np.isnan(p):
             isbad = True
             break
@@ -45,18 +42,17 @@ def is_badfit(err_row, colnames, thresholds=dict()):
     return isbad
 
 
-def get_badfitcount(index, errws, peaks, colnames, thresholds=dict()):
+def get_badfitcount(index, ws, peaks, colnames, thresholds=dict()):
     '''Returns the number of bad fits in for a given workspace index (including all peakindex rows)'''
     # Note: index is the global table row (i.e, if ws index = 3000, 3 peaks = 9000)
-    # Skip bad fitting parameters based on fiterror values
     nbad = 0
     for j in range(len(peaks)):
-        if is_badfit(errws.row(index + j), colnames, thresholds):
+        if is_badfit(ws.row(index + j), colnames, thresholds):
             nbad += 1
     return nbad
 
 
-def get_goodfits(paramws, errws, peaks, colnames, thresholds=dict()):
+def get_goodfits(paramws, peaks, colnames, thresholds=dict()):
     '''Return a list of ws indices containing good fit parameters to include'''
     skiplist = []
 
@@ -66,29 +62,29 @@ def get_goodfits(paramws, errws, peaks, colnames, thresholds=dict()):
     for i in range(n):
         ind = int(np.searchsorted(wsindex, wsindex_unique[i]))
         # Add the ws index to list if fit result for ALL peaks are bad
-        if get_badfitcount(ind, errws, peaks, colnames, thresholds) != len(peaks):
+        if get_badfitcount(ind, paramws, peaks, colnames, thresholds) != len(peaks):
             skiplist.append(i)
 
     return skiplist
 
 
-def peakfitting(wksp: EventWorkspace, peaks, param_names, param_values):
+def peakfitting(wksp: EventWorkspace, peaks: np.ndarray, fitfunction, param_names, param_values):
     # Create the peak windows from the diamond peak positions
-    peakwindows = diagnostics.get_peakwindows(np.asarray(peaks))
+    peakwindows = diagnostics.get_peakwindows(peaks)
 
     # Convert from TOF to dspacing
     wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing", EMode="Elastic")
 
     # Perform multiple peak fitting
     output = FitPeaks(InputWorkspace=wksp,
-                      PeakFunction="PseudoVoigt",
+                      PeakFunction=fitfunction,
                       PeakParameterNames=param_names,
                       PeakParameterValues=param_values,
                       RawPeakParameters=True,
                       HighBackground=False,
                       ConstrainPeakPositions=False,
                       MinimumPeakHeight=3,
-                      PeakCenters=np.asarray(DIAMOND_PEAKS),
+                      PeakCenters=peaks,
                       FitWindowBoundaryList=peakwindows,
                       FittedPeaksWorkspace='fitted',
                       OutputPeakParametersWorkspace='parameters',
@@ -97,23 +93,19 @@ def peakfitting(wksp: EventWorkspace, peaks, param_names, param_values):
     return 'parameters', 'fiterrors'
 
 
-def gather_fitparameters(paramws: TableWorkspace, errorws: TableWorkspace, mask,
-                         peaks, threshold: float):
+def gather_fitparameters(paramws: TableWorkspace, cols, mask,
+                         peaks, thresholds=dict()):
     '''Generate an array of peak fitting parameters over all spectra from FitPeaks results'''
 
     paramws = mtd[str(paramws)]
-    errorws = mtd[str(errorws)]
 
     # The fit function parameters to gather
-    cols = ["Mixing", "Intensity", "PeakCentre", "FWHM"]
     nprops = len(cols) * len(peaks)
 
     wsindex = paramws.column("wsindex")
     wsindex_unique = np.unique(wsindex)
 
-    thresholds = {"Mixing": (0.0, threshold)}
-
-    fitlist = get_goodfits(paramws, errorws, peaks, cols, thresholds)
+    fitlist = get_goodfits(paramws, peaks, cols, thresholds)
     n = len(fitlist)
 
     result = np.ndarray(shape=(n, nprops))
@@ -128,7 +120,7 @@ def gather_fitparameters(paramws: TableWorkspace, errorws: TableWorkspace, mask,
             row = paramws.row(index + j)
 
             # Skip bad fitting parameters based on fiterror values
-            if is_badfit(errorws.row(index + j), cols, thresholds):
+            if is_badfit(row, cols, thresholds):
                 continue
 
             for k in range(len(cols)):
@@ -137,9 +129,8 @@ def gather_fitparameters(paramws: TableWorkspace, errorws: TableWorkspace, mask,
     return result
 
 
-def gathered_parameters_to_tablewksp(wsname: str, result: np.ndarray, peaks):
+def gathered_parameters_to_tablewksp(wsname: str, result: np.ndarray, peaks, cols):
     '''Converts the result from gather_fitparameters() to a Mantid TableWorkspace'''
-    cols = ["Mixing", "Intensity", "PeakCentre", "FWHM"]
     if result.shape != (len(result), len(peaks) * len(cols)):
         raise ValueError("input array does not match expected size of {}"
                          .format((len(result), len(peaks) * len(cols))))
@@ -152,6 +143,19 @@ def gathered_parameters_to_tablewksp(wsname: str, result: np.ndarray, peaks):
     for i in range(len(result)):
         tab.addRow(np.insert(result[i], 0, i))
     return tab
+
+
+def display_parameter_stats(parameters: np.ndarray, peaks, cols):
+    '''Prints out statistics about fit parameters for each peak'''
+    for i in range(len(peaks)):
+        for j in range(len(cols)):
+            param = parameters[..., i * len(peaks) + j + 1]
+            print("Param {}-{}:".format(cols[j], peaks[i]))
+            print("   MAX = {}".format(np.max(param)))
+            print("   MIN = {}".format(np.min(param)))
+            print("   AVG = {}".format(np.mean(param)))
+            print("   STD = {}".format(np.std(param)))
+            print("")
 
 
 def get_key(key, config):
@@ -182,7 +186,16 @@ def Autogrouping(config):
     method = get_grouping_method(grouping_method)
 
     num_groups = get_key("NumberOutputGroups", config)
-    threshold = get_key("Threshold", config)
+
+    fitfunction = get_key("FittingFunction", config)
+    fitparams = get_key("FittingFunctionParameters", config).split(",")
+
+    fitpeaks_names = get_key("InitialParameterNames", config)
+    fitpeaks_values = get_key("InitialParameterValues", config)
+    diamond_peaks = np.asarray(get_key("DiamondPeaks", config).strip().split(","), dtype=float)
+    thresholds = get_key("ParameterThresholds", config)
+    for threshold in thresholds:
+        thresholds[threshold] = tuple(float(x) for x in thresholds[threshold].strip("()").split(","))
 
     output_file = get_key("OutputGroupingFile", config)
     output_mask = get_key("OutputMaskFile", config)
@@ -207,8 +220,9 @@ def Autogrouping(config):
         grouping = similarity_matrix_crosscorr(wksp, mask_wksp)
     elif method[1] == "ED":
         # Compute the euclidean distance
-        params, fiterrors = peakfitting(wksp, DIAMOND_PEAKS, "Mixing", "0.6")
-        clustering_input = gather_fitparameters(params, fiterrors, None, DIAMOND_PEAKS, 1.0)
+        params, fiterrors = peakfitting(wksp, diamond_peaks, fitfunction, fitpeaks_names, fitpeaks_values)
+        clustering_input = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds)
+        display_parameter_stats(clustering_input, diamond_peaks, fitparams)
 
     # TODO:
     # Pass result to clustering algorithm
