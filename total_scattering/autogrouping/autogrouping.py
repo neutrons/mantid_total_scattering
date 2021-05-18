@@ -1,5 +1,8 @@
 import json
 import numpy as np
+import os
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans, DBSCAN
 
 from Calibration.tofpd import diagnostics
 from mantid.dataobjects import \
@@ -9,10 +12,12 @@ from mantid.dataobjects import \
 from mantid.simpleapi import \
     ConvertUnits, \
     CreateEmptyTableWorkspace, \
+    CreateCacheFilename, \
     FitPeaks, \
     LoadEventAndCompress, \
     Load, \
     Rebin, \
+    SaveNexusProcessed, \
     mtd
 
 
@@ -66,6 +71,11 @@ def get_goodfits(paramws, peaks, colnames, thresholds=dict()):
             skiplist.append(i)
 
     return skiplist
+
+
+def get_cachename(prefix, cache_dir, props):
+    filename, sig = CreateCacheFilename(OtherProperties=props, Prefix=prefix, CacheDir=cache_dir)
+    return filename, sig
 
 
 def peakfitting(wksp: EventWorkspace, peaks: np.ndarray, fitfunction, param_names, param_values):
@@ -158,6 +168,24 @@ def display_parameter_stats(parameters: np.ndarray, peaks, cols):
             print("")
 
 
+def plot_features(data, peaks, colnames, labels=None):
+    n = len(colnames)
+    # n = 2
+    fig, ax = plt.subplots(n, n)
+
+    # Plot each peak feature against its other features
+    for i in range(n):
+        for j in range(n):
+            if labels is not None:
+                ax[i, j].scatter(data[..., i], data[..., j], c=labels, alpha=0.5)
+            else:
+                ax[i, j].scatter(data[..., i], data[..., j])
+            ax[i, j].set_xlabel(colnames[i])
+            ax[i, j].set_ylabel(colnames[j])
+
+    return fig, ax
+
+
 def get_key(key, config):
     '''Returns the value of key in config. Raises error if not found.'''
     value = config.get(key, None)
@@ -185,7 +213,7 @@ def Autogrouping(config):
     grouping_method = get_key("GroupingMethod", config)
     method = get_grouping_method(grouping_method)
 
-    num_groups = get_key("NumberOutputGroups", config)
+    num_groups = int(get_key("NumberOutputGroups", config))
 
     fitfunction = get_key("FittingFunction", config)
     fitparams = get_key("FittingFunctionParameters", config).split(",")
@@ -196,6 +224,10 @@ def Autogrouping(config):
     thresholds = get_key("ParameterThresholds", config)
     for threshold in thresholds:
         thresholds[threshold] = tuple(float(x) for x in thresholds[threshold].strip("()").split(","))
+
+    cache_dir = ""
+    if "CacheDir" in config:
+        cache_dir = get_key("CacheDir", config)
 
     output_file = get_key("OutputGroupingFile", config)
     output_mask = get_key("OutputMaskFile", config)
@@ -212,6 +244,7 @@ def Autogrouping(config):
     # TODO: Double check if this is needed, and if this should only be done for ED case
     wksp = Rebin(InputWorkspace=wksp, Params=(300, -0.001, 16666.7))
 
+    clustering_input = None
     if method[1] == "DG":
         # Compute the deGelder similarity matrix
         grouping = similarity_matrix_degelder(wksp, mask_wksp)
@@ -220,14 +253,54 @@ def Autogrouping(config):
         grouping = similarity_matrix_crosscorr(wksp, mask_wksp)
     elif method[1] == "ED":
         # Compute the euclidean distance
-        params, fiterrors = peakfitting(wksp, diamond_peaks, fitfunction, fitpeaks_names, fitpeaks_values)
+        use_cache = False
+        if cache_dir:
+            props = ["filename={}".format(diamond_file),
+                     "nhisto={}".format(wksp.getNumberHistograms()),
+                     "function={}".format(fitfunction),
+                     "param_names={}".format(fitpeaks_names),
+                     "param_vals={}".format(fitpeaks_values),
+                     "peaks={}".format(diamond_peaks)]
+
+            prefix = diamond_file.rstrip(".nxs").rstrip(".h5").split("/")[-1]
+            cachefile, sig = get_cachename(prefix, cache_dir, props)
+            print("Cachefile = {}".format(cachefile))
+            if os.path.exists(cachefile):
+                # Load cachefile
+                print("Found FitPeaks cached result, loading '{}'".format(cachefile))
+                use_cache = True
+                Load(Filename=cachefile, OutputWorkspace="parameters")
+                params = mtd["parameters"]
+
+        # Perform peak fitting if we aren't caching, OR we are but the cache file doesn't exist yet
+        if not use_cache:
+            params, fiterrors = peakfitting(wksp, diamond_peaks, fitfunction, fitpeaks_names, fitpeaks_values)
+            # Save result parameter wksp to cache file if we want to use caching
+            if cache_dir:
+                SaveNexusProcessed(InputWorkspace=params, Filename=cachefile)
+
         clustering_input = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds)
         display_parameter_stats(clustering_input, diamond_peaks, fitparams)
 
-    # TODO:
-    # Pass result to clustering algorithm
-    # Convert to grouping workspace
-    # Output grouping file
+        fig, ax = plot_features(clustering_input, diamond_peaks, fitparams)
+
+    if method[0] == "KMEANS":
+        model = KMeans(n_clusters=num_groups)
+        model.fit(clustering_input)
+
+        labels = model.labels_
+        centroids = model.cluster_centers_
+
+        print("Centroids: {}".format(centroids))
+        print("Labels: {}".format(labels))
+        print("Unique labels = {}".format(np.unique(labels)))
+
+        fig, ax = plot_features(clustering_input, diamond_peaks, fitparams, labels)
+    elif method[0] == "DBSCAN":
+        model = DBSCAN(eps=1.0)
+        model.fit(clustering_input)
+
+    plt.show(block=True)
 
     return
 
