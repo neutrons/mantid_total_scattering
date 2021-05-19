@@ -19,6 +19,7 @@ from mantid.simpleapi import \
     Rebin, \
     SaveNexusProcessed, \
     mtd
+from total_scattering.autogrouping.similarity import similarity_metric
 
 
 def is_badfit(row, colnames, thresholds=dict()):
@@ -187,6 +188,20 @@ def plot_features(data, peaks, colnames, labels=None):
     return fig, ax
 
 
+def similarity_matrix_degelder(wksp, mask_wksp):
+    sm = similarity_metric()
+    n = wksp.getNumberHistograms()
+    y = wksp.extractY()
+    result = np.zeros(shape=(n,n))
+    for i in range(n):
+        for j in range(i, n):
+            result[i][j] = sm.de_gelder_similarity(y[i], y[j])
+
+        if i % 100 == 0:
+            print("{}/{}".format(i, n))
+    return result
+
+
 def get_key(key, config):
     '''Returns the value of key in config. Raises error if not found.'''
     value = config.get(key, None)
@@ -247,17 +262,38 @@ def Autogrouping(config):
 
     wsindex = None
     clustering_input = None
+    use_cache = False
     if method[1] == "DG":
         # Compute the deGelder similarity matrix
-        grouping = similarity_matrix_degelder(wksp, mask_wksp)
-    elif method[1] == "CC":
-        # Compute the cross-correlation
-        grouping = similarity_matrix_crosscorr(wksp, mask_wksp)
-    elif method[1] == "ED":
-        # Compute the euclidean distance
-        use_cache = False
+        print("Computing deGelder similarity matrix...")
         if cache_dir:
             props = ["filename={}".format(diamond_file),
+                     "mask={}".format(masking_file),
+                     "nhisto={}".format(wksp.getNumberHistograms())]
+            prefix = diamond_file.rstrip(".nxs").rstrip(".h5").split("/")[-1] + "_DG"
+            cachefile, sig = get_cachename(prefix, cache_dir, props)
+            cachefile = cachefile.replace(".nxs", ".txt")
+            print("Checking for cachefile '{}'".format(cachefile))
+            if os.path.exists(cachefile):
+                # Load cached similarity matrix
+                use_cache = True
+                print("Found cached deGelder similarity matrix, loading from '{}'".format(cachefile))
+                clustering_input = np.loadtxt(cachefile)
+
+        if not use_cache:
+            clustering_input = similarity_matrix_degelder(wksp, mask_wksp)
+            if cache_dir:
+                # Save matrix if using caching
+                print("Caching deGelder similarity matrix to '{}'".format(cachefile))
+                np.savetxt(cachefile, clustering_input)
+    elif method[1] == "CC":
+        # Compute the cross-correlation
+        clustering_input = similarity_matrix_crosscorr(wksp, mask_wksp)
+    elif method[1] == "ED":
+        # Compute the euclidean distance
+        if cache_dir:
+            props = ["filename={}".format(diamond_file),
+                     "mask={}".format(masking_file),
                      "nhisto={}".format(wksp.getNumberHistograms()),
                      "function={}".format(fitfunction),
                      "param_names={}".format(fitpeaks_names),
