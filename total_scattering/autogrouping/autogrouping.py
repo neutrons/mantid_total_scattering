@@ -189,16 +189,33 @@ def plot_features(data, peaks, colnames, labels=None):
 
 
 def similarity_matrix_degelder(wksp, mask_wksp):
+    '''
+    Generate the similarity matrix using the deGelder function.
+    Returns an nxn matrix where n=number of spectra in wksp, where
+    each entry of the matrix contains the deGelder similarity of that ith pixel
+    to the jth pixel.
+    Since this matrix is symmetric, this calculates the upper triangle of the matrix
+
+    Note: for large input workspaces, this method can take quite a long time (~100 min for n=10000)
+    '''
+    print("Computing deGelder similarity matrix...")
+
     sm = similarity_metric()
     n = wksp.getNumberHistograms()
     y = wksp.extractY()
-    result = np.zeros(shape=(n,n))
+
+    frac = int(n/10)  # get a tenth of total spectra for progress updates
+
+    result = np.zeros(shape=(n, n))
     for i in range(n):
         for j in range(i, n):
             result[i][j] = sm.de_gelder_similarity(y[i], y[j])
 
-        if i % 100 == 0:
-            print("{}/{}".format(i, n))
+        if i % frac == 0:
+            print("-- {}/{} spectra".format(i, n))
+
+    # Zero out any nans since this causes problems with clustering
+    result[np.isnan(result)] = 0.0
     return result
 
 
@@ -223,13 +240,14 @@ def get_grouping_method(grouping):
 
 
 def Autogrouping(config):
-    diamond_file = get_key("DiamondFile", config)
+    diamond_file = get_key("DiamondFile", config)  # .nxs.h5 or .nxs input file
     masking_file = get_key("MaskFile", config)
 
     grouping_method = get_key("GroupingMethod", config)
     method = get_grouping_method(grouping_method)
 
-    num_groups = int(get_key("NumberOutputGroups", config))
+    num_groups = int(get_key("NumberOutputGroups", config))  # k parameter for KMeans clustering
+    epsilon = float(get_key("DBSCANEpsilon", config))  # eps parameter for DBSCAN clustering
 
     fitfunction = get_key("FittingFunction", config)
     fitparams = get_key("FittingFunctionParameters", config).split(",")
@@ -260,12 +278,11 @@ def Autogrouping(config):
     # TODO: Double check if this is needed, and if this should only be done for ED case
     wksp = Rebin(InputWorkspace=wksp, Params=(300, -0.001, 16666.7))
 
-    wsindex = None
+    wsindex = range(wksp.getNumberHistograms())
     clustering_input = None
     use_cache = False
     if method[1] == "DG":
         # Compute the deGelder similarity matrix
-        print("Computing deGelder similarity matrix...")
         if cache_dir:
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
