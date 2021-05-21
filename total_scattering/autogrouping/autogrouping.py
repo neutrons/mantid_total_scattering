@@ -16,10 +16,12 @@ from mantid.simpleapi import \
     FitPeaks, \
     LoadEventAndCompress, \
     Load, \
+    MaskSpectra, \
     Rebin, \
     SaveNexusProcessed, \
     mtd
 from total_scattering.autogrouping.similarity import similarity_metric
+from total_scattering.reduction.total_scattering_reduction import compress_ints
 
 
 def is_badfit(row, colnames, thresholds=dict()):
@@ -119,7 +121,9 @@ def gather_fitparameters(paramws: TableWorkspace, cols, mask,
     fitlist = get_goodfits(paramws, peaks, cols, thresholds)
     n = len(fitlist)
 
-    result = np.ndarray(shape=(n, nprops))
+    frac = int(n / 10)  # get a tenth of total spectra for progress updates
+
+    result = np.zeros(shape=(n, nprops))
 
     for i in range(n):
         # Get mapping to ws index
@@ -137,6 +141,9 @@ def gather_fitparameters(paramws: TableWorkspace, cols, mask,
 
             for k in range(len(cols)):
                 result[i, j * len(cols) + k + 1] = row[cols[k]]
+
+        if i % frac == 0:
+            print("-- {}/{} spectra".format(i, n))
 
     return result
 
@@ -161,7 +168,7 @@ def display_parameter_stats(parameters: np.ndarray, peaks, cols):
     '''Prints out statistics about fit parameters for each peak'''
     for i in range(len(peaks)):
         for j in range(len(cols)):
-            param = parameters[..., i * len(peaks) + j + 1]
+            param = parameters[..., i * len(peaks) + j]
             print("Param {}-{}:".format(cols[j], peaks[i]))
             print("   MAX = {}".format(np.max(param)))
             print("   MIN = {}".format(np.min(param)))
@@ -172,18 +179,21 @@ def display_parameter_stats(parameters: np.ndarray, peaks, cols):
 
 def plot_features(data, peaks, colnames, labels=None):
     n = len(colnames)
-    # n = 2
-    fig, ax = plt.subplots(n, n)
+    npeaks = len(peaks)
+    for p in range(npeaks):
+        fig, ax = plt.subplots(n, n)
 
-    # Plot each peak feature against its other features
-    for i in range(n):
-        for j in range(n):
-            if labels is not None:
-                ax[i, j].scatter(data[..., i], data[..., j], c=labels, alpha=0.5)
-            else:
-                ax[i, j].scatter(data[..., i], data[..., j])
-            ax[i, j].set_xlabel(colnames[i])
-            ax[i, j].set_ylabel(colnames[j])
+        fig.suptitle("peak {}".format(peaks[p]))
+
+        # Plot each peak feature against its other features
+        for i in range(n):
+            for j in range(n):
+                if labels is not None:
+                    ax[i, j].scatter(data[..., p * npeaks + i], data[..., p * npeaks + j], c=labels, alpha=0.5)
+                else:
+                    ax[i, j].scatter(data[..., p * npeaks + i], data[..., p * npeaks + j])
+                ax[i, j].set_xlabel(colnames[i])
+                ax[i, j].set_ylabel(colnames[j])
 
     return fig, ax
 
@@ -204,7 +214,7 @@ def similarity_matrix_degelder(wksp, mask_wksp):
     n = wksp.getNumberHistograms()
     y = wksp.extractY()
 
-    frac = int(n/10)  # get a tenth of total spectra for progress updates
+    frac = int(n / 10)  # get a tenth of total spectra for progress updates
 
     result = np.zeros(shape=(n, n))
     for i in range(n):
@@ -288,16 +298,26 @@ def Autogrouping(config):
     output_file = get_key("OutputGroupingFile", config)
     output_mask = get_key("OutputMaskFile", config)
 
+    output_fittable = ""
+    if "OutputFitParamFile" in config:
+        output_fittable = get_key("OutputFitParamFile", config)
+
     if diamond_file.endswith(".nxs.h5"):
         wksp = LoadEventAndCompress(Filename=diamond_file, FilterBadPulses=0)
     else:
         wksp = Load(Filename=diamond_file)
-    mask_wksp = None
+
+    mask = None
     if masking_file:
-        mask_wksp = Load(Filename=masking_file)
+        # Check whether to load masking file with mantid or to an array with numpy
+        if masking_file.endswith(".txt") or masking_file.endswith(".out"):
+            mask = np.loadtxt(masking_file, dtype=int)
+            # compress down to ranges
+            mask = compress_ints(mask)
+            # mask spectra in workspace
+            wksp = MaskSpectra(InputWorkspace=wksp, InputWorkspaceIndexSet=mask)
 
     # Rebin (in TOF)
-    # TODO: Double check if this is needed, and if this should only be done for ED case
     wksp = Rebin(InputWorkspace=wksp, Params=(300, -0.001, 16666.7))
 
     wsindex = range(wksp.getNumberHistograms())
@@ -309,7 +329,7 @@ def Autogrouping(config):
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
                      "nhisto={}".format(wksp.getNumberHistograms())]
-            prefix = diamond_file.rstrip(".nxs").rstrip(".h5").split("/")[-1] + "_DG"
+            prefix = diamond_file.rstrip(".h5").rstrip(".nxs").split("/")[-1] + "_DG"
             cachefile, sig = get_cachename(prefix, cache_dir, props)
             cachefile = cachefile.replace(".nxs", ".txt")
             print("Checking for cachefile '{}'".format(cachefile))
@@ -331,7 +351,7 @@ def Autogrouping(config):
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
                      "nhisto={}".format(wksp.getNumberHistograms())]
-            prefix = diamond_file.rstrip(".nxs").rstrip(".h5").split("/")[-1] + "_CC"
+            prefix = diamond_file.rstrip(".h5").rstrip(".nxs").split("/")[-1] + "_CC"
             cachefile, sig = get_cachename(prefix, cache_dir, props)
             cachefile = cachefile.replace(".nxs", ".txt")
             print("Checking for cachefile '{}'".format(cachefile))
@@ -358,7 +378,7 @@ def Autogrouping(config):
                      "param_vals={}".format(fitpeaks_values),
                      "peaks={}".format(diamond_peaks)]
 
-            prefix = diamond_file.rstrip(".nxs").rstrip(".h5").split("/")[-1]
+            prefix = diamond_file.rstrip(".h5").rstrip(".nxs").split("/")[-1]
             cachefile, sig = get_cachename(prefix, cache_dir, props)
             print("Cachefile = {}".format(cachefile))
             if os.path.exists(cachefile):
@@ -375,7 +395,24 @@ def Autogrouping(config):
             if cache_dir:
                 SaveNexusProcessed(InputWorkspace=params, Filename=cachefile)
 
-        clustering_input = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds)
+        use_cache = False
+        if cache_dir:
+            cachefile = cachefile.replace(".nxs", ".txt")
+            if os.path.exists(cachefile):
+                # Load clustering cachefile
+                print("Found gathered params cache, loading '{}'".format(cachefile))
+                use_cache = True
+                clustering_input = np.loadtxt(cachefile)
+
+        if not use_cache:
+            clustering_input = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds)
+            if cache_dir:
+                np.savetxt(cachefile, clustering_input)
+
+        if output_fittable:
+            print("Exporting fit parameter table to '{}'".format(output_fittable))
+            tablews = gathered_parameters_to_tablewksp("table", clustering_input, diamond_peaks, fitparams)
+            SaveNexusProcessed(Filename=output_fittable, InputWorkspace=tablews)
 
         # Extract the first column to keep wsindex for later
         wsindex = clustering_input[..., 0]
@@ -392,13 +429,13 @@ def Autogrouping(config):
         print("KMeans centroids: {}".format(centroids))
         print("KMeans inertia: {}".format(model.inertia_))
     elif method[0] == "DBSCAN":
-        model = DBSCAN(eps=1.0).fit(clustering_input)
+        model = DBSCAN(eps=epsilon).fit(clustering_input)
     else:
         raise ValueError("Invalid grouping method '{}'. Must be KMEANS or DBSCAN".format(method[0]))
 
     labels = model.labels_
     print("Labels: {}".format(labels))
-    print("Unique labels = {}".format(np.unique(labels)))
+    print("Unique labels (clusters) = {}".format(np.unique(labels)))
 
     if method[1] == "ED":
         fig, ax = plot_features(clustering_input, diamond_peaks, fitparams, labels)
