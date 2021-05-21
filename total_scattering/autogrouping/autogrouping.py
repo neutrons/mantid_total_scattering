@@ -18,6 +18,7 @@ from mantid.simpleapi import \
     Load, \
     MaskSpectra, \
     Rebin, \
+    RemoveMaskedSpectra, \
     SaveNexusProcessed, \
     mtd
 from total_scattering.autogrouping.similarity import similarity_metric
@@ -207,7 +208,7 @@ def plot_features(data, peaks, colnames, labels=None):
     return fig, ax
 
 
-def similarity_matrix_degelder(wksp, mask_wksp):
+def similarity_matrix_degelder(wksp):
     '''
     Generate the similarity matrix using the deGelder function.
     Returns an nxn matrix where n=number of spectra in wksp, where
@@ -238,7 +239,7 @@ def similarity_matrix_degelder(wksp, mask_wksp):
     return result
 
 
-def similarity_matrix_crosscorr(wksp, mask_wksp):
+def similarity_matrix_crosscorr(wksp):
     print("Computing pointwise crosscorr similarity matrix...")
 
     sm = similarity_metric()
@@ -339,14 +340,15 @@ def Autogrouping(config):
             mask = np.loadtxt(masking_file, dtype=int)
             print("Loaded detector mask: {}".format(mask))
             # mask numbers are detector ids - so convert them to workspace indices
-            mask = wksp.getIndicesFromDetectorIDs(mask.tolist())
-            print("Mask converted to workspace indices: {}".format(mask))
+            mask_ws = wksp.getIndicesFromDetectorIDs(mask.tolist())
+            print("Mask converted to workspace indices: {}".format(mask_ws))
             # compress down to ranges
-            mask = compress_ints(mask)
-            print("Compressed mask of wsindex: {}".format(mask))
+            mask_ws = compress_ints(mask_ws)
+            print("Compressed mask of wsindex: {}".format(mask_ws))
             # mask spectra in workspace
             wksp = MaskSpectra(InputWorkspace=wksp, InputWorkspaceIndexType="WorkspaceIndex",
-                               InputWorkspaceIndexSet=mask)
+                               InputWorkspaceIndexSet=mask_ws)
+            wksp = RemoveMaskedSpectra(InputWorkspace=wksp)
 
     # Rebin (in TOF)
     wksp = Rebin(InputWorkspace=wksp, Params=(300, -0.001, 16666.7))
@@ -371,7 +373,7 @@ def Autogrouping(config):
                 clustering_input = np.loadtxt(cachefile)
 
         if not use_cache:
-            clustering_input = similarity_matrix_degelder(wksp, mask_wksp)
+            clustering_input = similarity_matrix_degelder(wksp)
             if cache_dir:
                 # Save matrix if using caching
                 print("Caching deGelder similarity matrix to '{}'".format(cachefile))
@@ -393,7 +395,7 @@ def Autogrouping(config):
                 clustering_input = np.loadtxt(cachefile)
 
         if not use_cache:
-            clustering_input = similarity_matrix_crosscorr(wksp, mask_wksp)
+            clustering_input = similarity_matrix_crosscorr(wksp)
             if cache_dir:
                 # Save matrix if using caching
                 print("Caching pointwise crosscorr similarity matrix to '{}'".format(cachefile))
@@ -434,19 +436,21 @@ def Autogrouping(config):
                 print("Found gathered params cache, loading '{}'".format(cachefile))
                 use_cache = True
                 clustering_input = np.loadtxt(cachefile)
+                new_mask = np.loadtxt(cachefile.replace(".txt", "_mask.txt"), dtype=int).tolist()
 
         if not use_cache:
             clustering_input, new_mask = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds)
             if cache_dir:
                 np.savetxt(cachefile, clustering_input)
+                np.savetxt(cachefile.replace(".txt", "_mask.txt"), new_mask, fmt='%i')
 
         if output_fittable:
             print("Exporting fit parameter table to '{}'".format(output_fittable))
             tablews = gathered_parameters_to_tablewksp("table", clustering_input, diamond_peaks, fitparams)
             SaveNexusProcessed(Filename=output_fittable, InputWorkspace=tablews)
 
-        new_mask_detid = get_detector_mask(wksp, new_mask)
-        print("New mask (detector IDs) = {}".format(compress_ints(new_mask_detid)))
+        new_mask = get_detector_mask(wksp, new_mask)
+        print("New mask (detector IDs) = {}".format(compress_ints(new_mask)))
 
         # Extract the first column to keep wsindex for later
         wsindex = clustering_input[..., 0]
@@ -478,6 +482,13 @@ def Autogrouping(config):
     ax.scatter(wsindex, labels, c=labels)
     ax.set_xlabel("pixel")
     ax.set_ylabel("cluster/grouping")
+
+    # Export mask to file
+    if new_mask is not None:
+        # new mask is the union of original + newly masked items
+        if mask is not None:  # check in case no masking file was given
+            new_mask = np.union1d(mask, new_mask)
+        np.savetxt(output_mask, new_mask, fmt='%10i')
 
     plt.show(block=True)
 
