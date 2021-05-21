@@ -219,6 +219,28 @@ def similarity_matrix_degelder(wksp, mask_wksp):
     return result
 
 
+def similarity_matrix_crosscorr(wksp, mask_wksp):
+    print("Computing pointwise crosscorr similarity matrix...")
+
+    sm = similarity_metric()
+    n = wksp.getNumberHistograms()
+    y = wksp.extractY()
+
+    frac = int(n / 10)  # get a tenth of total spectra for progress updates
+
+    result = np.zeros(shape=(n, n))
+    for i in range(n):
+        for j in range(i, n):
+            result[i][j] = sm.pointwise_squared_difference_similarity(y[i], y[j])
+
+        if i % frac == 0:
+            print("-- {}/{} spectra".format(i, n))
+
+    # Zero out any nans since this causes problems with clustering
+    result[np.isnan(result)] = 0.0
+    return result
+
+
 def get_key(key, config):
     '''Returns the value of key in config. Raises error if not found.'''
     value = config.get(key, None)
@@ -304,8 +326,27 @@ def Autogrouping(config):
                 print("Caching deGelder similarity matrix to '{}'".format(cachefile))
                 np.savetxt(cachefile, clustering_input)
     elif method[1] == "CC":
-        # Compute the cross-correlation
-        clustering_input = similarity_matrix_crosscorr(wksp, mask_wksp)
+        # Compute the cross-correlation matrix using a pointwise squared difference method
+        if cache_dir:
+            props = ["filename={}".format(diamond_file),
+                     "mask={}".format(masking_file),
+                     "nhisto={}".format(wksp.getNumberHistograms())]
+            prefix = diamond_file.rstrip(".nxs").rstrip(".h5").split("/")[-1] + "_CC"
+            cachefile, sig = get_cachename(prefix, cache_dir, props)
+            cachefile = cachefile.replace(".nxs", ".txt")
+            print("Checking for cachefile '{}'".format(cachefile))
+            if os.path.exists(cachefile):
+                # Load cached similarity matrix
+                use_cache = True
+                print("Found cached pointwise crosscorr similarity matrix, loading from '{}'".format(cachefile))
+                clustering_input = np.loadtxt(cachefile)
+
+        if not use_cache:
+            clustering_input = similarity_matrix_crosscorr(wksp, mask_wksp)
+            if cache_dir:
+                # Save matrix if using caching
+                print("Caching pointwise crosscorr similarity matrix to '{}'".format(cachefile))
+                np.savetxt(cachefile, clustering_input)
     elif method[1] == "ED":
         # Compute the euclidean distance
         if cache_dir:
