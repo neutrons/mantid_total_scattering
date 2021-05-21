@@ -62,18 +62,22 @@ def get_badfitcount(index, ws, peaks, colnames, thresholds=dict()):
 
 def get_goodfits(paramws, peaks, colnames, thresholds=dict()):
     '''Return a list of ws indices containing good fit parameters to include'''
-    skiplist = []
+    fitlist = []
+    masklist = []
 
     wsindex = np.asarray(paramws.column("wsindex"))
     wsindex_unique = np.unique(wsindex)
     n = len(wsindex_unique)
     for i in range(n):
         ind = int(np.searchsorted(wsindex, wsindex_unique[i]))
-        # Add the ws index to list if fit result for ALL peaks are bad
+        # Add the ws index to list if fit result for at least one peak is "good"
         if get_badfitcount(ind, paramws, peaks, colnames, thresholds) != len(peaks):
-            skiplist.append(i)
+            fitlist.append(i)
+        else:
+            # If all fits were bad, then we want to mask this index
+            masklist.append(i)
 
-    return skiplist
+    return fitlist, masklist
 
 
 def get_cachename(prefix, cache_dir, props):
@@ -118,13 +122,18 @@ def gather_fitparameters(paramws: TableWorkspace, cols, mask,
     wsindex = paramws.column("wsindex")
     wsindex_unique = np.unique(wsindex)
 
-    fitlist = get_goodfits(paramws, peaks, cols, thresholds)
+    fitlist, mask = get_goodfits(paramws, peaks, cols, thresholds)
     n = len(fitlist)
+
+    print("Number of good fits: {}".format(len(fitlist)))
+    print("Number of bad fits (to be masked): {}".format(len(mask)))
+    print("Mask list (wsindices): {}".format(compress_ints(mask)))
 
     frac = int(n / 10)  # get a tenth of total spectra for progress updates
 
     result = np.zeros(shape=(n, nprops))
 
+    print("Gathering fit parameters...")
     for i in range(n):
         # Get mapping to ws index
         ws_index = fitlist[i]
@@ -145,7 +154,7 @@ def gather_fitparameters(paramws: TableWorkspace, cols, mask,
         if i % frac == 0:
             print("-- {}/{} spectra".format(i, n))
 
-    return result
+    return result, mask
 
 
 def gathered_parameters_to_tablewksp(wsname: str, result: np.ndarray, peaks, cols):
@@ -168,7 +177,7 @@ def display_parameter_stats(parameters: np.ndarray, peaks, cols):
     '''Prints out statistics about fit parameters for each peak'''
     for i in range(len(peaks)):
         for j in range(len(cols)):
-            param = parameters[..., i * len(peaks) + j]
+            param = parameters[..., i * len(cols) + j]
             print("Param {}-{}:".format(cols[j], peaks[i]))
             print("   MAX = {}".format(np.max(param)))
             print("   MIN = {}".format(np.min(param)))
@@ -189,9 +198,9 @@ def plot_features(data, peaks, colnames, labels=None):
         for i in range(n):
             for j in range(n):
                 if labels is not None:
-                    ax[i, j].scatter(data[..., p * npeaks + i], data[..., p * npeaks + j], c=labels, alpha=0.5)
+                    ax[i, j].scatter(data[..., p * n + i], data[..., p * n + j], c=labels, alpha=0.5)
                 else:
-                    ax[i, j].scatter(data[..., p * npeaks + i], data[..., p * npeaks + j])
+                    ax[i, j].scatter(data[..., p * n + i], data[..., p * n + j])
                 ax[i, j].set_xlabel(colnames[i])
                 ax[i, j].set_ylabel(colnames[j])
 
@@ -251,6 +260,21 @@ def similarity_matrix_crosscorr(wksp, mask_wksp):
     return result
 
 
+def get_detector_mask(wksp, ws_mask):
+    '''
+    Converts the mask of ws indices to their corresponding detector ids
+    :param wksp: Donor workspace containing detector mapping
+    :param ws_mask: List of workspace indices to mask
+    :return: List of detector IDs to mask
+    '''
+    mask = []
+    for index in ws_mask:
+        # Get the detector id from this index
+        det_id = wksp.getDetector(index).getID()
+        mask.append(det_id)
+    return mask
+
+
 def get_key(key, config):
     '''Returns the value of key in config. Raises error if not found.'''
     value = config.get(key, None)
@@ -293,14 +317,14 @@ def Autogrouping(config):
 
     cache_dir = ""
     if "CacheDir" in config:
-        cache_dir = get_key("CacheDir", config)
+        cache_dir = os.path.abspath(get_key("CacheDir", config))
 
-    output_file = get_key("OutputGroupingFile", config)
-    output_mask = get_key("OutputMaskFile", config)
+    output_file = os.path.abspath(get_key("OutputGroupingFile", config))
+    output_mask = os.path.abspath(get_key("OutputMaskFile", config))
 
     output_fittable = ""
     if "OutputFitParamFile" in config:
-        output_fittable = get_key("OutputFitParamFile", config)
+        output_fittable = os.path.abspath(get_key("OutputFitParamFile", config))
 
     if diamond_file.endswith(".nxs.h5"):
         wksp = LoadEventAndCompress(Filename=diamond_file, FilterBadPulses=0)
@@ -308,14 +332,21 @@ def Autogrouping(config):
         wksp = Load(Filename=diamond_file)
 
     mask = None
+    new_mask = None
     if masking_file:
         # Check whether to load masking file with mantid or to an array with numpy
         if masking_file.endswith(".txt") or masking_file.endswith(".out"):
             mask = np.loadtxt(masking_file, dtype=int)
+            print("Loaded detector mask: {}".format(mask))
+            # mask numbers are detector ids - so convert them to workspace indices
+            mask = wksp.getIndicesFromDetectorIDs(mask.tolist())
+            print("Mask converted to workspace indices: {}".format(mask))
             # compress down to ranges
             mask = compress_ints(mask)
+            print("Compressed mask of wsindex: {}".format(mask))
             # mask spectra in workspace
-            wksp = MaskSpectra(InputWorkspace=wksp, InputWorkspaceIndexSet=mask)
+            wksp = MaskSpectra(InputWorkspace=wksp, InputWorkspaceIndexType="WorkspaceIndex",
+                               InputWorkspaceIndexSet=mask)
 
     # Rebin (in TOF)
     wksp = Rebin(InputWorkspace=wksp, Params=(300, -0.001, 16666.7))
@@ -405,7 +436,7 @@ def Autogrouping(config):
                 clustering_input = np.loadtxt(cachefile)
 
         if not use_cache:
-            clustering_input = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds)
+            clustering_input, new_mask = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds)
             if cache_dir:
                 np.savetxt(cachefile, clustering_input)
 
@@ -413,6 +444,9 @@ def Autogrouping(config):
             print("Exporting fit parameter table to '{}'".format(output_fittable))
             tablews = gathered_parameters_to_tablewksp("table", clustering_input, diamond_peaks, fitparams)
             SaveNexusProcessed(Filename=output_fittable, InputWorkspace=tablews)
+
+        new_mask_detid = get_detector_mask(wksp, new_mask)
+        print("New mask (detector IDs) = {}".format(compress_ints(new_mask_detid)))
 
         # Extract the first column to keep wsindex for later
         wsindex = clustering_input[..., 0]
