@@ -13,12 +13,14 @@ from mantid.simpleapi import \
     ConvertUnits, \
     CreateEmptyTableWorkspace, \
     CreateCacheFilename, \
+    CreateGroupingWorkspace, \
     FitPeaks, \
     LoadEventAndCompress, \
     Load, \
     MaskSpectra, \
     Rebin, \
     RemoveMaskedSpectra, \
+    SaveDetectorsGrouping, \
     SaveNexusProcessed, \
     mtd
 from total_scattering.autogrouping.similarity import similarity_metric
@@ -489,6 +491,15 @@ def Autogrouping(config):
         if mask is not None:  # check in case no masking file was given
             new_mask = np.union1d(mask, new_mask)
         np.savetxt(output_mask, new_mask, fmt='%10i')
+
+    # Export grouping based on clustering result. Use the input workspace as the donor
+    print("Generating grouping file '{}'".format(output_file))
+    CreateGroupingWorkspace(InputWorkspace=wksp, OutputWorkspace="grouping")
+    grouping = mtd["grouping"]
+    for i in range(len(labels)):
+        grouping.setY(i, [int(labels[i])])
+
+    SaveDetectorsGrouping(InputWorkspace=grouping, OutputFile=output_file)
 
     plt.show(block=True)
 
