@@ -189,7 +189,7 @@ def display_parameter_stats(parameters: np.ndarray, peaks, cols):
             print("")
 
 
-def plot_features(data, peaks, colnames, labels=None):
+def plot_features(data, peaks, colnames, labels=None, centroids=None):
     n = len(colnames)
     npeaks = len(peaks)
     for p in range(npeaks):
@@ -204,6 +204,11 @@ def plot_features(data, peaks, colnames, labels=None):
                     ax[i, j].scatter(data[..., p * n + i], data[..., p * n + j], c=labels, alpha=0.5)
                 else:
                     ax[i, j].scatter(data[..., p * n + i], data[..., p * n + j])
+
+                if centroids is not None:
+                    ax[i, j].scatter(centroids[..., p * n + i], centroids[..., p * n + j],
+                                     marker="X", c=np.unique(labels), s=200, alpha=0.75,
+                                     edgecolors="red")
                 ax[i, j].set_xlabel(colnames[i])
                 ax[i, j].set_ylabel(colnames[j])
 
@@ -355,7 +360,7 @@ def Autogrouping(config):
     # Rebin (in TOF)
     wksp = Rebin(InputWorkspace=wksp, Params=(300, -0.001, 16666.7))
 
-    wsindex = range(wksp.getNumberHistograms())
+    wsindex = list(range(wksp.getNumberHistograms()))
     clustering_input = None
     use_cache = False
     if method[1] == "DG":
@@ -460,9 +465,10 @@ def Autogrouping(config):
 
         display_parameter_stats(clustering_input, diamond_peaks, fitparams)
 
-        fig, ax = plot_features(clustering_input, diamond_peaks, fitparams)
+        #fig, ax = plot_features(clustering_input, diamond_peaks, fitparams)
 
     model = None
+    centroids = None
     if method[0] == "KMEANS":
         model = KMeans(n_clusters=num_groups).fit(clustering_input)
         centroids = model.cluster_centers_
@@ -478,10 +484,13 @@ def Autogrouping(config):
     print("Unique labels (clusters) = {}".format(np.unique(labels)))
 
     if method[1] == "ED":
-        fig, ax = plot_features(clustering_input, diamond_peaks, fitparams, labels)
+        fig, ax = plot_features(clustering_input, diamond_peaks, fitparams, labels, centroids)
 
     fig, ax = plt.subplots()
-    ax.scatter(wsindex, labels, c=labels)
+    for i in range(len(wsindex)):
+        wsindex[i] = wksp.getDetector(i).getID()
+    ax.scatter(wsindex, labels+1, c=labels)
+    ax.set_title("{}: {}".format(grouping_method, diamond_file.split("/")[-1]))
     ax.set_xlabel("pixel")
     ax.set_ylabel("cluster/grouping")
 
@@ -497,7 +506,8 @@ def Autogrouping(config):
     CreateGroupingWorkspace(InputWorkspace=wksp, OutputWorkspace="grouping")
     grouping = mtd["grouping"]
     for i in range(len(labels)):
-        grouping.setY(i, [int(labels[i])])
+        det_id = wksp.getDetector(i).getID()
+        grouping.setY(det_id, [int(labels[i]+1)])  # Shift by 1 since group 0 is unused
 
     SaveDetectorsGrouping(InputWorkspace=grouping, OutputFile=output_file)
 
