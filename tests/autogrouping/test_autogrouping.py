@@ -68,11 +68,13 @@ class TestAutogrouping(unittest.TestCase):
                  OutputParameterFitErrorsWorkspace='fiterrors')
 
         # Convert the parameter workspace to array used by clustering algorithm
-        result = gather_fitparameters('parameters', 'fiterrors', None, peakpositions, 1.0)
+        result, mask = gather_fitparameters('parameters', PARAMETERS, None,
+                                            peakpositions)
+        result = result[..., 1:]  # remove wsindex column
 
         npeaks = len(peakpositions)
         nparams = len(PARAMETERS)
-        self.assertEqual(result.shape, (n, npeaks*nparams))
+        self.assertEqual(result.shape, (n, npeaks * nparams))
 
         # Check each peak parameter against fitpeaks result
         for i in range(n):
