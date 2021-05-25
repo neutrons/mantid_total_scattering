@@ -88,7 +88,13 @@ def get_cachename(prefix, cache_dir, props):
     return filename, sig
 
 
-def peakfitting(wksp: EventWorkspace, peaks: np.ndarray, fitfunction, param_names, param_values):
+def peakfitting(wksp: EventWorkspace, peaks: np.ndarray, **fitpeaks_args):
+    '''
+    Converts wksp to dspacing and runs FitPeaks, returns parameter and parameter error fit workspaces.
+    :param wksp: Input event workspace to convert and run FitPeaks on
+    :param peaks: An array containing diamond peaks to fit
+    :param fitpeaks_args: Dictionary of options to pass to FitPeaks
+    '''
     # Create the peak windows from the diamond peak positions
     peakwindows = diagnostics.get_peakwindows(peaks)
 
@@ -97,18 +103,13 @@ def peakfitting(wksp: EventWorkspace, peaks: np.ndarray, fitfunction, param_name
 
     # Perform multiple peak fitting
     output = FitPeaks(InputWorkspace=wksp,
-                      PeakFunction=fitfunction,
-                      PeakParameterNames=param_names,
-                      PeakParameterValues=param_values,
                       RawPeakParameters=True,
-                      HighBackground=False,
-                      ConstrainPeakPositions=False,
-                      MinimumPeakHeight=3,
                       PeakCenters=peaks,
                       FitWindowBoundaryList=peakwindows,
                       FittedPeaksWorkspace='fitted',
                       OutputPeakParametersWorkspace='parameters',
-                      OutputParameterFitErrorsWorkspace='fiterrors')
+                      OutputParameterFitErrorsWorkspace='fiterrors',
+                      **fitpeaks_args)
 
     return 'parameters', 'fiterrors'
 
@@ -313,11 +314,8 @@ def Autogrouping(config):
     num_groups = int(get_key("NumberOutputGroups", config))  # k parameter for KMeans clustering
     epsilon = float(get_key("DBSCANEpsilon", config))  # eps parameter for DBSCAN clustering
 
-    fitfunction = get_key("FittingFunction", config)
     fitparams = get_key("FittingFunctionParameters", config).split(",")
-
-    fitpeaks_names = get_key("InitialParameterNames", config)
-    fitpeaks_values = get_key("InitialParameterValues", config)
+    fitpeaks_args = get_key("FitPeaksArgs", config)
     diamond_peaks = np.asarray(get_key("DiamondPeaks", config).strip().split(","), dtype=float)
     thresholds = get_key("ParameterThresholds", config)
     for threshold in thresholds:
@@ -413,9 +411,7 @@ def Autogrouping(config):
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
                      "nhisto={}".format(wksp.getNumberHistograms()),
-                     "function={}".format(fitfunction),
-                     "param_names={}".format(fitpeaks_names),
-                     "param_vals={}".format(fitpeaks_values),
+                     "fitpeaksargs={}".format(fitpeaks_args),
                      "peaks={}".format(diamond_peaks)]
 
             prefix = diamond_file.rstrip(".h5").rstrip(".nxs").split("/")[-1]
@@ -430,7 +426,7 @@ def Autogrouping(config):
 
         # Perform peak fitting if we aren't caching, OR we are but the cache file doesn't exist yet
         if not use_cache:
-            params, fiterrors = peakfitting(wksp, diamond_peaks, fitfunction, fitpeaks_names, fitpeaks_values)
+            params, fiterrors = peakfitting(wksp, diamond_peaks, **fitpeaks_args)
             # Save result parameter wksp to cache file if we want to use caching
             if cache_dir:
                 SaveNexusProcessed(InputWorkspace=params, Filename=cachefile)
