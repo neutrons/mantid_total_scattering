@@ -480,8 +480,15 @@ def Autogrouping(config):
         raise ValueError("Invalid grouping method '{}'. Must be KMEANS or DBSCAN".format(method[0]))
 
     labels = model.labels_
+    unique_labels = np.unique(labels)
+    skip_grouping = False  # flag to skip generate grouping file
+
     print("Labels: {}".format(labels))
-    print("Unique labels (clusters) = {}".format(np.unique(labels)))
+    print("Unique labels (clusters) = {} ({})".format(len(unique_labels), unique_labels))
+    if len(unique_labels) == 1 and unique_labels[0] == -1:
+        # Print warning that the only labels found were noisy
+        skip_grouping = True
+        print("NOTE: only noisy clusters were found.. skipping grouping generation!")
 
     if method[1] == "ED":
         fig, ax = plot_features(clustering_input, diamond_peaks, fitparams, labels, centroids)
@@ -496,20 +503,25 @@ def Autogrouping(config):
 
     # Export mask to file
     if new_mask is not None:
+        print("Saving new mask to '{}'".format(output_mask))
         # new mask is the union of original + newly masked items
         if mask is not None:  # check in case no masking file was given
             new_mask = np.union1d(mask, new_mask)
         np.savetxt(output_mask, new_mask, fmt='%10i')
 
     # Export grouping based on clustering result. Use the input workspace as the donor
-    print("Generating grouping file '{}'".format(output_file))
-    CreateGroupingWorkspace(InputWorkspace=wksp, OutputWorkspace="grouping")
-    grouping = mtd["grouping"]
-    for i in range(len(labels)):
-        det_id = wksp.getDetector(i).getID()
-        grouping.setY(det_id, [int(labels[i]+1)])  # Shift by 1 since group 0 is unused
+    if not skip_grouping:
+        print("Generating grouping file '{}'".format(output_file))
+        CreateGroupingWorkspace(InputWorkspace=wksp, OutputWorkspace="grouping")
+        grouping = mtd["grouping"]
+        for i in range(len(labels)):
+            det_id = wksp.getDetector(i).getID()
+            # Skip if label is -1 (DBSCAN labels these as noise)
+            if labels[i] == -1:
+                continue
+            grouping.setY(det_id, [int(labels[i]+1)])  # Shift by 1 since group 0 is unused
 
-    SaveDetectorsGrouping(InputWorkspace=grouping, OutputFile=output_file)
+        SaveDetectorsGrouping(InputWorkspace=grouping, OutputFile=output_file)
 
     plt.show(block=True)
 
