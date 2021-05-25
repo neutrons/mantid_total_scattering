@@ -4,6 +4,7 @@ import os
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
 from Calibration.tofpd import diagnostics
@@ -362,7 +363,6 @@ def Autogrouping(config):
             print("Loaded detector mask: {}".format(mask))
             # mask numbers are detector ids - so convert them to workspace indices
             mask_ws = wksp.getIndicesFromDetectorIDs(mask.tolist())
-            print("Mask converted to workspace indices: {}".format(mask_ws))
             # compress down to ranges
             mask_ws = compress_ints(mask_ws)
             print("Compressed mask of wsindex: {}".format(mask_ws))
@@ -470,7 +470,8 @@ def Autogrouping(config):
 
         if not use_cache:
             # if we are not using caching, or we are but haven't saved a cached result yet
-            clustering_input, new_mask = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds, max_chi)
+            clustering_input, new_mask = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds,
+                                                              max_chi)
             if cache_dir:
                 np.savetxt(cachefile, clustering_input)
                 np.savetxt(cachefile.replace(".txt", "_mask.txt"), new_mask, fmt='%i')
@@ -501,6 +502,26 @@ def Autogrouping(config):
         centroids = model.cluster_centers_
         print("KMeans centroids: {}".format(centroids))
         print("KMeans inertia: {}".format(model.inertia_))
+
+        if plots and plots["KMeans_Elbow"]:
+            distortion = []
+            for i in range(2, 12):
+                kmean_tmp = KMeans(n_clusters=i).fit(clustering_input)
+                distortion.append(kmean_tmp.inertia_)
+            fig, ax = plt.subplots()
+            ax.plot(range(2, 12), distortion, marker='o')
+            ax.set_xlabel("number of clusters (k)")
+            ax.set_ylabel("model inertia")
+        if plots and plots["KMeans_Silhouette"]:
+            scores = []
+            for i in range(2, 12):
+                kmean_tmp = KMeans(n_clusters=i).fit(clustering_input)
+                scores.append(silhouette_score(clustering_input, kmean_tmp.labels_))
+            fig, ax = plt.subplots()
+            ax.plot(range(2, 12), scores, marker='o')
+            ax.set_xlabel("number of clusters (k)")
+            ax.set_ylabel("silhouette score")
+
     elif method[0] == "DBSCAN":
         model = DBSCAN(eps=epsilon).fit(clustering_input)
     else:
