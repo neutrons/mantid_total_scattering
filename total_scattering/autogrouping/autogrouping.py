@@ -3,6 +3,8 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans, DBSCAN
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 from Calibration.tofpd import diagnostics
 from mantid.dataobjects import \
@@ -318,6 +320,7 @@ def Autogrouping(config):
 
     num_groups = int(get_key("NumberOutputGroups", config))  # k parameter for KMeans clustering
     epsilon = float(get_key("DBSCANEpsilon", config))  # eps parameter for DBSCAN clustering
+    standard_scaling = get_key("StandardScaling", config)  # whether to use scikit standard scaler for ED method
 
     fitparams = get_key("FittingFunctionParameters", config).split(",")
     fitpeaks_args = get_key("FitPeaksArgs", config)
@@ -333,6 +336,10 @@ def Autogrouping(config):
     cache_dir = ""
     if "CacheDir" in config:
         cache_dir = os.path.abspath(get_key("CacheDir", config))
+
+    plots = ""
+    if "Plots" in config:
+        plots = get_key("Plots", config)
 
     output_file = os.path.abspath(get_key("OutputGroupingFile", config))
     output_mask = os.path.abspath(get_key("OutputMaskFile", config))
@@ -482,9 +489,10 @@ def Autogrouping(config):
         wsindex = clustering_input[..., 0]
         clustering_input = clustering_input[..., 1:]
 
-        display_parameter_stats(clustering_input, diamond_peaks, fitparams)
+        if standard_scaling:
+            clustering_input = StandardScaler().fit_transform(clustering_input)
 
-        # fig, ax = plot_features(clustering_input, diamond_peaks, fitparams)
+        display_parameter_stats(clustering_input, diamond_peaks, fitparams)
 
     model = None
     centroids = None
@@ -510,15 +518,31 @@ def Autogrouping(config):
         print("NOTE: only noisy clusters were found.. skipping grouping generation!")
 
     if method[1] == "ED":
-        fig, ax = plot_features(clustering_input, diamond_peaks, fitparams, labels, centroids)
+        if plots and plots["ED_Features"]:
+            fig, ax = plot_features(clustering_input, diamond_peaks, fitparams, labels, centroids)
 
-    fig, ax = plt.subplots()
-    for i in range(len(wsindex)):
-        wsindex[i] = wksp.getDetector(i).getID()
-    ax.scatter(wsindex, labels + 1, c=labels)
-    ax.set_title("{}: {}".format(grouping_method, diamond_file.split("/")[-1]))
-    ax.set_xlabel("pixel")
-    ax.set_ylabel("cluster/grouping")
+    if plots and plots["Grouping"]:
+        fig, ax = plt.subplots()
+        for i in range(len(wsindex)):
+            wsindex[i] = wksp.getDetector(i).getID()
+        ax.scatter(wsindex, labels + 1, c=labels)
+        ax.set_title("{}: {}".format(grouping_method, diamond_file.split("/")[-1]))
+        ax.set_xlabel("pixel")
+        ax.set_ylabel("cluster/grouping")
+
+    if plots and plots["PCA"]:
+        pca = PCA(n_components=2)
+        pca_res = pca.fit_transform(clustering_input)
+        print("PCA variation of components: {}".format(pca.explained_variance_ratio_))
+
+        fig, ax = plt.subplots()
+        ax.set_xlabel("PCA 1")
+        ax.set_ylabel("PCA 2")
+        ax.scatter(pca_res[:, 0], pca_res[:, 1], c=labels, alpha=0.5)
+        if method[0] == "KMEANS":
+            centroids_pca = pca.transform(centroids)
+            ax.scatter(centroids_pca[:, 0], centroids_pca[:, 1], marker='X', s=200, alpha=0.75,
+                       edgecolors='red', c=np.unique(labels))
 
     # Export mask to file
     if new_mask is not None:
@@ -542,7 +566,11 @@ def Autogrouping(config):
 
         SaveDetectorsGrouping(InputWorkspace=grouping, OutputFile=output_file)
 
-    plt.show(block=True)
+    if plots:
+        # block only if we have plotted something
+        nplot = sum(plot == True for plot in plots.values())
+        if nplot > 0:
+            plt.show(block=True)
 
     return
 
