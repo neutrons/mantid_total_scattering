@@ -27,10 +27,15 @@ from total_scattering.autogrouping.similarity import similarity_metric
 from total_scattering.reduction.total_scattering_reduction import compress_ints
 
 
-def is_badfit(row, colnames, thresholds=dict()):
+def is_badfit(row, colnames, thresholds=dict(), max_chi=None):
     '''Determine if a single peakindex row for a workspace index has a bad fit result'''
     isbad = False
     nzero = 0
+
+    # Filter by chi^2 if enabled
+    if max_chi is not None and row["chi2"] > max_chi:
+        return True
+
     for k in range(len(colnames)):
         p = row[colnames[k]]
         if np.isnan(p):
@@ -53,17 +58,17 @@ def is_badfit(row, colnames, thresholds=dict()):
     return isbad
 
 
-def get_badfitcount(index, ws, peaks, colnames, thresholds=dict()):
+def get_badfitcount(index, ws, peaks, colnames, thresholds=dict(), max_chi=None):
     '''Returns the number of bad fits in for a given workspace index (including all peakindex rows)'''
     # Note: index is the global table row (i.e, if ws index = 3000, 3 peaks = 9000)
     nbad = 0
     for j in range(len(peaks)):
-        if is_badfit(ws.row(index + j), colnames, thresholds):
+        if is_badfit(ws.row(index + j), colnames, thresholds, max_chi):
             nbad += 1
     return nbad
 
 
-def get_goodfits(paramws, peaks, colnames, thresholds=dict()):
+def get_goodfits(paramws, peaks, colnames, thresholds=dict(), max_chi=None):
     '''Return a list of ws indices containing good fit parameters to include'''
     fitlist = []
     masklist = []
@@ -74,7 +79,7 @@ def get_goodfits(paramws, peaks, colnames, thresholds=dict()):
     for i in range(n):
         ind = int(np.searchsorted(wsindex, wsindex_unique[i]))
         # Add the ws index to list if fit result for at least one peak is "good"
-        if get_badfitcount(ind, paramws, peaks, colnames, thresholds) != len(peaks):
+        if get_badfitcount(ind, paramws, peaks, colnames, thresholds, max_chi) != len(peaks):
             fitlist.append(i)
         else:
             # If all fits were bad, then we want to mask this index
@@ -115,7 +120,7 @@ def peakfitting(wksp: EventWorkspace, peaks: np.ndarray, **fitpeaks_args):
 
 
 def gather_fitparameters(paramws: TableWorkspace, cols, mask,
-                         peaks, thresholds=dict()):
+                         peaks, thresholds=dict(), max_chi=None):
     '''Generate an array of peak fitting parameters over all spectra from FitPeaks results'''
 
     paramws = mtd[str(paramws)]
@@ -126,7 +131,7 @@ def gather_fitparameters(paramws: TableWorkspace, cols, mask,
     wsindex = paramws.column("wsindex")
     wsindex_unique = np.unique(wsindex)
 
-    fitlist, mask = get_goodfits(paramws, peaks, cols, thresholds)
+    fitlist, mask = get_goodfits(paramws, peaks, cols, thresholds, max_chi)
     n = len(fitlist)
 
     print("Number of good fits: {}".format(len(fitlist)))
@@ -149,7 +154,7 @@ def gather_fitparameters(paramws: TableWorkspace, cols, mask,
             row = paramws.row(index + j)
 
             # Skip bad fitting parameters based on fiterror values
-            if is_badfit(row, cols, thresholds):
+            if is_badfit(row, cols, thresholds, max_chi):
                 continue
 
             for k in range(len(cols)):
@@ -321,6 +326,10 @@ def Autogrouping(config):
     for threshold in thresholds:
         thresholds[threshold] = tuple(float(x) for x in thresholds[threshold].strip("()").split(","))
 
+    max_chi = get_key("FilterByChi2", config)
+    if max_chi["Enable"]:
+        max_chi = max_chi["Value"]
+
     cache_dir = ""
     if "CacheDir" in config:
         cache_dir = os.path.abspath(get_key("CacheDir", config))
@@ -431,27 +440,41 @@ def Autogrouping(config):
             if cache_dir:
                 SaveNexusProcessed(InputWorkspace=params, Filename=cachefile)
 
+        # After peak fitting, assemble clustering input to an array of fit parameters for each peak
         use_cache = False
         if cache_dir:
+            # cache properties change slightly since these are ones that the fit peaks result do not depend upon
+            # these are cached separately since this might take awhile to generate depending on workspace size
+            props.append("chifiltering={}".format(max_chi))
+            props.append("thresholds={}".format(thresholds))
+            cachefile, sig = get_cachename(prefix, cache_dir, props)
             cachefile = cachefile.replace(".nxs", ".txt")
             if os.path.exists(cachefile):
                 # Load clustering cachefile
                 print("Found gathered params cache, loading '{}'".format(cachefile))
                 use_cache = True
                 clustering_input = np.loadtxt(cachefile)
-                new_mask = np.loadtxt(cachefile.replace(".txt", "_mask.txt"), dtype=int).tolist()
+                # ensure masking cache is present
+                if not os.path.exists(cachefile.replace(".txt", "_mask.txt")):
+                    print("could not find cached masked file, regenerating..")
+                    use_cache = False
+                else:
+                    new_mask = np.loadtxt(cachefile.replace(".txt", "_mask.txt"), dtype=int).tolist()
 
         if not use_cache:
-            clustering_input, new_mask = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds)
+            # if we are not using caching, or we are but haven't saved a cached result yet
+            clustering_input, new_mask = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds, max_chi)
             if cache_dir:
                 np.savetxt(cachefile, clustering_input)
                 np.savetxt(cachefile.replace(".txt", "_mask.txt"), new_mask, fmt='%i')
 
         if output_fittable:
+            # convert the clustering input array to a TableWorkspace so it can be used in Mantid
             print("Exporting fit parameter table to '{}'".format(output_fittable))
             tablews = gathered_parameters_to_tablewksp("table", clustering_input, diamond_peaks, fitparams)
             SaveNexusProcessed(Filename=output_fittable, InputWorkspace=tablews)
 
+        # convert workspace index mask to detector index mask
         new_mask = get_detector_mask(wksp, new_mask)
         print("New mask (detector IDs) = {}".format(compress_ints(new_mask)))
 
@@ -461,7 +484,7 @@ def Autogrouping(config):
 
         display_parameter_stats(clustering_input, diamond_peaks, fitparams)
 
-        #fig, ax = plot_features(clustering_input, diamond_peaks, fitparams)
+        # fig, ax = plot_features(clustering_input, diamond_peaks, fitparams)
 
     model = None
     centroids = None
@@ -492,7 +515,7 @@ def Autogrouping(config):
     fig, ax = plt.subplots()
     for i in range(len(wsindex)):
         wsindex[i] = wksp.getDetector(i).getID()
-    ax.scatter(wsindex, labels+1, c=labels)
+    ax.scatter(wsindex, labels + 1, c=labels)
     ax.set_title("{}: {}".format(grouping_method, diamond_file.split("/")[-1]))
     ax.set_xlabel("pixel")
     ax.set_ylabel("cluster/grouping")
@@ -515,7 +538,7 @@ def Autogrouping(config):
             # Skip if label is -1 (DBSCAN labels these as noise)
             if labels[i] == -1:
                 continue
-            grouping.setY(det_id, [int(labels[i]+1)])  # Shift by 1 since group 0 is unused
+            grouping.setY(det_id, [int(labels[i] + 1)])  # Shift by 1 since group 0 is unused
 
         SaveDetectorsGrouping(InputWorkspace=grouping, OutputFile=output_file)
 
