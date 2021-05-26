@@ -10,7 +10,6 @@ from sklearn.preprocessing import StandardScaler
 from Calibration.tofpd import diagnostics
 from mantid.dataobjects import \
     EventWorkspace, \
-    MaskWorkspace, \
     TableWorkspace
 from mantid.simpleapi import \
     ConvertUnits, \
@@ -31,7 +30,8 @@ from total_scattering.reduction.total_scattering_reduction import compress_ints
 
 
 def is_badfit(row, colnames, thresholds=dict(), max_chi=None):
-    '''Determine if a single peakindex row for a workspace index has a bad fit result'''
+    '''Determine if a single peakindex row for a workspace
+    index has a bad fit result'''
     isbad = False
     nzero = 0
 
@@ -50,7 +50,8 @@ def is_badfit(row, colnames, thresholds=dict(), max_chi=None):
         # Restrict fit against parameter thresholds, if any
         for threshold in thresholds:
             if colnames[k] == threshold:
-                if p < thresholds[threshold][0] or p > thresholds[threshold][1]:
+                if p < thresholds[threshold][0] or \
+                        p > thresholds[threshold][1]:
                     isbad = True
                     break
         if isbad:
@@ -61,9 +62,12 @@ def is_badfit(row, colnames, thresholds=dict(), max_chi=None):
     return isbad
 
 
-def get_badfitcount(index, ws, peaks, colnames, thresholds=dict(), max_chi=None):
-    '''Returns the number of bad fits in for a given workspace index (including all peakindex rows)'''
-    # Note: index is the global table row (i.e, if ws index = 3000, 3 peaks = 9000)
+def get_badfitcount(index, ws, peaks, colnames, thresholds=dict(),
+                    max_chi=None):
+    '''Returns the number of bad fits in for a given workspace index
+    (including all peakindex rows)'''
+    # Note: index is the global table row (i.e, if ws
+    # index = 3000, 3 peaks = 9000)
     nbad = 0
     for j in range(len(peaks)):
         if is_badfit(ws.row(index + j), colnames, thresholds, max_chi):
@@ -71,8 +75,11 @@ def get_badfitcount(index, ws, peaks, colnames, thresholds=dict(), max_chi=None)
     return nbad
 
 
-def get_goodfits(paramws, peaks, colnames, thresholds=dict(), max_chi=None):
-    '''Return a list of ws indices containing good fit parameters to include'''
+def get_goodfits(paramws, peaks, colnames, thresholds=dict(),
+                 max_chi=None):
+    '''
+    Return a list of ws indices containing good fit parameters to include
+    '''
     fitlist = []
     masklist = []
 
@@ -81,8 +88,9 @@ def get_goodfits(paramws, peaks, colnames, thresholds=dict(), max_chi=None):
     n = len(wsindex_unique)
     for i in range(n):
         ind = int(np.searchsorted(wsindex, wsindex_unique[i]))
-        # Add the ws index to list if fit result for at least one peak is "good"
-        if get_badfitcount(ind, paramws, peaks, colnames, thresholds, max_chi) != len(peaks):
+        # Add ws index to list if fit result for at least one peak is "good"
+        if get_badfitcount(ind, paramws, peaks, colnames, thresholds,
+                           max_chi) != len(peaks):
             fitlist.append(i)
         else:
             # If all fits were bad, then we want to mask this index
@@ -92,13 +100,15 @@ def get_goodfits(paramws, peaks, colnames, thresholds=dict(), max_chi=None):
 
 
 def get_cachename(prefix, cache_dir, props):
-    filename, sig = CreateCacheFilename(OtherProperties=props, Prefix=prefix, CacheDir=cache_dir)
+    filename, sig = CreateCacheFilename(
+        OtherProperties=props, Prefix=prefix, CacheDir=cache_dir)
     return filename, sig
 
 
 def peakfitting(wksp: EventWorkspace, peaks: np.ndarray, **fitpeaks_args):
     '''
-    Converts wksp to dspacing and runs FitPeaks, returns parameter and parameter error fit workspaces.
+    Converts wksp to dspacing and runs FitPeaks, returns parameter and
+    parameter error fit workspaces.
     :param wksp: Input event workspace to convert and run FitPeaks on
     :param peaks: An array containing diamond peaks to fit
     :param fitpeaks_args: Dictionary of options to pass to FitPeaks
@@ -107,24 +117,27 @@ def peakfitting(wksp: EventWorkspace, peaks: np.ndarray, **fitpeaks_args):
     peakwindows = diagnostics.get_peakwindows(peaks)
 
     # Convert from TOF to dspacing
-    wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing", EMode="Elastic")
+    wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing",
+                        EMode="Elastic")
 
     # Perform multiple peak fitting
-    output = FitPeaks(InputWorkspace=wksp,
-                      RawPeakParameters=True,
-                      PeakCenters=peaks,
-                      FitWindowBoundaryList=peakwindows,
-                      FittedPeaksWorkspace='fitted',
-                      OutputPeakParametersWorkspace='parameters',
-                      OutputParameterFitErrorsWorkspace='fiterrors',
-                      **fitpeaks_args)
+    FitPeaks(InputWorkspace=wksp,
+             RawPeakParameters=True,
+             PeakCenters=peaks,
+             FitWindowBoundaryList=peakwindows,
+             FittedPeaksWorkspace='fitted',
+             OutputWorkspace='output',
+             OutputPeakParametersWorkspace='parameters',
+             OutputParameterFitErrorsWorkspace='fiterrors',
+             **fitpeaks_args)
 
     return 'parameters', 'fiterrors'
 
 
 def gather_fitparameters(paramws: TableWorkspace, cols, mask,
                          peaks, thresholds=dict(), max_chi=None):
-    '''Generate an array of peak fitting parameters over all spectra from FitPeaks results'''
+    '''Generate an array of peak fitting parameters over all spectra from
+    FitPeaks results'''
 
     paramws = mtd[str(paramws)]
 
@@ -169,8 +182,10 @@ def gather_fitparameters(paramws: TableWorkspace, cols, mask,
     return result, mask
 
 
-def gathered_parameters_to_tablewksp(wsname: str, result: np.ndarray, peaks, cols):
-    '''Converts the result from gather_fitparameters() to a Mantid TableWorkspace'''
+def gathered_parameters_to_tablewksp(wsname: str, result: np.ndarray,
+                                     peaks, cols):
+    '''Converts the result from gather_fitparameters() to a Mantid
+    TableWorkspace'''
     if result.shape != (len(result), len(peaks) * len(cols) + 1):
         raise ValueError("input array does not match expected size of {}"
                          .format((len(result), len(peaks) * len(cols) + 1)))
@@ -210,13 +225,18 @@ def plot_features(data, peaks, colnames, labels=None, centroids=None):
         for i in range(n):
             for j in range(n):
                 if labels is not None:
-                    ax[i, j].scatter(data[..., p * n + i], data[..., p * n + j], c=labels, alpha=0.5)
+                    ax[i, j].scatter(data[..., p * n + i],
+                                     data[..., p * n + j],
+                                     c=labels, alpha=0.5)
                 else:
-                    ax[i, j].scatter(data[..., p * n + i], data[..., p * n + j])
+                    ax[i, j].scatter(data[..., p * n + i],
+                                     data[..., p * n + j])
 
                 if centroids is not None:
-                    ax[i, j].scatter(centroids[..., p * n + i], centroids[..., p * n + j],
-                                     marker="X", c=np.unique(labels), s=200, alpha=0.75,
+                    ax[i, j].scatter(centroids[..., p * n + i],
+                                     centroids[..., p * n + j],
+                                     marker="X", c=np.unique(labels),
+                                     s=200, alpha=0.75,
                                      edgecolors="red")
                 ax[i, j].set_xlabel(colnames[i])
                 ax[i, j].set_ylabel(colnames[j])
@@ -228,11 +248,13 @@ def similarity_matrix_degelder(wksp):
     '''
     Generate the similarity matrix using the deGelder function.
     Returns an nxn matrix where n=number of spectra in wksp, where
-    each entry of the matrix contains the deGelder similarity of that ith pixel
-    to the jth pixel.
-    Since this matrix is symmetric, this calculates the upper triangle of the matrix
+    each entry of the matrix contains the deGelder similarity of that
+     ith pixel to the jth pixel.
+    Since this matrix is symmetric, this calculates the upper
+    triangle of the matrix
 
-    Note: for large input workspaces, this method can take quite a long time (~100 min for n=10000)
+    Note: for large input workspaces, this method can take quite a long time
+    (~100 min for n=10000)
     '''
     print("Computing deGelder similarity matrix...")
 
@@ -267,7 +289,8 @@ def similarity_matrix_crosscorr(wksp):
     result = np.zeros(shape=(n, n))
     for i in range(n):
         for j in range(i, n):
-            result[i][j] = sm.pointwise_squared_difference_similarity(y[i], y[j])
+            result[i][j] = sm.pointwise_squared_difference_similarity(
+                y[i], y[j])
 
         if i % frac == 0:
             print("-- {}/{} spectra".format(i, n))
@@ -313,22 +336,27 @@ def get_grouping_method(grouping):
 
 
 def Autogrouping(config):
-    diamond_file = get_key("DiamondFile", config)  # .nxs.h5 or .nxs input file
+    diamond_file = get_key("DiamondFile", config)  # .nxs.h5 or .nxs file
     masking_file = get_key("MaskFile", config)
 
     grouping_method = get_key("GroupingMethod", config)
     method = get_grouping_method(grouping_method)
 
-    num_groups = int(get_key("NumberOutputGroups", config))  # k parameter for KMeans clustering
-    epsilon = float(get_key("DBSCANEpsilon", config))  # eps parameter for DBSCAN clustering
-    standard_scaling = get_key("StandardScaling", config)  # whether to use scikit standard scaler for ED method
+    # k parameter for KMeans clustering
+    num_groups = int(get_key("NumberOutputGroups", config))
+    # eps parameter for DBSCAN clustering
+    epsilon = float(get_key("DBSCANEpsilon", config))
+    # whether to use scikit standard scaler for ED method
+    standard_scaling = get_key("StandardScaling", config)
 
     fitparams = get_key("FittingFunctionParameters", config).split(",")
     fitpeaks_args = get_key("FitPeaksArgs", config)
-    diamond_peaks = np.asarray(get_key("DiamondPeaks", config).strip().split(","), dtype=float)
+    diamond_peaks = np.asarray(
+        get_key("DiamondPeaks", config).strip().split(","), dtype=float)
     thresholds = get_key("ParameterThresholds", config)
     for threshold in thresholds:
-        thresholds[threshold] = tuple(float(x) for x in thresholds[threshold].strip("()").split(","))
+        thresholds[threshold] = tuple(
+            float(x) for x in thresholds[threshold].strip("()").split(","))
 
     max_chi = get_key("FilterByChi2", config)
     if max_chi["Enable"]:
@@ -347,27 +375,29 @@ def Autogrouping(config):
 
     output_fittable = ""
     if "OutputFitParamFile" in config:
-        output_fittable = os.path.abspath(get_key("OutputFitParamFile", config))
+        output_fittable = os.path.abspath(get_key("OutputFitParamFile",
+                                                  config))
 
     if diamond_file.endswith(".nxs.h5"):
-        wksp = LoadEventAndCompress(Filename=diamond_file, FilterBadPulses=0)
+        wksp = LoadEventAndCompress(Filename=diamond_file,
+                                    FilterBadPulses=0)
     else:
         wksp = Load(Filename=diamond_file)
 
     mask = None
     new_mask = None
     if masking_file:
-        # Check whether to load masking file with mantid or to an array with numpy
         if masking_file.endswith(".txt") or masking_file.endswith(".out"):
             mask = np.loadtxt(masking_file, dtype=int)
             print("Loaded detector mask: {}".format(mask))
-            # mask numbers are detector ids - so convert them to workspace indices
+            # mask numbers are detector ids - so convert them to ws indices
             mask_ws = wksp.getIndicesFromDetectorIDs(mask.tolist())
             # compress down to ranges
             mask_ws = compress_ints(mask_ws)
             print("Compressed mask of wsindex: {}".format(mask_ws))
             # mask spectra in workspace
-            wksp = MaskSpectra(InputWorkspace=wksp, InputWorkspaceIndexType="WorkspaceIndex",
+            wksp = MaskSpectra(InputWorkspace=wksp,
+                               InputWorkspaceIndexType="WorkspaceIndex",
                                InputWorkspaceIndexSet=mask_ws)
             wksp = RemoveMaskedSpectra(InputWorkspace=wksp)
 
@@ -383,43 +413,52 @@ def Autogrouping(config):
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
                      "nhisto={}".format(wksp.getNumberHistograms())]
-            prefix = diamond_file.rstrip(".h5").rstrip(".nxs").split("/")[-1] + "_DG"
+            prefix = diamond_file.rstrip(".h5").rstrip(
+                ".nxs").split("/")[-1] + "_DG"
             cachefile, sig = get_cachename(prefix, cache_dir, props)
             cachefile = cachefile.replace(".nxs", ".txt")
             print("Checking for cachefile '{}'".format(cachefile))
             if os.path.exists(cachefile):
                 # Load cached similarity matrix
                 use_cache = True
-                print("Found cached deGelder similarity matrix, loading from '{}'".format(cachefile))
+                print(
+                    "Found cached deGelder similarity matrix, "
+                    "loading from '{}'".format(cachefile))
                 clustering_input = np.loadtxt(cachefile)
 
         if not use_cache:
             clustering_input = similarity_matrix_degelder(wksp)
             if cache_dir:
                 # Save matrix if using caching
-                print("Caching deGelder similarity matrix to '{}'".format(cachefile))
+                print("Caching deGelder similarity matrix to "
+                      "'{}'".format(cachefile))
                 np.savetxt(cachefile, clustering_input)
     elif method[1] == "CC":
-        # Compute the cross-correlation matrix using a pointwise squared difference method
+        # Compute the cross-correlation matrix using a
+        # pointwise squared difference method
         if cache_dir:
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
                      "nhisto={}".format(wksp.getNumberHistograms())]
-            prefix = diamond_file.rstrip(".h5").rstrip(".nxs").split("/")[-1] + "_CC"
+            prefix = diamond_file.rstrip(".h5").rstrip(
+                ".nxs").split("/")[-1] + "_CC"
             cachefile, sig = get_cachename(prefix, cache_dir, props)
             cachefile = cachefile.replace(".nxs", ".txt")
             print("Checking for cachefile '{}'".format(cachefile))
             if os.path.exists(cachefile):
                 # Load cached similarity matrix
                 use_cache = True
-                print("Found cached pointwise crosscorr similarity matrix, loading from '{}'".format(cachefile))
+                print("Found cached pointwise crosscorr similarity matrix, "
+                      "loading from '{}'".format(cachefile))
                 clustering_input = np.loadtxt(cachefile)
 
         if not use_cache:
             clustering_input = similarity_matrix_crosscorr(wksp)
             if cache_dir:
                 # Save matrix if using caching
-                print("Caching pointwise crosscorr similarity matrix to '{}'".format(cachefile))
+                print(
+                    "Caching pointwise crosscorr similarity matrix "
+                    "to '{}'".format(cachefile))
                 np.savetxt(cachefile, clustering_input)
     elif method[1] == "ED":
         # Compute the euclidean distance
@@ -435,30 +474,38 @@ def Autogrouping(config):
             print("Cachefile = {}".format(cachefile))
             if os.path.exists(cachefile):
                 # Load cachefile
-                print("Found FitPeaks cached result, loading '{}'".format(cachefile))
+                print("Found FitPeaks cached result, "
+                      "loading '{}'".format(cachefile))
                 use_cache = True
                 Load(Filename=cachefile, OutputWorkspace="parameters")
                 params = mtd["parameters"]
 
-        # Perform peak fitting if we aren't caching, OR we are but the cache file doesn't exist yet
+        # Perform peak fitting if we aren't caching, OR we are but the
+        # cache file doesn't exist yet
         if not use_cache:
-            params, fiterrors = peakfitting(wksp, diamond_peaks, **fitpeaks_args)
-            # Save result parameter wksp to cache file if we want to use caching
+            params, fiterrors = peakfitting(
+                wksp, diamond_peaks, **fitpeaks_args)
+            # Save result parameter wksp to cache file if
+            # we want to use caching
             if cache_dir:
                 SaveNexusProcessed(InputWorkspace=params, Filename=cachefile)
 
-        # After peak fitting, assemble clustering input to an array of fit parameters for each peak
+        # After peak fitting, assemble clustering input to an array of
+        # fit parameters for each peak
         use_cache = False
         if cache_dir:
-            # cache properties change slightly since these are ones that the fit peaks result do not depend upon
-            # these are cached separately since this might take awhile to generate depending on workspace size
+            # cache properties change slightly since these are ones
+            # that the fit peaks result do not depend upon
+            # these are cached separately since this might take awhile
+            # to generate depending on workspace size
             props.append("chifiltering={}".format(max_chi))
             props.append("thresholds={}".format(thresholds))
             cachefile, sig = get_cachename(prefix, cache_dir, props)
             cachefile = cachefile.replace(".nxs", ".txt")
             if os.path.exists(cachefile):
                 # Load clustering cachefile
-                print("Found gathered params cache, loading '{}'".format(cachefile))
+                print("Found gathered params cache, "
+                      "loading '{}'".format(cachefile))
                 use_cache = True
                 clustering_input = np.loadtxt(cachefile)
                 # ensure masking cache is present
@@ -466,34 +513,45 @@ def Autogrouping(config):
                     print("could not find cached masked file, regenerating..")
                     use_cache = False
                 else:
-                    new_mask = np.loadtxt(cachefile.replace(".txt", "_mask.txt"), dtype=int).tolist()
+                    new_mask = np.loadtxt(cachefile.replace(
+                        ".txt", "_mask.txt"), dtype=int).tolist()
 
         if not use_cache:
-            # if we are not using caching, or we are but haven't saved a cached result yet
-            clustering_input, new_mask = gather_fitparameters(params, fitparams, None, diamond_peaks, thresholds,
-                                                              max_chi)
+            # if we are not using caching, or we are but haven't
+            # saved a cached result yet
+            clustering_input, new_mask = \
+                gather_fitparameters(params, fitparams, None, diamond_peaks,
+                                     thresholds, max_chi)
             if cache_dir:
                 np.savetxt(cachefile, clustering_input)
-                np.savetxt(cachefile.replace(".txt", "_mask.txt"), new_mask, fmt='%i')
+                np.savetxt(cachefile.replace(
+                    ".txt", "_mask.txt"), new_mask, fmt='%i')
 
         if output_fittable:
-            # convert the clustering input array to a TableWorkspace so it can be used in Mantid
-            print("Exporting fit parameter table to '{}'".format(output_fittable))
-            tablews = gathered_parameters_to_tablewksp("table", clustering_input, diamond_peaks, fitparams)
-            SaveNexusProcessed(Filename=output_fittable, InputWorkspace=tablews)
+            # convert the clustering input array to a TableWorkspace
+            # so it can be used in Mantid
+            print("Exporting fit parameter table to "
+                  "'{}'".format(output_fittable))
+            tablews = gathered_parameters_to_tablewksp(
+                "table", clustering_input, diamond_peaks, fitparams)
+            SaveNexusProcessed(Filename=output_fittable,
+                               InputWorkspace=tablews)
 
         # convert workspace index mask to detector index mask
         new_mask = get_detector_mask(wksp, new_mask)
-        print("New mask (detector IDs) = {}".format(compress_ints(new_mask)))
+        print("New mask (detector IDs) = {}"
+              "".format(compress_ints(new_mask)))
 
         # Extract the first column to keep wsindex for later
         wsindex = clustering_input[..., 0]
         clustering_input = clustering_input[..., 1:]
 
         if standard_scaling:
-            clustering_input = StandardScaler().fit_transform(clustering_input)
+            clustering_input = \
+                StandardScaler().fit_transform(clustering_input)
 
-        display_parameter_stats(clustering_input, diamond_peaks, fitparams)
+        display_parameter_stats(clustering_input, diamond_peaks,
+                                fitparams)
 
     model = None
     centroids = None
@@ -516,7 +574,8 @@ def Autogrouping(config):
             scores = []
             for i in range(2, 12):
                 kmean_tmp = KMeans(n_clusters=i).fit(clustering_input)
-                scores.append(silhouette_score(clustering_input, kmean_tmp.labels_))
+                scores.append(silhouette_score(
+                    clustering_input, kmean_tmp.labels_))
             fig, ax = plt.subplots()
             ax.plot(range(2, 12), scores, marker='o')
             ax.set_xlabel("number of clusters (k)")
@@ -525,36 +584,44 @@ def Autogrouping(config):
     elif method[0] == "DBSCAN":
         model = DBSCAN(eps=epsilon).fit(clustering_input)
     else:
-        raise ValueError("Invalid grouping method '{}'. Must be KMEANS or DBSCAN".format(method[0]))
+        raise ValueError(
+            "Invalid grouping method '{}'. Must be KMEANS or "
+            "DBSCAN".format(method[0]))
 
     labels = model.labels_
     unique_labels = np.unique(labels)
     skip_grouping = False  # flag to skip generate grouping file
 
     print("Labels: {}".format(labels))
-    print("Unique labels (clusters) = {} ({})".format(len(unique_labels), unique_labels))
+    print("Unique labels (clusters) = {} ({})".format(
+        len(unique_labels), unique_labels))
     if len(unique_labels) == 1 and unique_labels[0] == -1:
         # Print warning that the only labels found were noisy
         skip_grouping = True
-        print("NOTE: only noisy clusters were found.. skipping grouping generation!")
+        print("NOTE: only noisy clusters were found.. skipping "
+              "grouping generation!")
 
     if method[1] == "ED":
         if plots and plots["ED_Features"]:
-            fig, ax = plot_features(clustering_input, diamond_peaks, fitparams, labels, centroids)
+            fig, ax = plot_features(
+                clustering_input, diamond_peaks, fitparams,
+                labels, centroids)
 
     if plots and plots["Grouping"]:
         fig, ax = plt.subplots()
         for i in range(len(wsindex)):
             wsindex[i] = wksp.getDetector(i).getID()
         ax.scatter(wsindex, labels + 1, c=labels)
-        ax.set_title("{}: {}".format(grouping_method, diamond_file.split("/")[-1]))
+        ax.set_title("{}: {}".format(
+            grouping_method, diamond_file.split("/")[-1]))
         ax.set_xlabel("pixel")
         ax.set_ylabel("cluster/grouping")
 
     if plots and plots["PCA"]:
         pca = PCA(n_components=2)
         pca_res = pca.fit_transform(clustering_input)
-        print("PCA variation of components: {}".format(pca.explained_variance_ratio_))
+        print("PCA variation of components: {}".format(
+            pca.explained_variance_ratio_))
 
         fig, ax = plt.subplots()
         ax.set_xlabel("PCA 1")
@@ -562,7 +629,8 @@ def Autogrouping(config):
         ax.scatter(pca_res[:, 0], pca_res[:, 1], c=labels, alpha=0.5)
         if method[0] == "KMEANS":
             centroids_pca = pca.transform(centroids)
-            ax.scatter(centroids_pca[:, 0], centroids_pca[:, 1], marker='X', s=200, alpha=0.75,
+            ax.scatter(centroids_pca[:, 0], centroids_pca[:, 1],
+                       marker='X', s=200, alpha=0.75,
                        edgecolors='red', c=np.unique(labels))
 
     # Export mask to file
@@ -573,23 +641,27 @@ def Autogrouping(config):
             new_mask = np.union1d(mask, new_mask)
         np.savetxt(output_mask, new_mask, fmt='%10i')
 
-    # Export grouping based on clustering result. Use the input workspace as the donor
+    # Export grouping based on clustering result. Use the input
+    # workspace as the donor
     if not skip_grouping:
         print("Generating grouping file '{}'".format(output_file))
-        CreateGroupingWorkspace(InputWorkspace=wksp, OutputWorkspace="grouping")
+        CreateGroupingWorkspace(InputWorkspace=wksp,
+                                OutputWorkspace="grouping")
         grouping = mtd["grouping"]
         for i in range(len(labels)):
             det_id = wksp.getDetector(i).getID()
             # Skip if label is -1 (DBSCAN labels these as noise)
             if labels[i] == -1:
                 continue
-            grouping.setY(det_id, [int(labels[i] + 1)])  # Shift by 1 since group 0 is unused
+            # Shift by 1 since group 0 is unused
+            grouping.setY(det_id, [int(labels[i] + 1)])
 
-        SaveDetectorsGrouping(InputWorkspace=grouping, OutputFile=output_file)
+        SaveDetectorsGrouping(InputWorkspace=grouping,
+                              OutputFile=output_file)
 
     if plots:
         # block only if we have plotted something
-        nplot = sum(plot == True for plot in plots.values())
+        nplot = sum(plot for plot in plots.values())
         if nplot > 0:
             plt.show(block=True)
 

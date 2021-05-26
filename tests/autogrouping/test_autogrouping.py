@@ -48,9 +48,11 @@ class TestAutogrouping(unittest.TestCase):
             mixing = random.gauss(0.6, 0.2)
             params.addRow([i, mixing, intensity, x0, fwhm, 0.0, 0.0, 0.01])
 
-        genpeaks = GeneratePeaks(PeakParametersWorkspace=params, PeakType='PseudoVoigt',
+        genpeaks = GeneratePeaks(PeakParametersWorkspace=params,
+                                 PeakType='PseudoVoigt',
                                  BackgroundType='Linear (A0, A1)',
-                                 BinningParameters='0.1,0.001,10', NumberWidths=2)
+                                 BinningParameters='0.1,0.001,10',
+                                 NumberWidths=2)
         genpeaks.setYUnit("Counts")
 
         # Fit the peaks
@@ -81,7 +83,8 @@ class TestAutogrouping(unittest.TestCase):
             for j in range(npeaks):
                 row = mtd['parameters'].row(i * npeaks + j)
                 for k in range(nparams):
-                    self.assertEqual(result[i, nparams * j + k], row[PARAMETERS[k]])
+                    self.assertEqual(result[i, nparams * j + k],
+                                     row[PARAMETERS[k]])
 
 
 if __name__ == '__main__':
