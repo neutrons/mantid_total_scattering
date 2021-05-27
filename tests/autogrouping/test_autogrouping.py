@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import random
 
-from total_scattering.autogrouping.autogrouping import gather_fitparameters
+from total_scattering.autogrouping.utils import gather_fitparameters
 
 from mantid.simpleapi import \
     CreateEmptyTableWorkspace, \
