@@ -5,4 +5,4 @@ pytest-cov
 tox
 tox-conda
 matplotlib
-sklearn
+scikit-learn
