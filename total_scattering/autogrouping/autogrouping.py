@@ -4,6 +4,7 @@ import os
 
 import matplotlib.pyplot as plt
 from mantid.simpleapi import \
+    ConvertUnits, \
     CreateCacheFilename, \
     CreateGroupingWorkspace, \
     LoadEventAndCompress, \
@@ -123,6 +124,8 @@ def Autogrouping(config):
     max_chi = get_key("FilterByChi2", config)
     if max_chi["Enable"]:
         max_chi = max_chi["Value"]
+    else:
+        max_chi = None
 
     cache_dir = ""
     if "CacheDir" in config:
@@ -154,17 +157,26 @@ def Autogrouping(config):
             print("Loaded detector mask: {}".format(mask))
             # mask numbers are detector ids - so convert them to ws indices
             mask_ws = wksp.getIndicesFromDetectorIDs(mask.tolist())
-            # compress down to ranges
-            mask_ws = compress_ints(mask_ws)
-            print("Compressed mask of wsindex: {}".format(mask_ws))
-            # mask spectra in workspace
-            wksp = MaskSpectra(InputWorkspace=wksp,
-                               InputWorkspaceIndexType="WorkspaceIndex",
-                               InputWorkspaceIndexSet=mask_ws)
-            wksp = RemoveMaskedSpectra(InputWorkspace=wksp)
+            if len(mask_ws) == 0:
+                # Skip masking if no ws indices are masked
+                print("No detector masks applied to workspace indices, "
+                      "skipping masking")
+            else:
+                # compress down to ranges
+                mask_ws = compress_ints(mask_ws)
+                print("Compressed mask of wsindex: {}".format(mask_ws))
+                # mask spectra in workspace
+                wksp = MaskSpectra(InputWorkspace=wksp,
+                                   InputWorkspaceIndexType="WorkspaceIndex",
+                                   InputWorkspaceIndexSet=mask_ws)
+                wksp = RemoveMaskedSpectra(InputWorkspace=wksp)
 
     # Rebin (in TOF)
     wksp = Rebin(InputWorkspace=wksp, Params=(300, -0.001, 16666.7))
+
+    # Convert from TOF to dspacing
+    wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing",
+                        EMode="Elastic")
 
     wsindex = list(range(wksp.getNumberHistograms()))
     clustering_input = None
@@ -189,7 +201,7 @@ def Autogrouping(config):
                 clustering_input = np.loadtxt(cachefile)
 
         if not use_cache:
-            clustering_input = similarity_matrix_degelder(wksp)
+            clustering_input = 1 - similarity_matrix_degelder(wksp)
             if cache_dir:
                 # Save matrix if using caching
                 print("Caching deGelder similarity matrix to "
@@ -215,7 +227,7 @@ def Autogrouping(config):
                 clustering_input = np.loadtxt(cachefile)
 
         if not use_cache:
-            clustering_input = similarity_matrix_crosscorr(wksp)
+            clustering_input = 1 - similarity_matrix_crosscorr(wksp)
             if cache_dir:
                 # Save matrix if using caching
                 print(
@@ -320,6 +332,7 @@ def Autogrouping(config):
     if method[0] == "KMEANS":
         model = KMeans(n_clusters=num_groups).fit(clustering_input)
         centroids = model.cluster_centers_
+        print("KMeans iterations ran: {}".format(model.n_iter_))
         print("KMeans centroids: {}".format(centroids))
         print("KMeans inertia: {}".format(model.inertia_))
 
@@ -344,7 +357,10 @@ def Autogrouping(config):
             ax.set_ylabel("silhouette score")
 
     elif method[0] == "DBSCAN":
-        model = DBSCAN(eps=epsilon).fit(clustering_input)
+        model = DBSCAN(eps=epsilon)
+        if method[1] != "ED":
+            model.set_params(metric="precomputed")
+        model.fit(clustering_input)
     else:
         raise ValueError(
             "Invalid grouping method '{}'. Must be KMEANS or "

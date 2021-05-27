@@ -5,7 +5,6 @@ from mantid.dataobjects import \
     EventWorkspace, \
     TableWorkspace
 from mantid.simpleapi import \
-    ConvertUnits, \
     CreateEmptyTableWorkspace, \
     FitPeaks, \
     mtd
@@ -93,10 +92,6 @@ def peakfitting(wksp: EventWorkspace, peaks: np.ndarray, **fitpeaks_args):
     '''
     # Create the peak windows from the diamond peak positions
     peakwindows = diagnostics.get_peakwindows(peaks)
-
-    # Convert from TOF to dspacing
-    wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing",
-                        EMode="Elastic")
 
     # Perform multiple peak fitting
     FitPeaks(InputWorkspace=wksp,
@@ -215,6 +210,7 @@ def similarity_matrix_degelder(wksp):
     for i in range(n):
         for j in range(i, n):
             result[i][j] = sm.de_gelder_similarity(y[i], y[j])
+            result[j][i] = result[i][j]
 
         if i % frac == 0:
             print("-- {}/{} spectra".format(i, n))
@@ -238,6 +234,7 @@ def similarity_matrix_crosscorr(wksp):
         for j in range(i, n):
             result[i][j] = sm.pointwise_squared_difference_similarity(
                 y[i], y[j])
+            result[j][i] = result[i][j]
 
         if i % frac == 0:
             print("-- {}/{} spectra".format(i, n))
