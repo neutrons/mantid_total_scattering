@@ -1,2 +1,4 @@
 matplotlib
 scikit-learn
+qtpy
+pyside2
