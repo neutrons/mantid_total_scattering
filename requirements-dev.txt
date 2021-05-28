@@ -6,3 +6,4 @@ tox
 tox-conda
 matplotlib
 scikit-learn
+qtpy
