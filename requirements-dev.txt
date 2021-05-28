@@ -7,4 +7,4 @@ tox-conda
 matplotlib
 scikit-learn
 qtpy
-pyside
+pyside2
