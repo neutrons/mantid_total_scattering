@@ -1,6 +1,6 @@
 import numpy as np
 
-from Calibration.tofpd import diagnostics
+from scripts.Calibration.tofpd import diagnostics
 from mantid.dataobjects import \
     EventWorkspace, \
     TableWorkspace
