@@ -9,7 +9,6 @@ from mantid.simpleapi import \
     FitPeaks, \
     GeneratePeaks, \
     mtd
-from Calibration.tofpd import diagnostics
 
 DIAMOND_PEAKS = (0.8920, 1.0758, 1.2615)
 PARAMETERS = ["Mixing", "Intensity", "PeakCentre", "FWHM"]
@@ -22,7 +21,7 @@ class TestAutogrouping(unittest.TestCase):
 
     def test_gatherfit(self):
         peakpositions = np.asarray(DIAMOND_PEAKS)
-        peakwindows = diagnostics.get_peakwindows(peakpositions)
+        peakwindows = get_peakwindows(peakpositions)
 
         # Create table workspace to hold peak parameters
         params = CreateEmptyTableWorkspace()
@@ -85,6 +84,27 @@ class TestAutogrouping(unittest.TestCase):
                 for k in range(nparams):
                     self.assertEqual(result[i, nparams * j + k],
                                      row[PARAMETERS[k]])
+
+
+def get_peakwindows(peakpositions: np.ndarray):
+    """
+    Calculates the peak windows for the given peak positions used for FitPeaks
+    :param peakpositions: List of peak positions in d-space
+    :return: List of peak windows (left and right) for each peak position
+    """
+    peakwindows = []
+    deltas = 0.5 * (peakpositions[1:] - peakpositions[:-1])
+    # first left and right
+    peakwindows.append(peakpositions[0] - deltas[0])
+    peakwindows.append(peakpositions[0] + deltas[0])
+    # ones in the middle
+    for i in range(1, len(peakpositions) - 1):
+        peakwindows.append(peakpositions[i] - deltas[i - 1])
+        peakwindows.append(peakpositions[i] + deltas[i])
+    # last one
+    peakwindows.append(peakpositions[-1] - deltas[-1])
+    peakwindows.append(peakpositions[-1] + deltas[-1])
+    return peakwindows
 
 
 if __name__ == '__main__':
