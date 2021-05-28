@@ -1,6 +1,5 @@
 import numpy as np
 
-from scripts.Calibration.tofpd import diagnostics
 from mantid.dataobjects import \
     EventWorkspace, \
     TableWorkspace
@@ -91,7 +90,7 @@ def peakfitting(wksp: EventWorkspace, peaks: np.ndarray, **fitpeaks_args):
     :param fitpeaks_args: Dictionary of options to pass to FitPeaks
     '''
     # Create the peak windows from the diamond peak positions
-    peakwindows = diagnostics.get_peakwindows(peaks)
+    peakwindows = get_peakwindows(peaks)
 
     # Perform multiple peak fitting
     FitPeaks(InputWorkspace=wksp,
@@ -257,3 +256,24 @@ def get_detector_mask(wksp, ws_mask):
         det_id = wksp.getDetector(index).getID()
         mask.append(det_id)
     return mask
+
+
+def get_peakwindows(peakpositions: np.ndarray):
+    """
+    Calculates the peak windows for the given peak positions used for FitPeaks
+    :param peakpositions: List of peak positions in d-space
+    :return: List of peak windows (left and right) for each peak position
+    """
+    peakwindows = []
+    deltas = 0.5 * (peakpositions[1:] - peakpositions[:-1])
+    # first left and right
+    peakwindows.append(peakpositions[0] - deltas[0])
+    peakwindows.append(peakpositions[0] + deltas[0])
+    # ones in the middle
+    for i in range(1, len(peakpositions) - 1):
+        peakwindows.append(peakpositions[i] - deltas[i - 1])
+        peakwindows.append(peakpositions[i] + deltas[i])
+    # last one
+    peakwindows.append(peakpositions[-1] - deltas[-1])
+    peakwindows.append(peakpositions[-1] + deltas[-1])
+    return peakwindows
