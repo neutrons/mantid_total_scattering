@@ -98,7 +98,7 @@ def get_grouping_method(grouping):
         raise ValueError("Invalid grouping method")
 
 
-def Autogrouping(config):
+def autogrouping(config):
     diamond_file = get_key("DiamondFile", config)  # .nxs.h5 or .nxs file
     masking_file = get_key("MaskFile", config)
 
@@ -459,7 +459,7 @@ def main(config=None):
             config = json.load(handle)
 
     # Run total scattering reduction
-    Autogrouping(config)
+    autogrouping(config)
 
 
 if __name__ == "__main__":

@@ -8,35 +8,34 @@ It is build from cross correlations
 '''
 
 
-class similarity_metric:
+class SimilarityMetric:
 
     def __init__(self, L=5):
 
         self.L = L
         self.weights = [self.weight_triangular(r) for r in range(0, self.L + 1)]
 
-    '''
-    symmetric weight function
-    '''
-
     def weight_triangular(self, r):
+        '''
+        symmetric weight function
+        '''
 
         return (self.L - abs(r) + 1) / (self.L + 1)
 
-    '''
-    f, g ---> vectors to cross correlate.
-
-    L ---> From their initial aligned positions, vectors will be cross
-           correlated at offsets in union([ 0, L ] and [ 0, -L ] ), inclusive.
-
-    weights ---> weight[ i ] to be applied to cross_correlation[ i ]
-    for i in [ -L, L ] inclusive
-
-    returns ---> weighted cross correlation of the vectors:
-                 sum_over_r( weight[ r ] * sum_over_x ( f( x ) * g( x + r ) ) )
-    '''
-
     def triangular_weighted_cross_correlation(self, f, g):
+        '''
+        f, g ---> vectors to cross correlate.
+
+        L ---> From their initial aligned positions, vectors will be cross
+               correlated at offsets in union([ 0, L ] and [ 0, -L ] ),
+               inclusive.
+
+        weights ---> weight[ i ] to be applied to cross_correlation[ i ]
+        for i in [ -L, L ] inclusive
+
+        returns ---> weighted cross correlation of the vectors:
+                     sum_over_r(weight[r] * sum_over_x(f(x) * g(x + r)))
+        '''
 
         if (len(f) != len(g)):
             raise RuntimeError(
@@ -55,14 +54,13 @@ class similarity_metric:
 
         return weighted_sum
 
-    '''
-    normalize the triangular weighted cross correlation to provide a
-    pairwise similarity metric
-
-    abs( metric ) <= 1
-    '''
-
     def de_gelder_similarity(self, f, g):
+        '''
+        normalize the triangular weighted cross correlation to provide a
+        pairwise similarity metric
+
+        abs( metric ) <= 1
+        '''
 
         weighted_cross_correlation = \
             self.triangular_weighted_cross_correlation(f, g)
@@ -77,11 +75,10 @@ class similarity_metric:
 
         return weighted_cross_correlation / normalization
 
-    '''
-    a very simple similarity metric
-    '''
-
     def pointwise_squared_difference_similarity(self, f, g):
+        '''
+        a very simple similarity metric
+        '''
 
         if (len(f) != len(g)):
             raise RuntimeError(

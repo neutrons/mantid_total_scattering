@@ -12,15 +12,14 @@ class TestSimilarity(unittest.TestCase):
     def weight_triangular(self, r, L):
         return (L - abs(r) + 1) / (L + 1)
 
-    '''
-    Weighted cross correlation of vectors within a small window:
-    sum_over_r( weight[ r ] * sum_over_x ( f( x ) * g( x + r ) ) ) for r in
-    union([ 0, L ] and [ 0, -L ] ), inclusive. By default, the weight function
-    is the triangular weight function defined above. Tested with a known
-    analytic solution calculated using numpy functions
-    '''
-
     def test_weighted_cross_corr(self):
+        '''
+        Weighted cross correlation of vectors within a small window:
+        sum_over_r( weight[ r ] * sum_over_x ( f( x ) * g( x + r ) ) ) for r in
+        union([ 0, L ] and [ 0, -L ] ), inclusive. By default, the weight
+        function is the triangular weight function defined above. Tested with
+        a known analytic solution calculated using numpy functions
+        '''
         # Arbitrary vectors
         f = [1, 3, 5, 7, 11, 13, 15, 17]
         g = [2, 4, 6, 8, 10, 12, 14, 16]
@@ -46,17 +45,16 @@ class TestSimilarity(unittest.TestCase):
 
         self.assertEqual(gold, test)
 
-    '''
-    Test the normalized similarity meausure built from the weighted cross
-    correlation.
-    It should be:
-    commutative: similarity( f, g ) = similarity( g, f )
-    unity for auto-similarity: similarity( f, f ) = 1
-    indicate similarity: similarity( f, h ) > similarity( g, h ) --->
-    f and h are more similar
-    '''
-
     def test_de_gelder_similarity(self):
+        '''
+        Test the normalized similarity measure built from the weighted cross
+        correlation.
+        It should be:
+        commutative: similarity( f, g ) = similarity( g, f )
+        unity for auto-similarity: similarity( f, f ) = 1
+        indicate similarity: similarity( f, h ) > similarity( g, h ) --->
+        f and h are more similar
+        '''
         # instantiate similarity object
         metric = similarity.similarity_metric()
 
@@ -87,11 +85,10 @@ class TestSimilarity(unittest.TestCase):
 
         self.assertGreater(fh, fg)
 
-    '''
-    test equality via a known analytic solution
-    '''
-
     def test_pointwise_squared_difference_similarity(self):
+        '''
+        test equality via a known analytic solution
+        '''
         # instantiate similarity object
         metric = similarity.similarity_metric()
 
