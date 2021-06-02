@@ -199,7 +199,7 @@ def similarity_matrix_degelder(wksp):
     '''
     print("Computing deGelder similarity matrix...")
 
-    sm = similarity_metric()
+    sm = SimilarityMetric()
     n = wksp.getNumberHistograms()
     y = wksp.extractY()
 
@@ -222,7 +222,7 @@ def similarity_matrix_degelder(wksp):
 def similarity_matrix_crosscorr(wksp):
     print("Computing pointwise crosscorr similarity matrix...")
 
-    sm = similarity_metric()
+    sm = SimilarityMetric()
     n = wksp.getNumberHistograms()
     y = wksp.extractY()
 

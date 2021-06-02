@@ -39,7 +39,7 @@ class TestSimilarity(unittest.TestCase):
         gold = numpy.sum(weighted_ncc)
 
         # Calculate using the method under test:
-        metric = similarity.similarity_metric(L)
+        metric = similarity.SimilarityMetric(L)
 
         test = metric.triangular_weighted_cross_correlation(f, g)
 
@@ -56,7 +56,7 @@ class TestSimilarity(unittest.TestCase):
         f and h are more similar
         '''
         # instantiate similarity object
-        metric = similarity.similarity_metric()
+        metric = similarity.SimilarityMetric()
 
         # the metric should return unity for perfect correlation
         f = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -90,7 +90,7 @@ class TestSimilarity(unittest.TestCase):
         test equality via a known analytic solution
         '''
         # instantiate similarity object
-        metric = similarity.similarity_metric()
+        metric = similarity.SimilarityMetric()
 
         diff = 2
 
