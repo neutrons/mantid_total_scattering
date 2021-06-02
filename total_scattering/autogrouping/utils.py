@@ -261,7 +261,7 @@ def get_detector_mask(wksp, ws_mask):
 def get_peakwindows(peakpositions: np.ndarray):
     """
     Calculates the peak windows for the given peak positions used for FitPeaks.
-    'Cheated' from `Mantid diagnostics script <https://github.com/mantidproject/mantid/blob/cf8bc851e8a7e4e31a5a6041915a8b590b82861c/scripts/Calibration/tofpd/diagnostics.py#L128>`_
+    'Cheated' from `Mantid diagnostics script <https://git.io/JGa3V>`_
     :param peakpositions: List of peak positions in d-space
     :return: List of peak windows (left and right) for each peak position
     """
