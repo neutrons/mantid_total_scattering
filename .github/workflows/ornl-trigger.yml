@@ -10,12 +10,12 @@ on:
 jobs:
   deploy-dev:
     if: ${{ github.ref == 'refs/heads/next' }}
-      runs-on: ubuntu-20.04
-      steps:
-        - run: curl -sX POST -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=master -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=mantidtotalscattering-dev ${{ secrets.GITLAB_TRIGGER_URL }} > /dev/null
+    runs-on: ubuntu-20.04
+    steps:
+      - run: curl -sX POST -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=master -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=mantidtotalscattering-dev ${{ secrets.GITLAB_TRIGGER_URL }} > /dev/null
 
   deploy-prod:          
     if: startsWith( github.ref, 'refs/tags/v')
-      runs-on: ubuntu-20.04
-      steps:
-        - run: curl -sX POST -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=master -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=mantidtotalscattering ${{ secrets.GITLAB_TRIGGER_URL }} > /dev/null
+    runs-on: ubuntu-20.04
+    steps:
+      - run: curl -sX POST -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=master -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=mantidtotalscattering ${{ secrets.GITLAB_TRIGGER_URL }} > /dev/null
