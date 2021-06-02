@@ -8,7 +8,7 @@ from mantid.simpleapi import \
     FitPeaks, \
     mtd
 from total_scattering.reduction.total_scattering_reduction import compress_ints
-from total_scattering.autogrouping.similarity import similarity_metric
+from total_scattering.autogrouping.similarity import SimilarityMetric
 
 
 def is_badfit(row, colnames, thresholds=dict(), max_chi=None):
