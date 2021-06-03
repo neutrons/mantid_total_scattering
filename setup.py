@@ -9,6 +9,7 @@ THIS_DIR = os.path.dirname(__file__)
 with open("README.md", "r") as fh:
     readme = fh.read()
 
+
 # Package requirements helper
 def read_requirements_from_file(filepath):
     '''Read a list of requirements from the given file and split into a
@@ -19,6 +20,7 @@ def read_requirements_from_file(filepath):
     '''
     with open(filepath, 'rU') as req_file:
         return req_file.readlines()
+
 
 setup_args = dict(
     install_requires=read_requirements_from_file(
