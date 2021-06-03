@@ -13,14 +13,14 @@ build:
 
 requirements:
   build:
-    - mantid-framework=5
+    - mantid-framework=6
     - python
     - setuptools
     - matplotlib
     - scikit-learn
 
   run:
-    - mantid-framework=5
+    - mantid-framework=6
     - python
     - matplotlib
     - scikit-learn
