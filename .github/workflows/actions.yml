@@ -83,6 +83,6 @@ jobs:
         run: curl -sX POST -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=master -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=mantidtotalscattering-dev ${{ secrets.GITLAB_TRIGGER_URL }} > /dev/null
 
       - name: Trigger ORNL GitLab Pipeline for PROD 
-        if: startsWith( github.ref, 'refs/tags/v') && ${{ github.ref == 'refs/heads/next' }}
+        if: ${{ startsWith( github.ref, 'refs/tags/v') && github.ref == 'refs/heads/next' }}
         run: curl -sX POST -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=master -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=mantidtotalscattering ${{ secrets.GITLAB_TRIGGER_URL }} > /dev/null
 
