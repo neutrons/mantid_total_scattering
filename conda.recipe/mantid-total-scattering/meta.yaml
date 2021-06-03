@@ -16,10 +16,14 @@ requirements:
     - mantid-framework=5
     - python
     - setuptools
+    - matplotlib
+    - scikit-learn
 
   run:
     - mantid-framework=5
     - python
+    - matplotlib
+    - scikit-learn
 
 test:
   imports:
