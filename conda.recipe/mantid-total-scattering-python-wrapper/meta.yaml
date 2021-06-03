@@ -16,9 +16,13 @@ requirements:
   build:
     - python
     - setuptools
+    - matplotlib
+    - scikit-learn
 
   run:
     - python
+    - matplotlib
+    - scikit-learn
 
 test:
   imports:
