@@ -4,6 +4,11 @@ env:
   PYTHON_MAIN_VERSION: 3.7
 
 on:
+  workflow_dispatch:
+    branches:
+      - '*'
+    tags:
+      - 'v*'
   push:
     branches:
       - '*'
