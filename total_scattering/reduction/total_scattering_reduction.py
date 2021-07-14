@@ -408,6 +408,13 @@ def TotalScatteringReduction(config=None):
     binning = merging['QBinning']
     characterizations = merging.get('Characterizations', None)
 
+    # Get Resonance filter configuration
+    res_filter = config.get('ResonanceFilter', None)
+    if res_filter is not None:
+        res_filter_axis = res_filter.get('Axis', None)
+        res_filter_lower = res_filter.get('LowerLimits', None)
+        res_filter_upper = res_filter.get('UpperLimits', None)
+
     # Grouping
     grouping = merging.get('Grouping', None)
     cache_dir = config.get("CacheDir", os.path.abspath('.'))
@@ -546,6 +553,13 @@ def TotalScatteringReduction(config=None):
     alignAndFocusArgs['PreserveEvents'] = False
     alignAndFocusArgs['MaxChunkSize'] = 8
     alignAndFocusArgs['CacheDir'] = os.path.abspath(cache_dir)
+    # add resonance filter related properties
+    # NOTE:
+    #    the default behaivor is no filtering if not specified.
+    if res_filter is not None:
+        alignAndFocusArgs['ResonanceFilterAxis'] = res_filter_axis
+        alignAndFocusArgs['LowerLimits'] = res_filter_lower
+        alignAndFocusArgs['UpperLimits'] = res_filter_upper
 
     # Get any additional AlignAndFocusArgs from JSON input
     if "AlignAndFocusArgs" in config:
