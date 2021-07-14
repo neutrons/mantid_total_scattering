@@ -1,0 +1,37 @@
+{
+    "Facility": "SNS",
+    "Instrument": "NOM",
+    "Title" : "ceriaDP375_PAC06_at_300K_IDL_Calib",
+    "Sample": { "Runs" : "143157",
+             "Background" : { "Runs" : "143230",
+                              "Background" : { "Runs" : "143074" }
+                            },
+             "Material" : "Ce0.85 Y0.15 O2",
+             "MassDensity" : 6.89,
+             "PackingFraction" : 0.70,
+             "Geometry" : {"Radius" : 0.3,
+                           "Height" : 1.8 },
+             "AbsorptionCorrection" : { "Type" : "SampleOnly" }
+            },
+    "Normalization": { "Runs" : "143080",
+                  "Background" : { "Runs" : "14307"},
+                  "Material" : "V",
+                  "MassDensity" : 6.11,
+                  "PackingFraction" : 1.0,
+                  "Geometry" : {"Radius" : 0.2925,
+                                "Height" : 1.8 },
+                  "AbsorptionCorrection" : { "Type" : "SampleOnly" }
+                },
+    "Calibration":{"Filename":"/SNS/users/y8z/Data/Igor_Ceria_New/shared/NOM_calibrate_d143068_2020_02_11.h5"},
+    "AlignAndFocusArgs" : { "TMin" : 300.0, "TMax" : 16667.0 },
+    "HighQLinearFitRange" : 0.60,
+    "Merging":{"QBinning": [0.0, 0.005, 40.0],
+               "SumBanks": [3]
+              },
+    "ResonanceFilter": {"Axis": "Energy",
+                        "LowerLimits" : [0.5, 1.0, 4.5],
+                        "UpperLimits" : [0.9, 1.5, 6.0]
+                       },
+    "CacheDir" : "./tmp",
+    "OutputDir" : "./output"
+}
