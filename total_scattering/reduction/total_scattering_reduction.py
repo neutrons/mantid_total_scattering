@@ -408,6 +408,16 @@ def TotalScatteringReduction(config=None):
     binning = merging['QBinning']
     characterizations = merging.get('Characterizations', None)
 
+    # TODO - Task 319 Implement a parser and value verification for 'SelfScatteringLevelCorrection'
+    # FIXME - the following is a fake a testing purpose
+    self_scattering_level_correction = {1: [20.0, 30.0],
+                                        2: [20.0, 25.0],
+                                        3: [20.0, 30.0],
+                                        4: [30.0, 40.0],
+                                        5: [30.0, 40.0],
+                                        6: [10.0, 15.0]}
+    assert isinstance(self_scattering_level_correction, dict)
+
     # Get Resonance filter configuration
     res_filter = config.get('ResonanceFilter', None)
     if res_filter is not None:
