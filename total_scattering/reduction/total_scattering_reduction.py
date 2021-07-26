@@ -273,6 +273,42 @@ def SetInelasticCorrection(inelastic_dict):
     return inelastic_settings
 
 
+def get_self_scattering_level(config):
+    """Reads the SelfScatteringLevelCorrection option from the input config
+
+    :param config: Input configuration dictionary
+    :return: Dictionary of bank number with tuple of min,max fit range
+    """
+    self_scattering_dict = dict()
+
+    opt = "SelfScatteringLevelCorrection"
+    if opt in config:
+        bank_levels = config[opt]
+        # return empty dict if there are no banks specified
+        if len(bank_levels) == 0:
+            return dict()
+        for key, value in bank_levels.items():
+            # get the bank number
+            if not key.startswith("Bank"):
+                raise RuntimeError("Expected a 'Bank' followed by number for "
+                                   "SelfScatteringLevelCorrection option")
+            bank = int(key.lstrip("Bank"))
+
+            # validate the fit ranges
+            if not isinstance(value, list) or len(value) != 2:
+                raise RuntimeError(
+                    "Expected a list of values [min, max] for each bank in "
+                    "the SelfScatteringLevelCorrection option")
+            value = tuple(value)
+            if value[1] <= value[0]:
+                raise RuntimeError(
+                    "Max value cannot be <= min for Bank{} in "
+                    "SelfScatteringLevelCorrection".format(bank))
+
+            self_scattering_dict[bank] = value
+    return self_scattering_dict
+
+
 def one_and_only_one(iterable):
     """Determine if iterable (ie list) has one and only one `True` value
 
@@ -408,14 +444,7 @@ def TotalScatteringReduction(config=None):
     binning = merging['QBinning']
     characterizations = merging.get('Characterizations', None)
 
-    # TODO - Task 319 Implement a parser and value verification for 'SelfScatteringLevelCorrection'
-    # FIXME - the following is a fake a testing purpose
-    self_scattering_level_correction = {1: [20.0, 30.0],
-                                        2: [20.0, 25.0],
-                                        3: [20.0, 30.0],
-                                        4: [30.0, 40.0],
-                                        5: [30.0, 40.0],
-                                        6: [10.0, 15.0]}
+    self_scattering_level_correction = get_self_scattering_level(config)
     assert isinstance(self_scattering_level_correction, dict)
 
     # Get Resonance filter configuration
