@@ -273,11 +273,14 @@ def SetInelasticCorrection(inelastic_dict):
     return inelastic_settings
 
 
-def get_self_scattering_level(config):
+def get_self_scattering_level(config, max_qbinning):
     """Reads the SelfScatteringLevelCorrection option from the input config
 
     :param config: Input configuration dictionary
+    :param max_qbinning: Maximum q binning value used to clamp the max
+    level for each bank
     :return: Dictionary of bank number with tuple of min,max fit range
+    or an empty dict if not specified
     """
     self_scattering_dict = dict()
 
@@ -299,11 +302,13 @@ def get_self_scattering_level(config):
                 raise RuntimeError(
                     "Expected a list of values [min, max] for each bank in "
                     "the SelfScatteringLevelCorrection option")
-            value = tuple(value)
             if value[1] <= value[0]:
                 raise RuntimeError(
                     "Max value cannot be <= min for Bank{} in "
                     "SelfScatteringLevelCorrection".format(bank))
+            # clamp max to the value of Merging['QBinning'][2]
+            value[1] = min(value[1], max_qbinning)
+            value = tuple(value)
 
             self_scattering_dict[bank] = value
     return self_scattering_dict
@@ -444,8 +449,11 @@ def TotalScatteringReduction(config=None):
     binning = merging['QBinning']
     characterizations = merging.get('Characterizations', None)
 
-    self_scattering_level_correction = get_self_scattering_level(config)
-    assert isinstance(self_scattering_level_correction, dict)
+    # Get the self scattering option for each bank
+    self_scattering_level_correction = get_self_scattering_level(config,
+                                                                 binning[2])
+    if not isinstance(self_scattering_level_correction, dict):
+        raise RuntimeError()
 
     # Get Resonance filter configuration
     res_filter = config.get('ResonanceFilter', None)
