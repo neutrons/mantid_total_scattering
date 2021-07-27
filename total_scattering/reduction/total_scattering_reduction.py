@@ -273,6 +273,47 @@ def SetInelasticCorrection(inelastic_dict):
     return inelastic_settings
 
 
+def get_self_scattering_level(config, max_qbinning):
+    """Reads the SelfScatteringLevelCorrection option from the input config
+
+    :param config: Input configuration dictionary
+    :param max_qbinning: Maximum q binning value used to clamp the max
+    level for each bank
+    :return: Dictionary of bank number with tuple of min,max fit range
+    or an empty dict if not specified
+    """
+    self_scattering_dict = dict()
+
+    opt = "SelfScatteringLevelCorrection"
+    if opt in config:
+        bank_levels = config[opt]
+        # return empty dict if there are no banks specified
+        if len(bank_levels) == 0:
+            return dict()
+        for key, value in bank_levels.items():
+            # get the bank number
+            if not key.startswith("Bank"):
+                raise RuntimeError("Expected a 'Bank' followed by number for "
+                                   "SelfScatteringLevelCorrection option")
+            bank = int(key.lstrip("Bank"))
+
+            # validate the fit ranges
+            if not isinstance(value, list) or len(value) != 2:
+                raise RuntimeError(
+                    "Expected a list of values [min, max] for each bank in "
+                    "the SelfScatteringLevelCorrection option")
+            if value[1] <= value[0]:
+                raise RuntimeError(
+                    "Max value cannot be <= min for Bank{} in "
+                    "SelfScatteringLevelCorrection".format(bank))
+            # clamp max to the value of Merging['QBinning'][2]
+            value[1] = min(value[1], max_qbinning)
+            value = tuple(value)
+
+            self_scattering_dict[bank] = value
+    return self_scattering_dict
+
+
 def one_and_only_one(iterable):
     """Determine if iterable (ie list) has one and only one `True` value
 
@@ -407,6 +448,12 @@ def TotalScatteringReduction(config=None):
     merging = config['Merging']
     binning = merging['QBinning']
     characterizations = merging.get('Characterizations', None)
+
+    # Get the self scattering option for each bank
+    self_scattering_level_correction = get_self_scattering_level(config,
+                                                                 binning[2])
+    if not isinstance(self_scattering_level_correction, dict):
+        raise RuntimeError()
 
     # Get Resonance filter configuration
     res_filter = config.get('ResonanceFilter', None)
