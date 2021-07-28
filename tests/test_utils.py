@@ -1,7 +1,3 @@
-
-r"""
-
-"""
 # package imports
 from tests.utils import compare
 

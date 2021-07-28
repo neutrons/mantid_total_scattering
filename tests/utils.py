@@ -1,17 +1,17 @@
 r"""
-
+Functions assisting in tests writing
 """
-
 # standard imports
 from typing import Any, Dict
 import unittest
+
 
 def compare(expected: Dict[str, Any],
             actual: Dict[str, Any]) -> None:
     r"""Assert values of two dictionaries
 
     :param expected: dictionary containing the correct values
-    :param actual: dictionary containing the values to be compared against the correct ones
+    :param actual: dictionary containing values compared against correct ones
     """
     assertor = unittest.TestCase()
     comparators = {

@@ -18,13 +18,14 @@ class NomadTotalScatteringSystemTest(unittest.TestCase):
 
     NOM_DIR_ACCESIBLE = Path('/SNS/NOM').exists()
 
-    @unittest.skipIf(not NOM_DIR_ACCESIBLE, 'Do not run system test on build servers')
+    @unittest.skipIf(not NOM_DIR_ACCESIBLE,
+                     'Do not run system test on build servers')
     def test_examples(self):
         pattern = str(Path(EXAMPLE_DIR) / 'sns' / 'nomad_*.json')
         for file_json in glob.iglob(pattern):
 
             # reduce only when a file with expected values exists
-            file_expected = file_json.replace('.json', '.expt')  # JSON file containing expected values
+            file_expected = file_json.replace('.json', '.expt')
             if not Path(file_expected).exists():
                 continue
 
