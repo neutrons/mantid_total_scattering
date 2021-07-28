@@ -1312,16 +1312,18 @@ def TotalScatteringReduction(config=None):
         Binning=binning)
 
     # STEP 7: Inelastic correction
-    ConvertUnits(
-        InputWorkspace=sam_corrected,
-        OutputWorkspace=sam_corrected,
-        Target='Wavelength',
-        EMode='Elastic')
 
     if sam_inelastic_corr['Type'] == "Placzek":
         if sam_material is None:
             error = "For Placzek correction, must specifiy a sample material."
             raise Exception(error)
+
+        ConvertUnits(
+            InputWorkspace=sam_corrected,
+            OutputWorkspace=sam_corrected,
+            Target='Wavelength',
+            EMode='Elastic')
+
         for sam_scan in sample['Runs']:
             sam_incident_wksp = 'sam_incident_wksp'
             sam_inelastic_opts = sample['InelasticCorrection']
@@ -1344,6 +1346,7 @@ def TotalScatteringReduction(config=None):
                 InputWorkspace=sam_incident_wksp,
                 Material={'ChemicalFormula': str(sam_material),
                           'SampleMassDensity': str(sam_mass_density)})
+
             CalculatePlaczekSelfScattering(
                 IncidentWorkspace=sam_incident_wksp,
                 ParentWorkspace=sam_corrected,
@@ -1356,7 +1359,6 @@ def TotalScatteringReduction(config=None):
                 InputWorkspace=sam_placzek,
                 OutputWorkspace=sam_placzek)
 
-        # Save before rebin in Q
         for wksp in [sam_placzek, sam_corrected]:
             ConvertUnits(
                 InputWorkspace=wksp,
@@ -1378,26 +1380,10 @@ def TotalScatteringReduction(config=None):
             GroupingWorkspace=grp_wksp,
             Binning=binning)
 
-        # Save after rebin in Q
-        for wksp in [sam_placzek, sam_corrected]:
-            ConvertUnits(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Target='MomentumTransfer',
-                EMode='Elastic')
-
         Minus(
             LHSWorkspace=sam_corrected,
             RHSWorkspace=sam_placzek,
             OutputWorkspace=sam_corrected)
-
-        # Save after subtraction
-        for wksp in [sam_placzek, sam_corrected]:
-            ConvertUnits(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Target='MomentumTransfer',
-                EMode='Elastic')
 
         sample_title += '_placzek_corrected'
         save_banks(
