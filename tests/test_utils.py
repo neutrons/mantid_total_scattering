@@ -4,6 +4,7 @@ from tests.utils import compare
 # standard imports
 import unittest
 
+
 class UtilsTest(unittest.TestCase):
 
     def test_compare(self):
@@ -16,7 +17,8 @@ class UtilsTest(unittest.TestCase):
         actual = {}
         for key, value in expected.items():
             if isinstance(value, dict) and 'Kwargs' in value:
-                actual[key] = value['Value']  # strip Kwargs from the value associated to the key
+                # strip Kwargs from the value associated to the key
+                actual[key] = value['Value']
             else:
                 actual[key] = value
         compare(expected, actual)

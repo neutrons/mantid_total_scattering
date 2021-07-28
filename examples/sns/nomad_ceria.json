@@ -29,5 +29,5 @@
                "SumBanks": [3]
               },
     "CacheDir" : "./tmp",
-    "OutputDir" : "./output"
+    "OutputDir" : "./ceria"
 }
