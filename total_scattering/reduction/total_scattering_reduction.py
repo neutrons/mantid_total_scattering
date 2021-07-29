@@ -17,6 +17,7 @@ from mantid.simpleapi import \
     ConvertUnits, \
     CreateEmptyTableWorkspace, \
     CreateGroupingWorkspace, \
+    CreateWorkspace, \
     CropWorkspaceRagged, \
     DeleteWorkspace, \
     Divide, \
@@ -26,6 +27,7 @@ from mantid.simpleapi import \
     Load, \
     LoadDetectorsGroupingFile, \
     LoadDiffCal, \
+    MatchSpectra, \
     MayersSampleCorrection, \
     Minus, \
     PDDetermineCharacterizations, \
@@ -316,6 +318,64 @@ def get_self_scattering_level(config, max_qbinning):
 
             self_scattering_dict[bank] = value
     return self_scattering_dict
+
+
+def calculate_bank_offsets(s_q_wksp, q_ranges):
+    """Fits a horizontal line to each bank and region specified in q_ranges.
+    Scales the full bank data in s_q_wksp by the offset (fitted level) and
+    returns a new workspace with the scaled data (s_q_norm)
+
+    :param s_q_wksp: workspace containing S(Q) with spectra for each bank,
+    in MomentumTransfer units
+    :param q_ranges: dictionary of bank number with tuple range of Q fitting
+    :return: Clone of s_q_wksp scaled by fitted level for banks specified in
+    q_ranges
+    """
+    s_q_wksp = mtd[str(s_q_wksp)]
+
+    # Check units (and for now, throw error if not in MomentumTransfer)
+    if s_q_wksp.getAxis(0).getUnit().unitID() != "MomentumTransfer":
+        raise RuntimeError(
+            "S(Q) workspace was expected to be in MomentumTransfer, "
+            "but has units '{}'".format(
+                s_q_wksp.getAxis(0).getUnit().unitID()))
+
+    # Setup the output workspace. This gets returned as-is if q_ranges is empty
+    s_q_norm = CloneWorkspace(InputWorkspace=s_q_wksp,
+                              OutputWorkspace=str(s_q_wksp)+"_norm")
+
+    # Perform the horizontal fitting to each bank in q_ranges
+    for key, value in q_ranges.items():
+        # get corresponding workspace index number in S(Q) from the bank number
+        ws_index = key - 1
+
+        start_index = s_q_wksp.yIndexOfX(value[0], ws_index) + 1
+        end_index = s_q_wksp.yIndexOfX(value[1], ws_index) + 1
+        # Extract the bank between the fit regions
+        bank_x = s_q_wksp.readX(ws_index)[start_index:end_index]
+        bank_y = s_q_wksp.readY(ws_index)[start_index:end_index]
+        bank_e = s_q_wksp.readE(ws_index)[start_index:end_index]
+
+        # Create reference spectrum which is flat line at 1.0
+        ref_y = np.zeros(bank_x.shape) + 1.0
+
+        CreateWorkspace(np.concatenate((bank_x, bank_x)),
+                        np.concatenate((ref_y, bank_y)),
+                        np.concatenate((ref_y, bank_e)),
+                        NSpec=2,
+                        OutputWorkspace="__tmp_bank_fit")
+        match_result = MatchSpectra(InputWorkspace="__tmp_bank_fit",
+                                    OutputWorkspace="__tmp_bank_fit",
+                                    ReferenceSpectrum=1,
+                                    CalculateOffset=True,
+                                    CalculateScale=False)
+        offset = match_result.Offset[1]
+        # scale full bank data by offset
+        s_q_norm.setY(ws_index, s_q_norm.dataY(ws_index) * (1.0 / offset))
+
+        DeleteWorkspace("__tmp_bank_fit")
+
+    return s_q_norm
 
 
 def one_and_only_one(iterable):
