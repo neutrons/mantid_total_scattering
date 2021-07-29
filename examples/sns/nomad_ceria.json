@@ -22,12 +22,12 @@
                                 "Height" : 1.8 },
                   "AbsorptionCorrection" : { "Type" : "SampleOnly" }
                 },
-    "Calibration":{"Filename":"/SNS/users/y8z/Data/Igor_Ceria_New/shared/NOM_calibrate_d143068_2020_02_11.h5"},
+    "Calibration":{"Filename":"/SNS/NOM/shared/CALIBRATION/2020_1_1A_CAL/NOM_calibrate_d143068_2020_02_11.h5"},
     "AlignAndFocusArgs" : { "TMin" : 300.0, "TMax" : 16667.0 },
     "HighQLinearFitRange" : 0.60,
     "Merging":{"QBinning": [0.0, 0.005, 40.0],
                "SumBanks": [3]
               },
-    "CacheDir" : "./tmp",
-    "OutputDir" : "./ceria"
+    "CacheDir" : "/tmp",
+    "OutputDir" : "/tmp/ceria"
 }

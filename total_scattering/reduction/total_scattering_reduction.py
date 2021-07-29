@@ -18,6 +18,7 @@ from mantid.simpleapi import \
     CreateEmptyTableWorkspace, \
     CreateGroupingWorkspace, \
     CropWorkspaceRagged, \
+    DeleteWorkspace, \
     Divide, \
     FFTSmooth, \
     GenerateEventsFilter, \
@@ -31,6 +32,7 @@ from mantid.simpleapi import \
     PropertyManagerDataService, \
     Rebin, \
     RebinToWorkspace, \
+    RenameWorkspace, \
     SaveGSS, \
     SetSample, \
     SetUncertainties, \
@@ -42,6 +44,8 @@ from total_scattering.inelastic.placzek import \
     CalculatePlaczekSelfScattering, \
     FitIncidentSpectrum, \
     GetIncidentSpectrumFromMonitor
+from total_scattering.reduction.normalizations import (
+    Material, calculate_fitted_levels, to_absolute_scale, to_f_of_q)
 
 
 # Constants
@@ -1394,8 +1398,6 @@ def TotalScatteringReduction(config=None):
             GroupingWorkspace=grp_wksp,
             Binning=binning)
 
-    # STEP 7: Output spectrum
-
     # TODO Since we already went from Event -> 2D workspace, can't use this
     # anymore
     print('sam:', mtd[sam_corrected].id())
@@ -1405,30 +1407,30 @@ def TotalScatteringReduction(config=None):
             InputWorkspace=sam_corrected,
             OutputWorkspace=sam_corrected)
 
-    # F(Q) bank-by-bank Section
-    fq_banks_wksp = "FQ_banks_wksp"
-    CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace=fq_banks_wksp)
-    # TODO: Add the following when implemented - FQ_banks = 'FQ_banks'
+    # STEP 7:  S(Q) and F(Q) bank-by-bank
 
-    # S(Q) bank-by-bank Section
-    material = mtd[sam_corrected].sample().getMaterial()
-    if material.name() is None or len(material.name().strip()) == 0:
-        raise RuntimeError('Sample material was not set')
-    bcoh_avg_sqrd = material.cohScatterLength() * material.cohScatterLength()
-    btot_sqrd_avg = material.totalScatterLengthSqrd()
-    laue_monotonic_diffuse_scat = btot_sqrd_avg / bcoh_avg_sqrd
-    sq_banks_wksp = 'SQ_banks_wksp'
-    CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace=sq_banks_wksp)
+    sam_corrected_norm = sam_corrected + '_norm'
+    to_absolute_scale(sam_corrected, sam_corrected_norm)
 
-    # TODO: Add the following when implemented
-    '''
-    SQ_banks = (1. / bcoh_avg_sqrd) * \
-        mtd[sq_banks_wksp] - laue_monotonic_diffuse_scat + 1.
-    '''
+    if not self_scattering_level_correction:
+        fitted_levels = calculate_fitted_levels(
+            sam_corrected,
+            self_scattering_level_correction)
+
+        sam_corrected_norm_scaled = sam_corrected_norm + '_scaled'
+        Divide(LHSWorkspace=sam_corrected_norm,
+               RHSWorkspace=fitted_levels,
+               OutputWorkspace=sam_corrected_norm_scaled)
+        DeleteWorkspace(fitted_levels)  # remove temporary workspace
+
+    fq_banks = 'FQ_banks'
+    to_f_of_q(sam_corrected_norm_scaled, fq_banks)
+
+    # STEP 8: Output spectra
 
     # Save S(Q) and F(Q) to diagnostics NeXus file
     save_banks(
-        InputWorkspace=fq_banks_wksp,
+        InputWorkspace=fq_banks,
         Filename=nexus_filename,
         Title="FQ_banks",
         OutputDir=OutputDir,
@@ -1436,9 +1438,9 @@ def TotalScatteringReduction(config=None):
         Binning=binning)
 
     save_banks(
-        InputWorkspace=sq_banks_wksp,
+        InputWorkspace=sam_corrected_norm_scaled,
         Filename=nexus_filename,
-        Title="SQ_banks",
+        Title="SQ_banks_normalized_scaled",
         OutputDir=OutputDir,
         GroupingWorkspace=grp_wksp,
         Binning=binning)
@@ -1446,7 +1448,7 @@ def TotalScatteringReduction(config=None):
     # Output a main S(Q) and F(Q) file
     fq_filename = title + '_fofq_banks_corrected.nxs'
     save_banks(
-        InputWorkspace=fq_banks_wksp,
+        InputWorkspace=fq_banks,
         Filename=fq_filename,
         Title="FQ_banks",
         OutputDir=OutputDir,
@@ -1455,7 +1457,7 @@ def TotalScatteringReduction(config=None):
 
     sq_filename = title + '_sofq_banks_corrected.nxs'
     save_banks(
-        InputWorkspace=sq_banks_wksp,
+        InputWorkspace=sam_corrected_norm_scaled,
         Filename=sq_filename,
         Title="SQ_banks",
         OutputDir=OutputDir,
@@ -1463,15 +1465,13 @@ def TotalScatteringReduction(config=None):
         Binning=binning)
 
     # Print log information
-    print("<b>^2:", bcoh_avg_sqrd)
-    print("<b^2>:", btot_sqrd_avg)
-    print("Laue term:", laue_monotonic_diffuse_scat)
-    print(
-        "sample total xsection:",
-        mtd[sam_corrected].sample().getMaterial().totalScatterXSection())
-    print(
-        "vanadium total xsection:",
-        mtd[van_corrected].sample().getMaterial().totalScatterXSection())
+    material = Material(sam_corrected)
+    print("<b>^2:", material.bcoh_avg_sqrd)
+    print("<b^2>:", material.btot_sqrd_avg)
+    print("Laue term:", material.laue_monotonic_diffuse_scat)
+    print("sample total xsection:", material.totalScatterXSection())
+    print("vanadium total xsection:",
+          Material(van_corrected).totalScatterXSection())
 
     # Output Bragg Diffraction
     ConvertUnits(

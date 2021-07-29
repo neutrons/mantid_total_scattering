@@ -28,6 +28,6 @@
     "Merging":{"QBinning": [0.0, 0.005, 40.0],
                "SumBanks": [3]
               },
-    "CacheDir" : "./tmp",
-    "OutputDir" : "./SrTiO3"
+    "CacheDir" : "/tmp",
+    "OutputDir" : "/tmp/SrTiO3"
 }
