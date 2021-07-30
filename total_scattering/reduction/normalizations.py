@@ -53,7 +53,7 @@ def to_absolute_scale(
     return mtd[output_workspace]
 
 
-def calculate_fitted_levels(
+def calculate_and_apply_fitted_levels(
         input_workspace: Union[str, Workspace2D],
         q_ranges: dict,
         output_workspace: str = 'fitted_levels') -> Workspace2D:
@@ -96,6 +96,9 @@ def calculate_fitted_levels(
         # Create reference spectrum which is flat line at 1.0
         ref_y = np.zeros(bank_x.shape) + 1.0
 
+        # Create a workspace with 2 spectra (bank data and reference spectrum)
+        # as input to MatchSpectra so that the bank data can be fit to the flat
+        # line at 1.0
         CreateWorkspace(np.concatenate((bank_x, bank_x)),
                         np.concatenate((ref_y, bank_y)),
                         np.concatenate((ref_y, bank_e)),

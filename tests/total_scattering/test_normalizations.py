@@ -1,7 +1,7 @@
 # package imports
 import total_scattering.reduction.total_scattering_reduction as ts
 from total_scattering.reduction.normalizations import (
-    Material, calculate_fitted_levels, to_absolute_scale, to_f_of_q)
+    Material, calculate_and_apply_fitted_levels, to_absolute_scale, to_f_of_q)
 from tests import TEST_DATA_DIR
 
 # 3rd-party imports
@@ -76,7 +76,7 @@ class TestNormalizations(unittest.TestCase):
                                                     "Bank4": [30.0, 40.0],
                                                     "Bank5": [30.0, 40.0]}}
         q_ranges = ts.get_self_scattering_level(config, 45.0)
-        s_q_norm = calculate_fitted_levels(self.s_of_q, q_ranges)
+        s_q_norm = calculate_and_apply_fitted_levels(self.s_of_q, q_ranges)
         offsets = {3: 0.58826, 4: 0.74313, 5: 0.79304}
         for key in q_ranges:
             norm_y = s_q_norm.readY(key - 1)

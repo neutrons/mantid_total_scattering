@@ -18,7 +18,6 @@ from mantid.simpleapi import \
     CreateEmptyTableWorkspace, \
     CreateGroupingWorkspace, \
     CropWorkspaceRagged, \
-    DeleteWorkspace, \
     Divide, \
     FFTSmooth, \
     GenerateEventsFilter, \
@@ -44,7 +43,7 @@ from total_scattering.inelastic.placzek import \
     FitIncidentSpectrum, \
     GetIncidentSpectrumFromMonitor
 from total_scattering.reduction.normalizations import (
-    Material, calculate_fitted_levels, to_absolute_scale, to_f_of_q)
+    Material, calculate_and_apply_fitted_levels, to_absolute_scale, to_f_of_q)
 
 
 # Constants
@@ -1419,16 +1418,10 @@ def TotalScatteringReduction(config=None):
         Binning=binning)
 
     if self_scattering_level_correction:
-
-        fitted_levels = calculate_fitted_levels(
-            sam_corrected,
-            self_scattering_level_correction)
-
-        sam_corrected_norm_scaled = sam_corrected_norm + '_scaled'
-        Divide(LHSWorkspace=sam_corrected_norm,
-               RHSWorkspace=fitted_levels,
-               OutputWorkspace=sam_corrected_norm_scaled)
-        DeleteWorkspace(fitted_levels)  # remove temporary workspace
+        sam_corrected_norm_scaled = calculate_and_apply_fitted_levels(
+            sam_corrected_norm,
+            self_scattering_level_correction,
+            sam_corrected_norm + '_scaled')
         save_banks(
             InputWorkspace=sam_corrected_norm_scaled,
             Filename=nexus_filename,
