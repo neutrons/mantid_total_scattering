@@ -171,12 +171,12 @@ def autogrouping(config):
                                    InputWorkspaceIndexSet=mask_ws)
                 wksp = RemoveMaskedSpectra(InputWorkspace=wksp)
 
-    # Rebin (in TOF)
-    wksp = Rebin(InputWorkspace=wksp, Params=(300, -0.001, 16666.7))
-
     # Convert from TOF to dspacing
     wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing",
                         EMode="Elastic")
+
+    # Rebin (in d-space)
+    wksp = Rebin(InputWorkspace=wksp, Params=(0.1, 0.001, 3.0))
 
     wsindex = list(range(wksp.getNumberHistograms()))
     clustering_input = None
@@ -387,9 +387,10 @@ def autogrouping(config):
 
     if plots and plots["Grouping"]:
         fig, ax = plt.subplots()
-        for i in range(len(wsindex)):
-            wsindex[i] = wksp.getDetector(i).getID()
-        ax.scatter(wsindex, labels + 1, c=labels)
+        wsindex_init = []
+        for item in wsindex:
+            wsindex_init.append(wksp.getDetector(int(item)).getID())
+        ax.scatter(wsindex_init, labels + 1, c=labels)
         ax.set_title("{}: {}".format(
             grouping_method, diamond_file.split("/")[-1]))
         ax.set_xlabel("pixel")
@@ -427,7 +428,7 @@ def autogrouping(config):
                                 OutputWorkspace="grouping")
         grouping = mtd["grouping"]
         for i in range(len(labels)):
-            det_id = wksp.getDetector(i).getID()
+            det_id = wksp.getDetector(int(wsindex[i])).getID()
             # Skip if label is -1 (DBSCAN labels these as noise)
             if labels[i] == -1:
                 continue
