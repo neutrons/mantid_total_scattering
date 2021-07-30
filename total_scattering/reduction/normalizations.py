@@ -56,7 +56,7 @@ def to_absolute_scale(
 def calculate_and_apply_fitted_levels(
         input_workspace: Union[str, Workspace2D],
         q_ranges: dict,
-        output_workspace: str = 'fitted_levels') -> Workspace2D:
+        output_workspace: str = 'fitted_levels') -> Union[Workspace2D, dict]:
     r"""Fits a horizontal line to each bank and region specified in q_ranges.
     Scales the full bank data in input_workspace by the offset (fitted level)
     and returns a new workspace with the scaled data (s_q_norm)
@@ -66,9 +66,10 @@ def calculate_and_apply_fitted_levels(
     :param q_ranges: dictionary of bank number with tuple range of Q fitting
     :param output_workspace: name of output workspace
     :return: Clone of input_workspace scaled by fitted level for banks
-    specified in q_ranges
+    specified in q_ranges and a dict of banks with bad fitted levels (<= 0)
     """
     input_workspace = mtd[str(input_workspace)]
+    bad_levels = dict()
 
     # Check units (and for now, throw error if not in MomentumTransfer)
     if input_workspace.getAxis(0).getUnit().unitID() != "MomentumTransfer":
@@ -110,12 +111,16 @@ def calculate_and_apply_fitted_levels(
                                     CalculateOffset=True,
                                     CalculateScale=False)
         offset = match_result.Offset[1]
-        # scale full bank data by offset
-        s_q_norm.setY(ws_index, s_q_norm.dataY(ws_index) * (1.0 / offset))
+        # if offset is <= 0, then we want to skip applying the scale
+        if offset < 0.0 or np.isclose(offset, 0.0):
+            bad_levels[key] = offset
+        else:
+            # scale full bank data by offset
+            s_q_norm.setY(ws_index, s_q_norm.dataY(ws_index) * (1.0 / offset))
 
         DeleteWorkspace("__tmp_bank_fit")
 
-    return s_q_norm
+    return s_q_norm, bad_levels
 
 
 def to_f_of_q(

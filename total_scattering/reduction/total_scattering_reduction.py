@@ -1418,10 +1418,10 @@ def TotalScatteringReduction(config=None):
         Binning=binning)
 
     if self_scattering_level_correction:
-        sam_corrected_norm_scaled = calculate_and_apply_fitted_levels(
-            sam_corrected_norm,
-            self_scattering_level_correction,
-            sam_corrected_norm + '_scaled')
+        sam_corrected_norm_scaled, bad_fitted_levels = \
+            calculate_and_apply_fitted_levels(sam_corrected_norm,
+                                              self_scattering_level_correction,
+                                              sam_corrected_norm + '_scaled')
         save_banks(
             InputWorkspace=sam_corrected_norm_scaled,
             Filename=nexus_filename,
@@ -1487,5 +1487,11 @@ def TotalScatteringReduction(config=None):
         MultiplyByBinWidth=True,
         Format="SLOG",
         ExtendedHeader=True)
+
+    # print warning message about any bad fit levels if using self scattering
+    if self_scattering_level_correction and bad_fitted_levels:
+        for bank, offset in bad_fitted_levels.items():
+            log.warning(f"Bank {bank} had a bad fitted level of {offset} "
+                        f"and was not scaled in SQ_banks_normalized_scaled")
 
     return mtd[sam_corrected]
