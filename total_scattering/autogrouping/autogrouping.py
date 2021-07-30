@@ -20,7 +20,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
-from utils import \
+from total_scattering.autogrouping.utils import \
     peakfitting, \
     gather_fitparameters, \
     gathered_parameters_to_tablewksp, \
