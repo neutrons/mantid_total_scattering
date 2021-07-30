@@ -1,34 +1,95 @@
+# package imports
 import total_scattering.reduction.total_scattering_reduction as ts
-from total_scattering.reduction.normalizations import calculate_fitted_levels
+from total_scattering.reduction.normalizations import (
+    Material, calculate_fitted_levels, to_absolute_scale, to_f_of_q)
 from tests import TEST_DATA_DIR
-from mantid.simpleapi import Load
 
-import os
+# 3rd-party imports
+from mantid.simpleapi import CloneWorkspace, DeleteWorkspace, LoadNexus
+from mantid.kernel import Material as MantidMaterial
+
+# standard imports
+from pathlib import Path
 import numpy as np
 import unittest
 
 
+class TestMaterial(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        _file_path = str(Path(TEST_DATA_DIR) / 'ceriaDP375_SofQ.nxs')
+        cls.s_of_q = LoadNexus(Filename=_file_path, OutputWorkspace='s_of_q')
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        DeleteWorkspace(cls.s_of_q)
+
+    def test_init(self):
+        m = Material(self.s_of_q)
+        assert isinstance(m._material, MantidMaterial)
+
+    def test_wrapper(self):
+        r"""Check method calls are passed on to self._material"""
+        m = Material(self.s_of_q)
+        self.assertAlmostEqual(m.cohScatterLength(), 5.627, places=3)
+        self.assertAlmostEqual(m.totalScatterLengthSqrd(), 32.144, places=3)
+        self.assertAlmostEqual(m.totalScatterXSection(), 4.039, places=3)
+
+    def test_properties(self):
+        m = Material(self.s_of_q)
+        self.assertAlmostEqual(m.bcoh_avg_sqrd, 31.669, places=3)
+        self.assertAlmostEqual(m.btot_sqrd_avg, 32.144, places=3)
+        self.assertAlmostEqual(m.laue_monotonic_diffuse_scat, 1.015, places=3)
+
+
 class TestNormalizations(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        _file_path = str(Path(TEST_DATA_DIR) / 'ceriaDP375_SofQ.nxs')
+        cls._s_of_q = LoadNexus(Filename=_file_path, OutputWorkspace='_s_of_q')
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        DeleteWorkspace(cls._s_of_q)
+
     def setUp(self):
-        pass
+        self.s_of_q = CloneWorkspace(InputWorkspace=self._s_of_q,
+                                     OutputWorkspace='s_of_q')
+
+    def tearDown(self) -> None:
+        DeleteWorkspace(self.s_of_q)
+
+    def test_to_absolute_scale(self):
+        s_of_q_norm = to_absolute_scale(self.s_of_q, 's_of_q_norm')
+        m = Material(self.s_of_q)
+        a, b = 1. / m.bcoh_avg_sqrd, 1 - m.laue_monotonic_diffuse_scat
+        y0, y = self.s_of_q.readY(3)[7342], s_of_q_norm.readY(3)[7342]
+        self.assertAlmostEqual(y, a * y0 + b, places=6)
+        DeleteWorkspace('s_of_q_norm')
 
     def test_calculate_bank_offsets(self):
         """ Test that the bank offsets are calculated properly
         """
-        s_q_wksp = Load(Filename=os.path.join(TEST_DATA_DIR,
-                                              "ceriaDP375_SofQ.nxs"))
         config = {"SelfScatteringLevelCorrection": {"Bank3": [20.0, 30.0],
                                                     "Bank4": [30.0, 40.0],
                                                     "Bank5": [30.0, 40.0]}}
         q_ranges = ts.get_self_scattering_level(config, 45.0)
-        s_q_norm = calculate_fitted_levels(s_q_wksp, q_ranges)
+        s_q_norm = calculate_fitted_levels(self.s_of_q, q_ranges)
         offsets = {3: 0.58826, 4: 0.74313, 5: 0.79304}
         for key in q_ranges:
             norm_y = s_q_norm.readY(key - 1)
-            bank_y = s_q_wksp.readY(key - 1)
+            bank_y = self.s_of_q.readY(key - 1)
             self.assertTrue(np.allclose(norm_y * offsets[key], bank_y,
                                         rtol=1e-3, equal_nan=True))
+
+    def test_to_f_of_q(self):
+        f_of_q = to_f_of_q(self.s_of_q, 'f_of_q')
+        y0, y = self.s_of_q.readY(3)[7342], f_of_q.readY(3)[7342]
+        c = Material(self.s_of_q).bcoh_avg_sqrd
+        self.assertAlmostEqual(y, c * (y0 - 1), places=6)
+        DeleteWorkspace('f_of_q')
 
 
 if __name__ == '__main__':
