@@ -1406,12 +1406,20 @@ def TotalScatteringReduction(config=None):
             InputWorkspace=sam_corrected,
             OutputWorkspace=sam_corrected)
 
-    # STEP 7:  S(Q) and F(Q) bank-by-bank
+    # STEP 7:  S(Q) and F(Q), bank-by-bank
 
     sam_corrected_norm = sam_corrected + '_norm'
     to_absolute_scale(sam_corrected, sam_corrected_norm)
+    save_banks(
+        InputWorkspace=sam_corrected_norm,
+        Filename=nexus_filename,
+        Title="SQ_banks_normalized",
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
 
-    if not self_scattering_level_correction:
+    if self_scattering_level_correction:
+
         fitted_levels = calculate_fitted_levels(
             sam_corrected,
             self_scattering_level_correction)
@@ -1421,44 +1429,22 @@ def TotalScatteringReduction(config=None):
                RHSWorkspace=fitted_levels,
                OutputWorkspace=sam_corrected_norm_scaled)
         DeleteWorkspace(fitted_levels)  # remove temporary workspace
+        save_banks(
+            InputWorkspace=sam_corrected_norm_scaled,
+            Filename=nexus_filename,
+            Title="SQ_banks_normalized_scaled",
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
+    else:
+        sam_corrected_norm_scaled = sam_corrected_norm  # just an alias
 
     fq_banks = 'FQ_banks'
     to_f_of_q(sam_corrected_norm_scaled, fq_banks)
-
-    # STEP 8: Output spectra
-
-    # Save S(Q) and F(Q) to diagnostics NeXus file
     save_banks(
         InputWorkspace=fq_banks,
         Filename=nexus_filename,
         Title="FQ_banks",
-        OutputDir=OutputDir,
-        GroupingWorkspace=grp_wksp,
-        Binning=binning)
-
-    save_banks(
-        InputWorkspace=sam_corrected_norm_scaled,
-        Filename=nexus_filename,
-        Title="SQ_banks_normalized_scaled",
-        OutputDir=OutputDir,
-        GroupingWorkspace=grp_wksp,
-        Binning=binning)
-
-    # Output a main S(Q) and F(Q) file
-    fq_filename = title + '_fofq_banks_corrected.nxs'
-    save_banks(
-        InputWorkspace=fq_banks,
-        Filename=fq_filename,
-        Title="FQ_banks",
-        OutputDir=OutputDir,
-        GroupingWorkspace=grp_wksp,
-        Binning=binning)
-
-    sq_filename = title + '_sofq_banks_corrected.nxs'
-    save_banks(
-        InputWorkspace=sam_corrected_norm_scaled,
-        Filename=sq_filename,
-        Title="SQ_banks",
         OutputDir=OutputDir,
         GroupingWorkspace=grp_wksp,
         Binning=binning)
