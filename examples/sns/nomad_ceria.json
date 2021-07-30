@@ -28,6 +28,13 @@
     "Merging":{"QBinning": [0.0, 0.005, 40.0],
                "SumBanks": [3]
               },
+    "SelfScatteringLevelCorrection": {"Bank1" : [20.0, 30.0],
+                                      "Bank2" : [20.0, 25.0],
+                                      "Bank3" : [20.0, 30.0],
+                                      "Bank4" : [30.0, 40.0],
+                                      "Bank5" : [30.0, 40.0],
+                                      "Bank6" : [10.0, 15.0]
+                                     },
     "CacheDir" : "/tmp",
     "OutputDir" : "/tmp/ceria"
 }
