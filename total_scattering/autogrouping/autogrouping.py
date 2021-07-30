@@ -171,7 +171,6 @@ def autogrouping(config):
                                    InputWorkspaceIndexSet=mask_ws)
                 wksp = RemoveMaskedSpectra(InputWorkspace=wksp)
 
-
     # Convert from TOF to dspacing
     wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing",
                         EMode="Elastic")
