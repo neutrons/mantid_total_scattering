@@ -7,7 +7,7 @@ from mantid.simpleapi import (
 
 # standard imports
 import numpy as np
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 
 class Material:
@@ -56,7 +56,7 @@ def to_absolute_scale(
 def calculate_and_apply_fitted_levels(
         input_workspace: Union[str, Workspace2D],
         q_ranges: dict,
-        output_workspace: str = 'fitted_levels') -> Tuple[Workspace2D, dict]:
+        output_workspace: Optional[str] = None) -> Tuple[Workspace2D, dict]:
     r"""Fits a horizontal line to each bank and region specified in q_ranges.
     Scales the full bank data in input_workspace by the offset (fitted level)
     and returns a new workspace with the scaled data (s_q_norm)
@@ -64,10 +64,14 @@ def calculate_and_apply_fitted_levels(
     :param input_workspace: workspace containing S(Q) with spectra for each
     bank, in MomentumTransfer units
     :param q_ranges: dictionary of bank number with tuple range of Q fitting
-    :param output_workspace: name of output workspace
+    :param output_workspace: name of output workspace. If `None`, the name is
+    that of the input_workspace plus the `_scaled` suffix.
     :return: Clone of input_workspace scaled by fitted level for banks
     specified in q_ranges, and a dict of banks with bad fitted levels (<= 0)
     """
+    if output_workspace is None:
+        output_workspace = str(input_workspace) + '_scaled'
+
     input_workspace = mtd[str(input_workspace)]
     bad_levels = dict()
 
