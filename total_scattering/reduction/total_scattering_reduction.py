@@ -415,6 +415,9 @@ def TotalScatteringReduction(config=None):
     # Get an instance to Mantid's logger
     log = Logger("TotalScatteringReduction")
 
+    # Message to be presented at the very end of the reduction via the logger.
+    final_message = ''
+
     # Get sample info
     sample = get_sample(config)
     sam_mass_density = sample.get('MassDensity', None)
@@ -1422,6 +1425,11 @@ def TotalScatteringReduction(config=None):
             calculate_and_apply_fitted_levels(sam_corrected_norm,
                                               self_scattering_level_correction,
                                               sam_corrected_norm + '_scaled')
+        if bad_fitted_levels:
+            for bank, offset in bad_fitted_levels.items():
+                final_message +=\
+                    f'Bank {bank} had a bad fitted level of {offset} ' \
+                    f'and was not scaled in {sam_corrected_norm_scaled}\n'
         save_banks(
             InputWorkspace=sam_corrected_norm_scaled,
             Filename=nexus_filename,
@@ -1488,10 +1496,7 @@ def TotalScatteringReduction(config=None):
         Format="SLOG",
         ExtendedHeader=True)
 
-    # print warning message about any bad fit levels if using self scattering
-    if self_scattering_level_correction and bad_fitted_levels:
-        for bank, offset in bad_fitted_levels.items():
-            log.warning(f"Bank {bank} had a bad fitted level of {offset} "
-                        f"and was not scaled in SQ_banks_normalized_scaled")
+    if final_message:
+        log.warning(final_message)
 
     return mtd[sam_corrected]
