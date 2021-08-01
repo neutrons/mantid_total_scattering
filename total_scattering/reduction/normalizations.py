@@ -7,7 +7,7 @@ from mantid.simpleapi import (
 
 # standard imports
 import numpy as np
-from typing import Union
+from typing import Tuple, Union
 
 
 class Material:

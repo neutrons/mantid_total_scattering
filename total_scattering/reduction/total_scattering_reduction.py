@@ -1421,10 +1421,11 @@ def TotalScatteringReduction(config=None):
         Binning=binning)
 
     if self_scattering_level_correction:
-        sam_corrected_norm_scaled, bad_fitted_levels = \
+        sam_corrected_norm_scaled = sam_corrected_norm + '_scaled'
+        _, bad_fitted_levels = \
             calculate_and_apply_fitted_levels(sam_corrected_norm,
                                               self_scattering_level_correction,
-                                              sam_corrected_norm + '_scaled')
+                                              sam_corrected_norm_scaled)
         if bad_fitted_levels:
             for bank, offset in bad_fitted_levels.items():
                 final_message +=\
