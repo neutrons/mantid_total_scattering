@@ -436,7 +436,7 @@ def autogrouping(config):
         instr_name = wksp.getInstrument().getName()
         print("Debugging -> ", instr_name)
         if instr_name == "POWGEN":
-            result = CreateGroupingWorkspace(InstrumentName = 'PG3')
+            result = CreateGroupingWorkspace(InstrumentName='PG3')
             grouping = result[0]
         else:
             CreateGroupingWorkspace(InputWorkspace=wksp,
