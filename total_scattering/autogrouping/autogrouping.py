@@ -14,7 +14,8 @@ from mantid.simpleapi import \
     RemoveMaskedSpectra, \
     SaveDetectorsGrouping, \
     SaveNexusProcessed, \
-    mtd
+    mtd, \
+    ExtractSpectra
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
@@ -127,6 +128,8 @@ def autogrouping(config):
     else:
         max_chi = None
 
+    wks_index_range = config.get("WorkspaceIndexRange", None)
+
     cache_dir = ""
     if "CacheDir" in config:
         cache_dir = os.path.abspath(get_key("CacheDir", config))
@@ -171,9 +174,15 @@ def autogrouping(config):
                                    InputWorkspaceIndexSet=mask_ws)
                 wksp = RemoveMaskedSpectra(InputWorkspace=wksp)
 
-    # Convert from TOF to dspacing
-    wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing",
-                        EMode="Elastic")
+    if wks_index_range is not None:
+        wks_list = list(range(wks_index_range[0], wks_index_range[1]+1))
+        ExtractSpectra(InputWorkspace=wksp,
+                       WorkspaceIndexList=wks_list,
+                       OutputWorkspace='wksp_tmp')
+
+        # Convert from TOF to dspacing
+        wksp = ConvertUnits(InputWorkspace=mtd['wksp_tmp'], Target="dSpacing",
+                            EMode="Elastic")
 
     # Rebin (in d-space)
     wksp = Rebin(InputWorkspace=wksp, Params=(0.1, 0.001, 3.0))
@@ -424,11 +433,20 @@ def autogrouping(config):
     # workspace as the donor
     if not skip_grouping:
         print("Generating grouping file '{}'".format(output_file))
-        CreateGroupingWorkspace(InputWorkspace=wksp,
-                                OutputWorkspace="grouping")
-        grouping = mtd["grouping"]
+        instr_name = wksp.getInstrument().getName()
+        print("Debugging -> ", instr_name)
+        if instr_name == "POWGEN":
+            result = CreateGroupingWorkspace(InstrumentName = 'PG3')
+            grouping = result[0]
+        else:
+            CreateGroupingWorkspace(InputWorkspace=wksp,
+                                    OutputWorkspace="grouping")
+            grouping = mtd["grouping"]
         for i in range(len(labels)):
-            det_id = wksp.getDetector(int(wsindex[i])).getID()
+            if instr_name == "POWGEN":
+                det_id = wks_list[int(wsindex[i])]
+            else:
+                det_id = wksp.getDetector(int(wsindex[i])).getID()
             # Skip if label is -1 (DBSCAN labels these as noise)
             if labels[i] == -1:
                 continue
