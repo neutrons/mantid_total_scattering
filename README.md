@@ -169,6 +169,6 @@ git checkout main
 git fetch -p -t  # fetch all changes from the remote repo
 git rebase -v origin/main  # sync with remote main branch
 git merge --ff-only origin/next  # merge in all of the changes in branch next
-git tag v1.3.0-rc.4  # create the tag in the format that versioneer has been configured
+git tag v.0.2.13  # create the tag in the format that versioneer has been configured
 git push --tags origin main  # push the tag to remote to kick off the deploy step
 ```
