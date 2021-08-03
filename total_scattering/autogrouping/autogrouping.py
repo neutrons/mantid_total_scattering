@@ -434,6 +434,7 @@ def autogrouping(config):
     if not skip_grouping:
         print("Generating grouping file '{}'".format(output_file))
         instr_name = wksp.getInstrument().getName()
+        print("Instrument - {}".format(instr_name))
         if instr_name == "POWGEN":
             result = CreateGroupingWorkspace(InstrumentName='PG3')
             grouping = result[0]
