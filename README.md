@@ -164,6 +164,7 @@ Tagging a New Version
 ===========================================================
 Mantid Total Scattering uses [versioneer](https://github.com/python-versioneer/python-versioneer). These are the instructions to create a new version, working on a local clone
 ```bash
+git branch --track main origin/main  #  create a local main branch set to follow remote main
 git checkout main
 git fetch -p -t  # fetch all changes from the remote repo
 git rebase -v origin/main  # sync with remote main branch
