@@ -7,15 +7,14 @@ from mantid.simpleapi import \
     ConvertUnits, \
     CreateCacheFilename, \
     CreateGroupingWorkspace, \
-    LoadEventAndCompress, \
+    LoadEventNexus, \
     Load, \
     MaskSpectra, \
     Rebin, \
     RemoveMaskedSpectra, \
     SaveDetectorsGrouping, \
     SaveNexusProcessed, \
-    mtd, \
-    ExtractSpectra
+    mtd
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
@@ -128,7 +127,9 @@ def autogrouping(config):
     else:
         max_chi = None
 
-    wks_index_range = config.get("WorkspaceIndexRange", None)
+    wks_index_range = None
+    if "WorkspaceIndexRange" in config:
+        wks_index_range = get_key("WorkspaceIndexRange", config)
 
     cache_dir = ""
     if "CacheDir" in config:
@@ -147,10 +148,12 @@ def autogrouping(config):
                                                   config))
 
     if diamond_file.endswith(".nxs.h5"):
-        wksp = LoadEventAndCompress(Filename=diamond_file,
-                                    FilterBadPulses=0)
+        wksp = LoadEventNexus(Filename=diamond_file,
+                              CompressTolerance=0.01,
+                              SpectrumList=wks_index_range)
     else:
-        wksp = Load(Filename=diamond_file)
+        wksp = Load(Filename=diamond_file,
+                    SpectrumList=wks_index_range)
 
     mask = None
     new_mask = None
@@ -174,15 +177,9 @@ def autogrouping(config):
                                    InputWorkspaceIndexSet=mask_ws)
                 wksp = RemoveMaskedSpectra(InputWorkspace=wksp)
 
-    if wks_index_range is not None:
-        wks_list = list(range(wks_index_range[0], wks_index_range[1]+1))
-        ExtractSpectra(InputWorkspace=wksp,
-                       WorkspaceIndexList=wks_list,
-                       OutputWorkspace='wksp_tmp')
-
-        # Convert from TOF to dspacing
-        wksp = ConvertUnits(InputWorkspace=mtd['wksp_tmp'], Target="dSpacing",
-                            EMode="Elastic")
+    # Convert from TOF to dspacing
+    wksp = ConvertUnits(InputWorkspace=wksp, Target="dSpacing",
+                        EMode="Elastic")
 
     # Rebin (in d-space)
     wksp = Rebin(InputWorkspace=wksp, Params=(0.1, 0.001, 3.0))
@@ -195,7 +192,8 @@ def autogrouping(config):
         if cache_dir:
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
-                     "nhisto={}".format(wksp.getNumberHistograms())]
+                     "nhisto={}".format(wksp.getNumberHistograms()),
+                     "wksprange={}".format(wks_index_range)]
             prefix = diamond_file.rstrip(".h5").rstrip(
                 ".nxs").split("/")[-1] + "_DG"
             cachefile, sig = get_cachename(prefix, cache_dir, props)
@@ -222,7 +220,8 @@ def autogrouping(config):
         if cache_dir:
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
-                     "nhisto={}".format(wksp.getNumberHistograms())]
+                     "nhisto={}".format(wksp.getNumberHistograms()),
+                     "wksprange={}".format(wks_index_range)]
             prefix = diamond_file.rstrip(".h5").rstrip(
                 ".nxs").split("/")[-1] + "_CC"
             cachefile, sig = get_cachename(prefix, cache_dir, props)
@@ -249,6 +248,7 @@ def autogrouping(config):
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
                      "nhisto={}".format(wksp.getNumberHistograms()),
+                     "wksprange={}".format(wks_index_range),
                      "fitpeaksargs={}".format(fitpeaks_args),
                      "peaks={}".format(diamond_peaks)]
 
@@ -435,18 +435,11 @@ def autogrouping(config):
         print("Generating grouping file '{}'".format(output_file))
         instr_name = wksp.getInstrument().getName()
         print("Instrument - {}".format(instr_name))
-        if instr_name == "POWGEN":
-            result = CreateGroupingWorkspace(InstrumentName='PG3')
-            grouping = result[0]
-        else:
-            CreateGroupingWorkspace(InputWorkspace=wksp,
-                                    OutputWorkspace="grouping")
-            grouping = mtd["grouping"]
+        CreateGroupingWorkspace(InputWorkspace=wksp,
+                                OutputWorkspace="grouping")
+        grouping = mtd["grouping"]
         for i in range(len(labels)):
-            if instr_name == "POWGEN":
-                det_id = wks_list[int(wsindex[i])]
-            else:
-                det_id = wksp.getDetector(int(wsindex[i])).getID()
+            det_id = wksp.getDetector(int(wsindex[i])).getID()
             # Skip if label is -1 (DBSCAN labels these as noise)
             if labels[i] == -1:
                 continue
