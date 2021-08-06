@@ -438,8 +438,9 @@ def autogrouping(config):
         CreateGroupingWorkspace(InputWorkspace=wksp,
                                 OutputWorkspace="grouping")
         grouping = mtd["grouping"]
+        num_monitors = int(np.sum(wksp.detectorInfo().detectorIDs() < 0))
         for i in range(len(labels)):
-            det_id = wksp.getDetector(int(wsindex[i])).getID()
+            det_id = wksp.detectorInfo().indexOf(wksp.getDetector(int(wsindex[i])).getID()) - num_monitors
             # Skip if label is -1 (DBSCAN labels these as noise)
             if labels[i] == -1:
                 continue
