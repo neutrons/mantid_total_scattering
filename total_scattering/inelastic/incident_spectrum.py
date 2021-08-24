@@ -1,19 +1,15 @@
+# package imports
+from total_scattering.utils import random_name
+
+# third-party imports
 import numpy as np
 from scipy import signal, ndimage, interpolate, optimize
-
 from mantid import mtd
 from mantid.simpleapi import (
-    ConvertToPointData,
-    ConvertUnits,
-    CreateWorkspace,
-    LoadNexusMonitors,
-    Rebin,
-    ResampleX,
-    SplineSmoothing,
-)
+    DeleteWorkspaces, ConvertToPointData, ConvertUnits, CreateWorkspace,
+    LoadNexusMonitors, Rebin, ResampleX, SplineSmoothing)
 
 # Functions for fitting the incident spectrum
-
 
 def getFitRange(x, y, x_lo, x_hi):
     if x_lo is None:
@@ -28,24 +24,21 @@ def getFitRange(x, y, x_lo, x_hi):
 
 def fitCubicSpline(x_fit, y_fit, x, s=1e15):
     tck = interpolate.splrep(x_fit, y_fit, s=s)
-    fit = interpolate.splev(x, tck, der=0)
-    fit_prime = interpolate.splev(x, tck, der=1)
-    return fit, fit_prime
+    return [interpolate.splev(x, tck, der=n) for n in (0, 1, 2)]
 
 
 def fitCubicSplineViaMantidSplineSmoothing(InputWorkspace, Params, **kwargs):
+    rebinned, fit, fit_primes = random_name(), random_name(), random_name()
     Rebin(
-        InputWorkspace=InputWorkspace,
-        OutputWorkspace='fit',
-        Params=Params,
-        PreserveEvents=True)
-    SplineSmoothing(
-        InputWorkspace='fit',
-        OutputWorkspace='fit',
-        OutputWorkspaceDeriv='fit_prime',
-        DerivOrder=1,
-        **kwargs)
-    return mtd['fit'].readY(0), mtd['fit_prime_1'].readY(0)
+        InputWorkspace=InputWorkspace, OutputWorkspace=rebinned,
+        Params=Params, PreserveEvents=True)
+    SplineSmoothing(InputWorkspace=rebinned, OutputWorkspace=fit,
+                    OutputWorkspaceDeriv=fit_primes, DerivOrder=2, **kwargs)
+    y = mtd[fit].readY(0)
+    y_prime = mtd[fit_primes + '_1'].readY(0)  # quirkness of SplineSmoothing
+    y_prime2 = mtd[fit_primes + '_1'].readY(1)
+    DeleteWorkspaces([rebinned, fit, fit_primes])
+    return y, y_prime, y_prime2
 
 
 def fitHowellsFunction(x_fit, y_fit, x):
@@ -91,11 +84,8 @@ def fitCubicSplineWithGaussConv(x_fit, y_fit, x, sigma=3):
         return average, var
 
     avg, var = moving_average(y_fit)
-    spline_fit = interpolate.UnivariateSpline(x_fit, y_fit, w=1. / np.sqrt(var))
-    spline_fit_prime = spline_fit.derivative()
-    fit = spline_fit(x)
-    fit_prime = spline_fit_prime(x)
-    return fit, fit_prime
+    func = interpolate.UnivariateSpline(x_fit, y_fit, w=1. / np.sqrt(var))
+    return func(x), func.derivative()(x), func.derivative(2)(x)
 
 
 # Get incident spectrum from Monitor
@@ -184,7 +174,7 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
     y_fit = np.array(mtd['fit'].readY(incident_index))
 
     if FitSpectrumWith == 'CubicSpline':
-        fit, fit_prime = fitCubicSpline(x_fit, y_fit, x, s=1e7)
+        fit, fit_prime, fit_prime2 = fitCubicSpline(x_fit, y_fit, x, s=1e7)
     elif FitSpectrumWith == 'CubicSplineViaMantid':
         fit, fit_prime = fitCubicSplineViaMantidSplineSmoothing(
             InputWorkspace, Params=BinningForFit, MaxNumberOfBreaks=8)

@@ -7,10 +7,10 @@ from tests import TEST_DATA_DIR
 # 3rd-party imports
 from mantid.simpleapi import CloneWorkspace, DeleteWorkspace, LoadNexus
 from mantid.kernel import Material as MantidMaterial
+import numpy as np
 
 # standard imports
 from pathlib import Path
-import numpy as np
 import unittest
 
 
