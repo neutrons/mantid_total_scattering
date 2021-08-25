@@ -6,10 +6,11 @@ import numpy as np
 from scipy import signal, ndimage, interpolate, optimize
 from mantid import mtd
 from mantid.simpleapi import (
-    DeleteWorkspaces, ConvertToPointData, ConvertUnits, CreateWorkspace,
-    LoadNexusMonitors, Rebin, ResampleX, SplineSmoothing)
+    DeleteWorkspace, DeleteWorkspaces, ConvertToPointData, ConvertUnits,
+    CreateWorkspace, LoadNexusMonitors, Rebin, ResampleX, SplineSmoothing)
 
 # Functions for fitting the incident spectrum
+
 
 def getFitRange(x, y, x_lo, x_hi):
     if x_lo is None:
@@ -24,19 +25,19 @@ def getFitRange(x, y, x_lo, x_hi):
 
 def fitCubicSpline(x_fit, y_fit, x, s=1e15):
     tck = interpolate.splrep(x_fit, y_fit, s=s)
+
     return [interpolate.splev(x, tck, der=n) for n in (0, 1, 2)]
 
 
 def fitCubicSplineViaMantidSplineSmoothing(InputWorkspace, Params, **kwargs):
     rebinned, fit, fit_primes = random_name(), random_name(), random_name()
-    Rebin(
-        InputWorkspace=InputWorkspace, OutputWorkspace=rebinned,
-        Params=Params, PreserveEvents=True)
+    Rebin(InputWorkspace=InputWorkspace, OutputWorkspace=rebinned,
+          Params=Params, PreserveEvents=False)
     SplineSmoothing(InputWorkspace=rebinned, OutputWorkspace=fit,
                     OutputWorkspaceDeriv=fit_primes, DerivOrder=2, **kwargs)
-    y = mtd[fit].readY(0)
-    y_prime = mtd[fit_primes + '_1'].readY(0)  # quirkness of SplineSmoothing
-    y_prime2 = mtd[fit_primes + '_1'].readY(1)
+    y = np.array(mtd[fit].readY(0))
+    y_prime = np.array(mtd[fit_primes + '_1'].readY(0))
+    y_prime2 = np.array(mtd[fit_primes + '_1'].readY(1))
     DeleteWorkspaces([rebinned, fit, fit_primes])
     return y, y_prime, y_prime2
 
@@ -67,12 +68,23 @@ def fitHowellsFunction(x_fit, y_fit, x):
             * (1. / (1 + np.exp((lambdas - lam_1) / lam_2)))
         return term1 + term2
 
+    def calc_HowellsFunction2ndDerivative(lambdas, *params):
+        r"""Simple Numerical derivative"""
+        lambda_delta = min(lambdas[1:] - lambdas[: 1]) / 10
+        l_plus = lambdas + lambda_delta
+        l_minus = lambdas - lambda_delta
+        l_minus[l_minus < 0.0] = 0.0
+        f_plus = calc_HowellsFunction1stDerivative(l_plus, *params)
+        f_minus = calc_HowellsFunction1stDerivative(l_minus, *params)
+        return (f_plus - f_minus) / (2.0 * lambda_delta)
+
     params = [1., 1., 1., 0., 1., 1.]
     params, convergence = optimize.curve_fit(
         calc_HowellsFunction, x_fit, y_fit, params)
     fit = calc_HowellsFunction(x, *params)
     fit_prime = calc_HowellsFunction1stDerivative(x, *params)
-    return fit, fit_prime
+    fit_prime2 = calc_HowellsFunction2ndDerivative(x, *params)
+    return fit, fit_prime, fit_prime2
 
 
 def fitCubicSplineWithGaussConv(x_fit, y_fit, x, sigma=3):
@@ -157,6 +169,9 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
     incident_index = 0
     if BinningForCalc is None:
         x = incident_ws.readX(incident_index)
+        BinningForCalc = ','.join([min(x),
+                                   (max(x) - min(x)) / (len(x) - 1),
+                                   max(x)])
     else:
         try:
             params = [float(x) for x in BinningForCalc.split(',')]
@@ -165,34 +180,43 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
         xlo, binsize, xhi = params
         x = np.arange(xlo, xhi, binsize)
 
+    to_fit = random_name()
     Rebin(
         incident_ws,
-        OutputWorkspace='fit',
+        OutputWorkspace=to_fit,
         Params=BinningForFit,
         PreserveEvents=True)
-    x_fit = np.array(mtd['fit'].readX(incident_index))
-    y_fit = np.array(mtd['fit'].readY(incident_index))
 
+    # x_fit and y_fit should have same length, thus convert to point data
+    # if necessary
+    if mtd[to_fit].isHistogramData():
+        ConvertToPointData(InputWorkspace=to_fit, OutputWorkspace=to_fit)
+
+    x_fit = np.array(mtd[to_fit].readX(incident_index))
+    y_fit = np.array(mtd[to_fit].readY(incident_index))
+
+    # interpolators returns the interpolated function and its first
+    # two derivatives
     if FitSpectrumWith == 'CubicSpline':
-        fit, fit_prime, fit_prime2 = fitCubicSpline(x_fit, y_fit, x, s=1e7)
+        f, f_p, f_p2 = fitCubicSpline(x_fit, y_fit, x, s=1e7)
     elif FitSpectrumWith == 'CubicSplineViaMantid':
-        fit, fit_prime = fitCubicSplineViaMantidSplineSmoothing(
-            InputWorkspace, Params=BinningForFit, MaxNumberOfBreaks=8)
+        f, f_p, f_p2 = fitCubicSplineViaMantidSplineSmoothing(
+            to_fit, Params=BinningForCalc, MaxNumberOfBreaks=8)
     elif FitSpectrumWith == 'HowellsFunction':
-        fit, fit_prime = fitHowellsFunction(x_fit, y_fit, x)
+        f, f_p, f_p2 = fitHowellsFunction(x_fit, y_fit, x)
     elif FitSpectrumWith == 'GaussConvCubicSpline':
-        fit, fit_prime = fitCubicSplineWithGaussConv(x_fit, y_fit, x, sigma=2)
+        f, f_p, f_p2 = fitCubicSplineWithGaussConv(x_fit, y_fit, x, sigma=2)
     else:
         raise Exception("Unknown method for fitting incident spectrum")
         return
 
+    DeleteWorkspace(to_fit)  # clean up
+
     CreateWorkspace(
-        DataX=x,
-        DataY=np.append(
-            fit,
-            fit_prime),
+        DataX=np.array([x, x, x]),
+        DataY=np.array([f, f_p, f_p2]),
         OutputWorkspace=OutputWorkspace,
         UnitX='Wavelength',
-        NSpec=2,
+        NSpec=3,
         Distribution=False)
     return mtd[OutputWorkspace]
