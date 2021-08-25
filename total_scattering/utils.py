@@ -16,5 +16,5 @@ def random_name(n: int = 12, prefix: str = '_', suffix: str = '') -> str:
     prefix: prepend this string to the random word
     suffix: append this string to the random word
     """
-    word = ''.join([random.choice(string.ascii_letters) for _ in range(n)])
-    return prefix + word + suffix
+    letters = [random.choice(string.ascii_letters) for _ in range(n)]  # nosec
+    return prefix + ''.join(letters) + suffix
