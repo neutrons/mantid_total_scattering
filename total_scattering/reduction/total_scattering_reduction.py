@@ -263,7 +263,8 @@ def SetInelasticCorrection(inelastic_dict):
         if corr_type == "Placzek":
             default_settings = {"Order": "1st",
                                 "Self": True,
-                                "Interference": False,
+                                "Interference": True,
+                                "SampleTemperature": "300",
                                 "FitSpectrumWith": "GaussConvCubicSpline",
                                 "LambdaBinning": "0.16,0.04,2.8"}
             inelastic_settings = default_settings.copy()
@@ -994,13 +995,17 @@ def TotalScatteringReduction(config=None):
             Material={'ChemicalFormula': str(van_material),
                       'SampleMassDensity': str(van_mass_density)})
 
+        calc_interfere = van['InelasticCorrection']['Interference']
+        sample_t = float(van['InelasticCorrection']['SampleTemperature'])
         CalculatePlaczekSelfScattering(
             IncidentWorkspace=van_incident_wksp,
             ParentWorkspace=van_corrected,
             OutputWorkspace=van_placzek,
             L1=19.5,
             L2=alignAndFocusArgs['L2'],
-            Polar=alignAndFocusArgs['Polar'])
+            Polar=alignAndFocusArgs['Polar'],
+            CalcInterfere=calc_interfere,
+            SampleT=sample_t)
 
         ConvertToHistogram(
             InputWorkspace=van_placzek,
@@ -1352,13 +1357,17 @@ def TotalScatteringReduction(config=None):
                 Material={'ChemicalFormula': str(sam_material),
                           'SampleMassDensity': str(sam_mass_density)})
 
+            calc_interfere = sample['InelasticCorrection']['Interference']
+            sample_t = float(sample['InelasticCorrection']['SampleTemperature'])
             CalculatePlaczekSelfScattering(
                 IncidentWorkspace=sam_incident_wksp,
                 ParentWorkspace=sam_corrected,
                 OutputWorkspace=sam_placzek,
                 L1=19.5,
                 L2=alignAndFocusArgs['L2'],
-                Polar=alignAndFocusArgs['Polar'])
+                Polar=alignAndFocusArgs['Polar'],
+                CalcInterfere=calc_interfere,
+                SampleT=sample_t)
 
             ConvertToHistogram(
                 InputWorkspace=sam_placzek,
