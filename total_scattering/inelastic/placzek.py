@@ -82,6 +82,8 @@ def CalculatePlaczekSelfScattering(
         L1,
         L2,
         Polar,
+        CalcInterfere=False,
+        SampleT=None,
         Azimuthal=None,
         Detector=None,
         ParentWorkspace=None):
@@ -127,9 +129,19 @@ def CalculatePlaczekSelfScattering(
     if Detector['Law'] == '1/v':
         c = -Detector['Alpha'] / (2. * np.pi)
         x = x_lambda
-        detector_law_term = c * x * np.exp(c * x) / (1. - np.exp(c * x))
+        detector_law_term = -c * (2. * np.pi / x) * np.exp(c * x) / (1. - np.exp(c * x))
 
     eps_1 = detector_law_term
+
+    if CalcInterfere:
+        incident_prime_index = 2
+        incident_prime_prime = mtd[IncidentWorkspace].readY(incident_prime_index)
+        phi_2 = x_lambda**2. * incident_prime_prime / incident
+        eps_2 = eps_1 * c * (2. * np.pi / x)
+        kB_const = 1.38E-23  # m^2 kg s^{-2} K^{-1}
+        h_const = 6.63E-34  # m^2 kg s^{-1}
+        energy_val = h_const**2. / (2. * neutron_mass * x_lambda**2.)
+        energy_term = kB_const * SampleT / energy_val
 
     # Set default azimuthal angle
     if Azimuthal is None:
@@ -167,10 +179,26 @@ def CalculatePlaczekSelfScattering(
         inelastic_placzek_self_correction = 2. * \
             (term1 - term2 + term3) \
             * sin_theta_by_2 * sin_theta_by_2 * summation_term
+        inelastic_placzek_interfere = np.zeros(len(x_lambda))
+        if CalcInterfere:
+            term1_1 = (8. * f - 9.) * (f - 1.) * phi_1 - 3. * f * (2. * f - 3.) * eps_1
+            term1_2 = 2. * f * (1. - f) * phi_1 * eps_1
+            term1_3 = (1. - f)**2. * phi_2 + f**2. * eps_2
+            term1_4 = 3. * (4. * f - 5.) * (f - 1.)
+            term2_1 = (4. * f - 7.) * (f - 1.) * phi_1
+            term2_2 = f * (7. - 2. * f) * eps_1 + 2. * f * (1. - f) * phi_1 * eps_1
+            term2_3 = (1. - f)**2. * phi_2 + f**2. * eps_2
+            term2_4 = 2. * f**2. - 7. * f + 8.
+            term1 = term1_1 + term1_2 + term1_3 + term1_4
+            term2 = term2_1 + term2_2 + term2_3 + term2_4
+            inelastic_placzek_interfere = summation_term * \
+                (energy_term / 2. + energy_term * sin_theta_by_2**2. * term1) \
+                + 2. * sin_theta_by_2**2. * summation_term * \
+                (1. + sin_theta_by_2**2. * term2)
         x_lambdas = np.append(x_lambdas, x_lambda)
         placzek_correction = np.append(
             placzek_correction,
-            inelastic_placzek_self_correction)
+            inelastic_placzek_self_correction + inelastic_placzek_interfere)
 
     if ParentWorkspace:
         CreateWorkspace(
