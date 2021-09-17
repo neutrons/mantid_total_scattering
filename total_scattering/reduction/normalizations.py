@@ -26,11 +26,11 @@ class Material:
 
     @property
     def bcoh_avg_sqrd(self):
-        return self.cohScatterLength()**2
+        return self.cohScatterLength()**2 / 100.
 
     @property
     def btot_sqrd_avg(self):
-        return self.totalScatterLengthSqrd()
+        return self.totalScatterLengthSqrd() / 100.
 
     @property
     def laue_monotonic_diffuse_scat(self):
@@ -115,12 +115,15 @@ def calculate_and_apply_fitted_levels(
                                     CalculateOffset=True,
                                     CalculateScale=False)
         offset = match_result.Offset[1]
-        # if offset is <= 0, then we want to skip applying the scale
-        if offset < 0.0 or np.isclose(offset, 0.0):
-            bad_levels[key] = offset
+        scale = match_result.Scale[1]
+        # Scale away from 1.0 means the baseline is tilting and therefore we
+        # may have some uncorrected effect (e.g., hydrogen background).
+        if abs(scale - 1.0) > 0.5:
+            bad_levels[key] = scale
         else:
             # scale full bank data by offset
-            s_q_norm.setY(ws_index, s_q_norm.dataY(ws_index) * (1.0 / offset))
+            factor_tmp = 1.0 / (1.0 - offset)
+            s_q_norm.setY(ws_index, s_q_norm.dataY(ws_index) * factor_tmp)
 
         DeleteWorkspace("__tmp_bank_fit")
 
