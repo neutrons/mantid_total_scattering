@@ -122,7 +122,8 @@ def calculate_and_apply_fitted_levels(
             bad_levels[key] = scale
         else:
             # scale full bank data by offset
-            s_q_norm.setY(ws_index, s_q_norm.dataY(ws_index) * (1.0 / (1.0 - offset)))
+            factor_tmp = 1.0 / (1.0 - offset)
+            s_q_norm.setY(ws_index, s_q_norm.dataY(ws_index) * factor_tmp)
 
         DeleteWorkspace("__tmp_bank_fit")
 
