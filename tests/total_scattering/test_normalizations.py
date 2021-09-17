@@ -38,8 +38,8 @@ class TestMaterial(unittest.TestCase):
 
     def test_properties(self):
         m = Material(self.s_of_q)
-        self.assertAlmostEqual(m.bcoh_avg_sqrd, 31.669, places=3)
-        self.assertAlmostEqual(m.btot_sqrd_avg, 32.144, places=3)
+        self.assertAlmostEqual(m.bcoh_avg_sqrd, 0.31669, places=3)
+        self.assertAlmostEqual(m.btot_sqrd_avg, 0.32144, places=3)
         self.assertAlmostEqual(m.laue_monotonic_diffuse_scat, 1.015, places=3)
 
 
