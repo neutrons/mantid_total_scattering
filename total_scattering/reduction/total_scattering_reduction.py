@@ -1436,9 +1436,9 @@ def TotalScatteringReduction(config=None):
                                               self_scattering_level_correction,
                                               sam_corrected_norm_scaled)
         if bad_fitted_levels:
-            for bank, offset in bad_fitted_levels.items():
+            for bank, scale in bad_fitted_levels.items():
                 final_message +=\
-                    f'Bank {bank} had a bad fitted level of {offset} ' \
+                    f'Bank {bank} potentially has a tilted baseline with the fitted scale = {scale} ' \
                     f'and was not scaled in {sam_corrected_norm_scaled}\n'
         save_banks(
             InputWorkspace=sam_corrected_norm_scaled,
