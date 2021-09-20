@@ -166,12 +166,15 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             list_filenames = filename.split(",")
             filename = list_filenames[0]
 
+        find_environment = not material.["ChemicalFormula"] == "V"
+
         donor_ws = absorptioncorrutils.create_absorption_input(
             filename,
             props,
             material=material,
             geometry=geometry,
-            environment=environment)
+            environment=environment,
+            find_environment=find_environment)
 
     except RuntimeError as e:
         msg = "Could not create absorption correction donor workspace: {}"
