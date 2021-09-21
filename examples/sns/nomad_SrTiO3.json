@@ -1,0 +1,33 @@
+{
+    "Facility": "SNS",
+    "Instrument": "NOM",
+    "Title" : "STO_CAP_summed_at_300K_FineQ_IDL_Calib",
+    "Sample": { "Runs" : "131610",
+             "Background" : { "Runs" : "131607",
+                              "Background" : { "Runs" : "131571" }
+                            },
+             "Material" : "Sr1 Ti1 O3",
+             "MassDensity" : 4.81,
+             "PackingFraction" : 0.6,
+             "Geometry" : {"Radius" : 0.15,
+                           "Height" : 1.8 },
+             "AbsorptionCorrection" : { "Type" : "SampleOnly" }
+            },
+    "Normalization": { "Runs" : "131576",
+                  "Background" : { "Runs" : "131571"},
+                  "Material" : "V",
+                  "MassDensity" : 6.11,
+                  "PackingFraction" : 1.0,
+                  "Geometry" : {"Radius" : 0.2925,
+                                "Height" : 1.8 },
+                  "AbsorptionCorrection" : { "Type" : "SampleOnly" }
+                },
+    "Calibration":{"Filename":"/SNS/NOM/shared/CALIBRATION/2019_1_1B_CAL/NOM_calibrate_d131573_2019_08_18.h5"},
+    "AlignAndFocusArgs" : { "TMin" : 300.0, "TMax" : 16667.0 },
+    "HighQLinearFitRange" : 0.60,
+    "Merging":{"QBinning": [0.0, 0.005, 40.0],
+               "SumBanks": [3]
+              },
+    "CacheDir" : "/tmp",
+    "OutputDir" : "/tmp/SrTiO3"
+}

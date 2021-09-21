@@ -159,3 +159,16 @@ To build and run tests via [Docker](https://docs.docker.com/), use:
 ```bash
 docker build -t unit-test-env -f .ci/Dockerfile.nightly_ubuntu16.04_python3 . && docker run -t unit-test-env /bin/bash -c "mantidpython -m pytest"
 ```
+
+Tagging a New Version
+===========================================================
+Mantid Total Scattering uses [versioneer](https://github.com/python-versioneer/python-versioneer). These are the instructions to create a new version, working on a local clone
+```bash
+git branch --track main origin/main  #  create a local main branch set to follow remote main
+git checkout main
+git fetch -p -t  # fetch all changes from the remote repo
+git rebase -v origin/main  # sync with remote main branch
+git merge --ff-only origin/next  # merge in all of the changes in branch next
+git tag v.0.2.13  # create the tag in the format that versioneer has been configured
+git push --tags origin main  # push the tag to remote to kick off the deploy step
+```

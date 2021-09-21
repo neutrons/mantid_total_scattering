@@ -42,6 +42,8 @@ from total_scattering.inelastic.placzek import \
     CalculatePlaczekSelfScattering, \
     FitIncidentSpectrum, \
     GetIncidentSpectrumFromMonitor
+from total_scattering.reduction.normalizations import (
+    Material, calculate_and_apply_fitted_levels, to_absolute_scale, to_f_of_q)
 
 
 # Constants
@@ -261,7 +263,8 @@ def SetInelasticCorrection(inelastic_dict):
         if corr_type == "Placzek":
             default_settings = {"Order": "1st",
                                 "Self": True,
-                                "Interference": False,
+                                "Interference": True,
+                                "SampleTemperature": "300",
                                 "FitSpectrumWith": "GaussConvCubicSpline",
                                 "LambdaBinning": "0.16,0.04,2.8"}
             inelastic_settings = default_settings.copy()
@@ -412,6 +415,9 @@ def TotalScatteringReduction(config=None):
 
     # Get an instance to Mantid's logger
     log = Logger("TotalScatteringReduction")
+
+    # Message to be presented at the very end of the reduction via the logger.
+    final_message = ''
 
     # Get sample info
     sample = get_sample(config)
@@ -604,9 +610,9 @@ def TotalScatteringReduction(config=None):
     # NOTE:
     #    the default behaivor is no filtering if not specified.
     if res_filter is not None:
-        alignAndFocusArgs['ResonanceFilterAxis'] = res_filter_axis
-        alignAndFocusArgs['LowerLimits'] = res_filter_lower
-        alignAndFocusArgs['UpperLimits'] = res_filter_upper
+        alignAndFocusArgs['ResonanceFilterUnits'] = res_filter_axis
+        alignAndFocusArgs['ResonanceFilterLowerLimits'] = res_filter_lower
+        alignAndFocusArgs['ResonanceFilterUpperLimits'] = res_filter_upper
 
     # Get any additional AlignAndFocusArgs from JSON input
     if "AlignAndFocusArgs" in config:
@@ -989,13 +995,17 @@ def TotalScatteringReduction(config=None):
             Material={'ChemicalFormula': str(van_material),
                       'SampleMassDensity': str(van_mass_density)})
 
+        calc_interfere = van['InelasticCorrection']['Interference']
+        sample_t = float(van['InelasticCorrection']['SampleTemperature'])
         CalculatePlaczekSelfScattering(
             IncidentWorkspace=van_incident_wksp,
             ParentWorkspace=van_corrected,
             OutputWorkspace=van_placzek,
             L1=19.5,
             L2=alignAndFocusArgs['L2'],
-            Polar=alignAndFocusArgs['Polar'])
+            Polar=alignAndFocusArgs['Polar'],
+            CalcInterfere=calc_interfere,
+            SampleT=sample_t)
 
         ConvertToHistogram(
             InputWorkspace=van_placzek,
@@ -1312,16 +1322,18 @@ def TotalScatteringReduction(config=None):
         Binning=binning)
 
     # STEP 7: Inelastic correction
-    ConvertUnits(
-        InputWorkspace=sam_corrected,
-        OutputWorkspace=sam_corrected,
-        Target='Wavelength',
-        EMode='Elastic')
 
     if sam_inelastic_corr['Type'] == "Placzek":
         if sam_material is None:
             error = "For Placzek correction, must specifiy a sample material."
             raise Exception(error)
+
+        ConvertUnits(
+            InputWorkspace=sam_corrected,
+            OutputWorkspace=sam_corrected,
+            Target='Wavelength',
+            EMode='Elastic')
+
         for sam_scan in sample['Runs']:
             sam_incident_wksp = 'sam_incident_wksp'
             sam_inelastic_opts = sample['InelasticCorrection']
@@ -1344,19 +1356,23 @@ def TotalScatteringReduction(config=None):
                 InputWorkspace=sam_incident_wksp,
                 Material={'ChemicalFormula': str(sam_material),
                           'SampleMassDensity': str(sam_mass_density)})
+
+            calc_interfere = sample['InelasticCorrection']['Interference']
+            sample_t = float(sample['InelasticCorrection']['SampleTemperature'])
             CalculatePlaczekSelfScattering(
                 IncidentWorkspace=sam_incident_wksp,
                 ParentWorkspace=sam_corrected,
                 OutputWorkspace=sam_placzek,
                 L1=19.5,
                 L2=alignAndFocusArgs['L2'],
-                Polar=alignAndFocusArgs['Polar'])
+                Polar=alignAndFocusArgs['Polar'],
+                CalcInterfere=calc_interfere,
+                SampleT=sample_t)
 
             ConvertToHistogram(
                 InputWorkspace=sam_placzek,
                 OutputWorkspace=sam_placzek)
 
-        # Save before rebin in Q
         for wksp in [sam_placzek, sam_corrected]:
             ConvertUnits(
                 InputWorkspace=wksp,
@@ -1378,26 +1394,10 @@ def TotalScatteringReduction(config=None):
             GroupingWorkspace=grp_wksp,
             Binning=binning)
 
-        # Save after rebin in Q
-        for wksp in [sam_placzek, sam_corrected]:
-            ConvertUnits(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Target='MomentumTransfer',
-                EMode='Elastic')
-
         Minus(
             LHSWorkspace=sam_corrected,
             RHSWorkspace=sam_placzek,
             OutputWorkspace=sam_corrected)
-
-        # Save after subtraction
-        for wksp in [sam_placzek, sam_corrected]:
-            ConvertUnits(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Target='MomentumTransfer',
-                EMode='Elastic')
 
         sample_title += '_placzek_corrected'
         save_banks(
@@ -1408,8 +1408,6 @@ def TotalScatteringReduction(config=None):
             GroupingWorkspace=grp_wksp,
             Binning=binning)
 
-    # STEP 7: Output spectrum
-
     # TODO Since we already went from Event -> 2D workspace, can't use this
     # anymore
     print('sam:', mtd[sam_corrected].id())
@@ -1419,73 +1417,58 @@ def TotalScatteringReduction(config=None):
             InputWorkspace=sam_corrected,
             OutputWorkspace=sam_corrected)
 
-    # F(Q) bank-by-bank Section
-    fq_banks_wksp = "FQ_banks_wksp"
-    CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace=fq_banks_wksp)
-    # TODO: Add the following when implemented - FQ_banks = 'FQ_banks'
+    # STEP 7:  S(Q) and F(Q), bank-by-bank
 
-    # S(Q) bank-by-bank Section
-    material = mtd[sam_corrected].sample().getMaterial()
-    if material.name() is None or len(material.name().strip()) == 0:
-        raise RuntimeError('Sample material was not set')
-    bcoh_avg_sqrd = material.cohScatterLength() * material.cohScatterLength()
-    btot_sqrd_avg = material.totalScatterLengthSqrd()
-    laue_monotonic_diffuse_scat = btot_sqrd_avg / bcoh_avg_sqrd
-    sq_banks_wksp = 'SQ_banks_wksp'
-    CloneWorkspace(InputWorkspace=sam_corrected, OutputWorkspace=sq_banks_wksp)
-
-    # TODO: Add the following when implemented
-    '''
-    SQ_banks = (1. / bcoh_avg_sqrd) * \
-        mtd[sq_banks_wksp] - laue_monotonic_diffuse_scat + 1.
-    '''
-
-    # Save S(Q) and F(Q) to diagnostics NeXus file
+    sam_corrected_norm = sam_corrected + '_norm'
+    to_absolute_scale(sam_corrected, sam_corrected_norm)
     save_banks(
-        InputWorkspace=fq_banks_wksp,
+        InputWorkspace=sam_corrected_norm,
+        Filename=nexus_filename,
+        Title="SQ_banks_normalized",
+        OutputDir=OutputDir,
+        GroupingWorkspace=grp_wksp,
+        Binning=binning)
+
+    if self_scattering_level_correction:
+        sam_corrected_norm_scaled = sam_corrected_norm + '_scaled'
+        _, bad_fitted_levels = \
+            calculate_and_apply_fitted_levels(sam_corrected_norm,
+                                              self_scattering_level_correction,
+                                              sam_corrected_norm_scaled)
+        if bad_fitted_levels:
+            for bank, scale in bad_fitted_levels.items():
+                final_message +=\
+                    f'Bank {bank} potentially has a tilted baseline with ' \
+                    f'the fitted scale = {scale} ' \
+                    f'and was not scaled in {sam_corrected_norm_scaled}\n'
+        save_banks(
+            InputWorkspace=sam_corrected_norm_scaled,
+            Filename=nexus_filename,
+            Title="SQ_banks_normalized_scaled",
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
+    else:
+        sam_corrected_norm_scaled = sam_corrected_norm  # just an alias
+
+    fq_banks = 'FQ_banks'
+    to_f_of_q(sam_corrected_norm_scaled, fq_banks)
+    save_banks(
+        InputWorkspace=fq_banks,
         Filename=nexus_filename,
         Title="FQ_banks",
-        OutputDir=OutputDir,
-        GroupingWorkspace=grp_wksp,
-        Binning=binning)
-
-    save_banks(
-        InputWorkspace=sq_banks_wksp,
-        Filename=nexus_filename,
-        Title="SQ_banks",
-        OutputDir=OutputDir,
-        GroupingWorkspace=grp_wksp,
-        Binning=binning)
-
-    # Output a main S(Q) and F(Q) file
-    fq_filename = title + '_fofq_banks_corrected.nxs'
-    save_banks(
-        InputWorkspace=fq_banks_wksp,
-        Filename=fq_filename,
-        Title="FQ_banks",
-        OutputDir=OutputDir,
-        GroupingWorkspace=grp_wksp,
-        Binning=binning)
-
-    sq_filename = title + '_sofq_banks_corrected.nxs'
-    save_banks(
-        InputWorkspace=sq_banks_wksp,
-        Filename=sq_filename,
-        Title="SQ_banks",
         OutputDir=OutputDir,
         GroupingWorkspace=grp_wksp,
         Binning=binning)
 
     # Print log information
-    print("<b>^2:", bcoh_avg_sqrd)
-    print("<b^2>:", btot_sqrd_avg)
-    print("Laue term:", laue_monotonic_diffuse_scat)
-    print(
-        "sample total xsection:",
-        mtd[sam_corrected].sample().getMaterial().totalScatterXSection())
-    print(
-        "vanadium total xsection:",
-        mtd[van_corrected].sample().getMaterial().totalScatterXSection())
+    material = Material(sam_corrected)
+    print("<b>^2:", material.bcoh_avg_sqrd)
+    print("<b^2>:", material.btot_sqrd_avg)
+    print("Laue term:", material.laue_monotonic_diffuse_scat)
+    print("sample total xsection:", material.totalScatterXSection())
+    print("vanadium total xsection:",
+          Material(van_corrected).totalScatterXSection())
 
     # Output Bragg Diffraction
     ConvertUnits(
@@ -1523,5 +1506,8 @@ def TotalScatteringReduction(config=None):
         MultiplyByBinWidth=True,
         Format="SLOG",
         ExtendedHeader=True)
+
+    if final_message:
+        log.warning(final_message)
 
     return mtd[sam_corrected]
