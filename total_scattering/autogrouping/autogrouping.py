@@ -7,7 +7,7 @@ from mantid.simpleapi import \
     ConvertUnits, \
     CreateCacheFilename, \
     CreateGroupingWorkspace, \
-    LoadEventAndCompress, \
+    LoadEventNexus, \
     Load, \
     MaskSpectra, \
     Rebin, \
@@ -127,6 +127,10 @@ def autogrouping(config):
     else:
         max_chi = None
 
+    wks_index_range = None
+    if "WorkspaceIndexRange" in config:
+        wks_index_range = get_key("WorkspaceIndexRange", config)
+
     cache_dir = ""
     if "CacheDir" in config:
         cache_dir = os.path.abspath(get_key("CacheDir", config))
@@ -144,10 +148,12 @@ def autogrouping(config):
                                                   config))
 
     if diamond_file.endswith(".nxs.h5"):
-        wksp = LoadEventAndCompress(Filename=diamond_file,
-                                    FilterBadPulses=0)
+        wksp = LoadEventNexus(Filename=diamond_file,
+                              CompressTolerance=0.01,
+                              SpectrumList=wks_index_range)
     else:
-        wksp = Load(Filename=diamond_file)
+        wksp = Load(Filename=diamond_file,
+                    SpectrumList=wks_index_range)
 
     mask = None
     new_mask = None
@@ -186,7 +192,8 @@ def autogrouping(config):
         if cache_dir:
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
-                     "nhisto={}".format(wksp.getNumberHistograms())]
+                     "nhisto={}".format(wksp.getNumberHistograms()),
+                     "wksprange={}".format(wks_index_range)]
             prefix = diamond_file.rstrip(".h5").rstrip(
                 ".nxs").split("/")[-1] + "_DG"
             cachefile, sig = get_cachename(prefix, cache_dir, props)
@@ -213,7 +220,8 @@ def autogrouping(config):
         if cache_dir:
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
-                     "nhisto={}".format(wksp.getNumberHistograms())]
+                     "nhisto={}".format(wksp.getNumberHistograms()),
+                     "wksprange={}".format(wks_index_range)]
             prefix = diamond_file.rstrip(".h5").rstrip(
                 ".nxs").split("/")[-1] + "_CC"
             cachefile, sig = get_cachename(prefix, cache_dir, props)
@@ -240,6 +248,7 @@ def autogrouping(config):
             props = ["filename={}".format(diamond_file),
                      "mask={}".format(masking_file),
                      "nhisto={}".format(wksp.getNumberHistograms()),
+                     "wksprange={}".format(wks_index_range),
                      "fitpeaksargs={}".format(fitpeaks_args),
                      "peaks={}".format(diamond_peaks)]
 
@@ -424,11 +433,15 @@ def autogrouping(config):
     # workspace as the donor
     if not skip_grouping:
         print("Generating grouping file '{}'".format(output_file))
+        instr_name = wksp.getInstrument().getName()
+        print("Instrument - {}".format(instr_name))
         CreateGroupingWorkspace(InputWorkspace=wksp,
                                 OutputWorkspace="grouping")
         grouping = mtd["grouping"]
+        num_monitors = int(np.sum(wksp.detectorInfo().detectorIDs() < 0))
         for i in range(len(labels)):
             det_id = wksp.getDetector(int(wsindex[i])).getID()
+            det_id = wksp.detectorInfo().indexOf(det_id) - num_monitors
             # Skip if label is -1 (DBSCAN labels these as noise)
             if labels[i] == -1:
                 continue
