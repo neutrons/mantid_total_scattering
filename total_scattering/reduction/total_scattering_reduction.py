@@ -728,16 +728,42 @@ def TotalScatteringReduction(config: dict = None):
         GroupingWorkspace=grp_wksp,
         Binning=binning)
 
-    # Load Sample Container Background
-
+    # -------------------------------- #
+    # Load Sample Container Background #
+    # -------------------------------- #
+    # NOTE: sample container background IS the empty instrument
+    # The full formula
+    #      alpha_s(I_s - I_e) - alpha_c(I_c - I_e)
+    # I = ----------------------------------------
+    #          alpha_v (I_v - I_v,e)
+    #
+    #      alpha_s I_s - alpha_c I_c - alpha_e I_e
+    #   = -----------------------------------------
+    #          alpha_v I_v - alpha_v I_v,e
+    # where
+    #                                                 A_c - A_s
+    # alpha_e = alpha_s - alpha_c = 1/A_s - 1/A_c = -------------
+    #                                                 A_s * A_c
     if container_bg is not None:
         print("#-----------------------------------#")
         print("# Sample Container's Background")
         print("#-----------------------------------#")
+        # NOTE: to make life easier
+        # alpha_e I_e = alpha_s I_e - alpha_c I_e
         container_bg = load(
             'container_background',
             container_bg,
+            absorption_wksp=sam_abs_ws,
             **alignAndFocusArgs)
+        tmp = load(
+            'container_background',
+            container_bg,
+            absorption_wksp=con_abs_ws,
+            **alignAndFocusArgs)
+        Minus(
+            LHSWorkspace=container_bg,
+            RHSWorkspace=tmp,
+            OutputWorkspace=container_bg)
         save_banks(
             InputWorkspace=container_bg,
             Filename=nexus_filename,
@@ -784,7 +810,7 @@ def TotalScatteringReduction(config: dict = None):
     # Load Vanadium Background #
     # ------------------------ #
     # NOTE:
-    # The full formula is
+    # The full formula
     #      alpha_s(I_s - I_e) - alpha_c(I_c - I_e)
     # I = ----------------------------------------
     #          alpha_v (I_v - I_v,e)
@@ -806,7 +832,8 @@ def TotalScatteringReduction(config: dict = None):
         print("#-----------------------------------#")
         # van_bg = alpha_v I_v,e
         van_bg = load(
-            'vanadium_background', van_bg_scans, # position args
+            'vanadium_background',
+            van_bg_scans,
             absorption_wksp=van_abs_corr_ws,
             **alignAndFocusArgs)
         vanadium_bg_title = "vanadium_background"
@@ -871,12 +898,12 @@ def TotalScatteringReduction(config: dict = None):
     if container_bg is not None:
         RebinToWorkspace(
             WorkspaceToRebin=container_bg,
-            WorkspaceToMatch=container,
+            WorkspaceToMatch=sam_wksp,
             OutputWorkspace=container_bg)
         Minus(
-            LHSWorkspace=container,
+            LHSWorkspace=sam_wksp,
             RHSWorkspace=container_bg,
-            OutputWorkspace=container)
+            OutputWorkspace=sam_wksp)
 
     for wksp in [container, van_wksp, sam_wksp]:
         ConvertUnits(
