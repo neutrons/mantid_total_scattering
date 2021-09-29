@@ -780,13 +780,35 @@ def TotalScatteringReduction(config: dict = None):
     print("Vanadium natoms:", nvan_atoms)
     print("Vanadium natoms / Sample natoms:", nvan_atoms / natoms)
 
-    # Load Vanadium Background
+    # ------------------------ #
+    # Load Vanadium Background #
+    # ------------------------ #
+    # NOTE:
+    # The full formula is
+    #      alpha_s(I_s - I_e) - alpha_c(I_c - I_e)
+    # I = ----------------------------------------
+    #          alpha_v (I_v - I_v,e)
+    #
+    #      alpha_s I_s - alpha_c I_c - alpha_e I_e
+    #   = -----------------------------------------
+    #          alpha_v I_v - alpha_v I_v,e
+    #
+    # where
+    #   * I_v,e is vanadium background
+    #   * alpha_e = (alpha_s - alpha_c)
+    #
+    # ALSO, alpha is the inverse of [effective] absorption coefficient, i.e.
+    #                alpha = 1/A
     van_bg = None
     if van_bg_scans is not None:
         print("#-----------------------------------#")
         print("# Vanadium Background")
         print("#-----------------------------------#")
-        van_bg = load('vanadium_background', van_bg_scans, **alignAndFocusArgs)
+        # van_bg = alpha_v I_v,e
+        van_bg = load(
+            'vanadium_background', van_bg_scans, # position args
+            absorption_wksp=van_abs_corr_ws,
+            **alignAndFocusArgs)
         vanadium_bg_title = "vanadium_background"
         save_banks(
             InputWorkspace=van_bg,
