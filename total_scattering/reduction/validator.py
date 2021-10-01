@@ -24,8 +24,8 @@ def validateConfig(config: dict):
     # SampleOnly         OK     OK           ERR            OK        WARN
     # SampleAndContainer OK     ERR          OK             ERR       ERR
     # FullPaalmanPings   OK     ERR          OK             ERR       ERR
-    # Mayers             OK     OK           ERR            OK        ERR
-    # Carpenter          WARN   WARN         ERR            ERR       WARN
+    # Mayers             ERR    ERR          ERR            OK        ERR
+    # Carpenter          ERR    ERR          ERR            ERR       WARN
     valid_absorption_methods = [
         "None",
         "SampleOnly",
@@ -105,13 +105,13 @@ def validateConfig(config: dict):
                         f"abs_{sam_abs_type}."
                     )
             elif sam_abs_type == "Mayers":
-                if sam_ms_type in ["SampleAndContainer", "Carpenter"]:
+                if sam_ms_type != "Mayers":
                     raise ValueError(
                         f"ms_{sam_ms_type} is incompatible with"
                         f"abs_{sam_abs_type}."
                     )
             elif sam_abs_type == "Carpenter":
-                if sam_ms_type in ["SampleAndContainer", "Mayers"]:
+                if sam_ms_type != "Carpenter":
                     raise ValueError(
                         f"ms_{sam_ms_type} is incompatible with"
                         f"abs_{sam_abs_type}."
