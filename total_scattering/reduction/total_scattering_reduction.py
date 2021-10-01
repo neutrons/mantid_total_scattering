@@ -408,7 +408,13 @@ def get_normalization(config):
     return out
 
 
-def TotalScatteringReduction(config=None):
+def TotalScatteringReduction(config: dict = None):
+    #################################################################
+    # Parse configuration from input argument 'config'
+    #################################################################
+    if config is None:
+        raise RuntimeError('Argument config cannot be None')
+
     facility = config['Facility']
     title = config['Title']
     instr = config['Instrument']
@@ -496,6 +502,15 @@ def TotalScatteringReduction(config=None):
     # alignAndFocusArgs['CropWavelengthMax'] from characterizations file
     '''
 
+    #################################################################
+    # Format run numbers and  with facility name and/or
+    # Retrieve file names from 'config'
+    #
+    # including
+    # sample, sample background,
+    # container, container background,
+    # vanadium, vanadium background
+    #################################################################
     if facility == 'SNS':
         facility_file_format = '%s_%d'
     else:
@@ -547,6 +562,14 @@ def TotalScatteringReduction(config=None):
     except OSError:
         pass
 
+    #################################################################
+    # Process absorption, multiple scattering and inelastic
+    # correction setup from input 'config'
+    # and
+    # Create absorption workspace for
+    # - sample and container
+    # - vanadium
+    #################################################################
     # Get sample corrections
     sam_abs_corr = sample.get("AbsorptionCorrection", None)
     sam_ms_corr = sample.get("MultipleScatteringCorrection", None)
@@ -573,6 +596,7 @@ def TotalScatteringReduction(config=None):
 
     # Get vanadium corrections
     van_mass_density = van.get('MassDensity', van_mass_density)
+    # FIXME - van_packing_fraction is specified but not used
     van_packing_fraction = van.get(
         'PackingFraction',
         van_packing_fraction)
@@ -597,6 +621,11 @@ def TotalScatteringReduction(config=None):
             van_mat_dict,
             **config)
 
+    #################################################################
+    # Set up parameters for AlignAndFocus
+    # and
+    # Create calibration, mask and grouping workspace
+    #################################################################
     alignAndFocusArgs = dict()
     alignAndFocusArgs['CalFilename'] = config['Calibration']['Filename']
     # alignAndFocusArgs['GroupFilename'] don't use
@@ -648,6 +677,11 @@ def TotalScatteringReduction(config=None):
                                 OutputWorkspace=grp_wksp)
         alignAndFocusArgs['GroupingWorkspace'] = grp_wksp
 
+    #################################################################
+    # Load, calibrate and diffraction focus
+    # (1) sample  (2) container (3) container background
+    # (4) vanadium (5) vanadium background
+    #################################################################
     # TODO take out the RecalculatePCharge in the future once tested
     # Load Sample
     print("#-----------------------------------#")
@@ -713,7 +747,6 @@ def TotalScatteringReduction(config=None):
             Binning=binning)
 
     # Load Vanadium
-
     print("#-----------------------------------#")
     print("# Vanadium")
     print("#-----------------------------------#")
@@ -777,8 +810,13 @@ def TotalScatteringReduction(config=None):
         # TODO: Add when we apply Qmin, Qmax cropping
         # mask_info = generate_cropping_table(qmin, qmax)
 
+    #################################################################
     # STEP 1: Subtract Backgrounds
-
+    # van       = van - ban_bg
+    # sam       = sam - container
+    # container = container - container_bg
+    # and save (1) van (2) sam (3) container
+    #################################################################
     sam_raw = 'sam_raw'
     CloneWorkspace(
         InputWorkspace=sam_wksp,
@@ -849,10 +887,11 @@ def TotalScatteringReduction(config=None):
         GroupingWorkspace=grp_wksp,
         Binning=binning)
 
-    # STEP 2.0: Prepare vanadium as normalization calibrant
-
+    #################################################################
+    # STEP 2.0: Prepare vanadium as normalization calibration
     # Multiple-Scattering and Absorption (Steps 2-4) for Vanadium
-
+    # Vanadium peak strip, smooth, Plazech
+    #################################################################
     van_corrected = 'van_corrected'
     ConvertUnits(
         InputWorkspace=van_wksp,
@@ -911,7 +950,6 @@ def TotalScatteringReduction(config=None):
     # McGreevey, and Howells, JPCM, 1989)
 
     # Smooth Vanadium (strip peaks plus smooth)
-
     ConvertUnits(
         InputWorkspace=van_corrected,
         OutputWorkspace=van_corrected,
@@ -1097,8 +1135,11 @@ def TotalScatteringReduction(config=None):
         OutputWorkspace=van_corrected,
         SetError='zero')
 
-    # STEP 2.1: Normalize by Vanadium
-
+    #################################################################
+    # STEP 2.1: Normalize by Vanadium and
+    #           convert to Q (momentum transfer)
+    #           For sample, container, sample raw, vanadium background
+    #################################################################
     wksp_list = [sam_wksp, sam_raw, van_corrected]
     for name in wksp_list:
         ConvertUnits(
@@ -1234,8 +1275,9 @@ def TotalScatteringReduction(config=None):
             GroupingWorkspace=grp_wksp,
             Binning=binning)
 
+    #################################################################
     # STEP 3 & 4: Subtract multiple scattering and apply absorption correction
-
+    #################################################################
     ConvertUnits(
         InputWorkspace=sam_wksp,
         OutputWorkspace=sam_wksp,
@@ -1285,7 +1327,9 @@ def TotalScatteringReduction(config=None):
     else:
         CloneWorkspace(InputWorkspace=sam_wksp, OutputWorkspace=sam_corrected)
 
+    #################################################################
     # STEP 5: Divide by number of atoms in sample
+    #################################################################
 
     mtd[sam_corrected] = (nvan_atoms / natoms) * mtd[sam_corrected]
     ConvertUnits(
@@ -1303,8 +1347,10 @@ def TotalScatteringReduction(config=None):
         GroupingWorkspace=grp_wksp,
         Binning=binning)
 
+    #################################################################
     # STEP 6: Divide by total scattering length squared = total scattering
     # cross-section over 4 * pi
+    #################################################################
     van_material = mtd[van_corrected].sample().getMaterial()
     sigma_v = van_material.totalScatterXSection()
     prefactor = (sigma_v / (4. * np.pi))
@@ -1321,8 +1367,9 @@ def TotalScatteringReduction(config=None):
         GroupingWorkspace=grp_wksp,
         Binning=binning)
 
+    #################################################################
     # STEP 7: Inelastic correction
-
+    #################################################################
     if sam_inelastic_corr['Type'] == "Placzek":
         if sam_material is None:
             error = "For Placzek correction, must specifiy a sample material."
@@ -1373,6 +1420,7 @@ def TotalScatteringReduction(config=None):
                 InputWorkspace=sam_placzek,
                 OutputWorkspace=sam_placzek)
 
+        # FIXME: sam_placzek might not be initialized (by condition am_inelastic_corr['Type'] == "Placzek")
         for wksp in [sam_placzek, sam_corrected]:
             ConvertUnits(
                 InputWorkspace=wksp,
@@ -1417,8 +1465,14 @@ def TotalScatteringReduction(config=None):
             InputWorkspace=sam_corrected,
             OutputWorkspace=sam_corrected)
 
-    # STEP 7:  S(Q) and F(Q), bank-by-bank
-
+    #################################################################
+    # STEP 8:  S(Q) and F(Q), bank-by-bank
+    # processing includes
+    #   1. to absolute scale
+    #   2. save to S(Q)
+    #   3. self scattering correction smd save S(Q) corrected
+    #   4. save to F(Q)
+    #################################################################
     sam_corrected_norm = sam_corrected + '_norm'
     to_absolute_scale(sam_corrected, sam_corrected_norm)
     save_banks(
@@ -1470,7 +1524,10 @@ def TotalScatteringReduction(config=None):
     print("vanadium total xsection:",
           Material(van_corrected).totalScatterXSection())
 
-    # Output Bragg Diffraction
+    #################################################################
+    #   STEP 8.1 Output Bragg Diffraction
+    #            convert to TOF and save to GSAS
+    #################################################################
     ConvertUnits(
         InputWorkspace=sam_corrected,
         OutputWorkspace=sam_corrected,
