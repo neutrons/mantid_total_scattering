@@ -121,8 +121,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             InputWorkspace=abs_input,
             Characterizations=chars,
             ReductionProperties="__absreductionprops",
-            WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
-                               "BL1B:Det:TH:BL:Lambda,freq")
+            )
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
     # If neither run characterization properties or files, guess from input
@@ -133,8 +132,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         PDDetermineCharacterizations(
             InputWorkspace=abs_input,
             ReductionProperties="__absreductionprops",
-            WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
-                               "BL1B:Det:TH:BL:Lambda,freq")
+            )
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
         # Default to wavelength from JSON input / align and focus args
@@ -189,9 +187,8 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     #   for multiple scattering correction, regardless of the container
     #   thickness (which might lead to incorrect results).
     if ms_method is not None:
-        ms_input = Load(filename, MetaDataOnly=True)
         MultipleScatteringCorrection(
-            InputWorkspace=ms_input,
+            InputWorkspace=donor_ws,
             ElementSize=1.0,  # Default element size 1 mm
             method=ms_method,
             OutputWorkspace="ms_tmp"
