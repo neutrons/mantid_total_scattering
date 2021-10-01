@@ -179,7 +179,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     abs_s, abs_c = absorptioncorrutils.calc_absorption_corr_using_wksp(
             donor_ws,
             abs_method)
-    
+
     # Convert to effective absorption correction workspace if multiple
     # scattering correction is requested
     # NOTE:
@@ -192,7 +192,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         ms_input = Load(filename, MetaDataOnly=True)
         MultipleScatteringCorrection(
             InputWorkspace=ms_input,
-            ElementSize=1.0, # Default element size 1 mm
+            ElementSize=1.0,  # Default element size 1 mm
             method=ms_method,
             OutputWorkspace="ms_tmp"
         )
@@ -202,9 +202,9 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             # abs_s now point to the effective absorption correction
             # A = A / (1 - ms_s)
             Divide(
-                LHSWorkspace=abs_s, # str
-                RHSWorkspace=ms_sampleOnly, # workspace
-                OutputWorkspace=abs_s, # str
+                LHSWorkspace=abs_s,  # str
+                RHSWorkspace=ms_sampleOnly,  # workspace
+                OutputWorkspace=abs_s,  # str
                 )
             # nothing need to be done for container
             mtd.remove("ms_tmp_sampleOnly")
@@ -212,17 +212,17 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             ms_sampleAndContainer = mtd["ms_tmp_sampleAndContainer"]
             ms_sampleAndContainer = 1 - ms_sampleAndContainer
             Divide(
-                LHSWorkspace=abs_s, # str
-                RHSWorkspace=ms_sampleAndContainer, # workspace
-                OutputWorkspace=abs_s, # str
+                LHSWorkspace=abs_s,  # str
+                RHSWorkspace=ms_sampleAndContainer,  # workspace
+                OutputWorkspace=abs_s,  # str
             )
             mtd.remove("ms_tmp_sampleAndContainer")
             ms_containerOnly = mtd["ms_tmp_containerOnly"]
             ms_containerOnly = 1 - ms_containerOnly
             Divide(
-                LHSWorkspace=abs_c, # str
-                RHSWorkspace=ms_containerOnly, # workspace
-                OutputWorkspace=abs_c, # str
+                LHSWorkspace=abs_c,  # str
+                RHSWorkspace=ms_containerOnly,  # workspace
+                OutputWorkspace=abs_c,  # str
             )
             mtd.remove("ms_tmp_containerOnly")
         else:
