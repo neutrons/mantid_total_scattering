@@ -586,12 +586,21 @@ def TotalScatteringReduction(config: dict = None):
     if sam_abs_corr:
         msg = "Applying '{}' absorption correction to sample"
         log.notice(msg.format(sam_abs_corr["Type"]))
+        sam_ms_method = None
+        if sam_ms_corr:
+            sam_ms_method = sam_ms_corr.get("Type", None)
+            if sam_ms_method is not None:
+                log.notice(
+                    f"Apply {sam_ms_method} multiple scattering correction"
+                    "to sample"
+                )
         sam_abs_ws, con_abs_ws = create_absorption_wksp(
             sam_scans,
             sam_abs_corr["Type"],
             sam_geo_dict,
             sam_mat_dict,
             sam_env_dict,
+            ms_method=sam_ms_method,
             **config)
 
     # Get vanadium corrections
@@ -614,11 +623,20 @@ def TotalScatteringReduction(config: dict = None):
     if van_abs_corr:
         msg = "Applying '{}' absorption correction to vanadium"
         log.notice(msg.format(van_abs_corr["Type"]))
+        van_ms_method = None
+        if van_ms_corr:
+            van_ms_method = van_ms_corr.get("Type", None)
+            if van_ms_method is not None:
+                log.notice(
+                    f"Apply {van_ms_method} multiple scattering correction"
+                    "to vanadium"
+                )
         van_abs_corr_ws, van_con_ws = create_absorption_wksp(
             van_scans,
             van_abs_corr["Type"],
             van_geo_dict,
             van_mat_dict,
+            ms_method=van_ms_method,
             **config)
 
     #################################################################

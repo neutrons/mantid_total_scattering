@@ -1,7 +1,11 @@
+import logging
+from mantid import mtd
 from mantid.simpleapi import \
     AlignAndFocusPowderFromFiles, \
     ConvertUnits, \
+    Divide, \
     Load, \
+    MultipleScatteringCorrection, \
     NormaliseByCurrent, \
     PDDetermineCharacterizations, \
     PDLoadCharacterizations, \
@@ -91,6 +95,7 @@ def add_required_shape_keys(mydict, shape):
 def create_absorption_wksp(filename, abs_method, geometry, material,
                            environment=None, props=None,
                            characterization_files=None,
+                           ms_method=None,
                            **align_and_focus_args):
     '''Create absorption workspace'''
     if abs_method is None:
@@ -174,5 +179,56 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     abs_s, abs_c = absorptioncorrutils.calc_absorption_corr_using_wksp(
             donor_ws,
             abs_method)
+    
+    # Convert to effective absorption correction workspace if multiple
+    # scattering correction is requested
+    # NOTE:
+    #   There is no entry for specifying the element size yet, and we are
+    #   unclear if heterogeneous element size will be implemented in the
+    #   future, therefore we will be using the default 1mm element size
+    #   for multiple scattering correction, regardless of the container
+    #   thickness (which might lead to incorrect results).
+    if ms_method is not None:
+        ms_input = Load(filename, MetaDataOnly=True)
+        MultipleScatteringCorrection(
+            InputWorkspace=ms_input,
+            ElementSize=1.0, # Default element size 1 mm
+            method=ms_method,
+            OutputWorkspace="ms_tmp"
+        )
+        if ms_method == "SampleOnly":
+            ms_sampleOnly = mtd["ms_tmp_sampleOnly"]
+            ms_sampleOnly = 1 - ms_sampleOnly
+            # abs_s now point to the effective absorption correction
+            # A = A / (1 - ms_s)
+            Divide(
+                LHSWorkspace=abs_s, # str
+                RHSWorkspace=ms_sampleOnly, # workspace
+                OutputWorkspace=abs_s, # str
+                )
+            # nothing need to be done for container
+            mtd.remove("ms_tmp_sampleOnly")
+        elif ms_method == "SampleAndContainer":
+            ms_sampleAndContainer = mtd["ms_tmp_sampleAndContainer"]
+            ms_sampleAndContainer = 1 - ms_sampleAndContainer
+            Divide(
+                LHSWorkspace=abs_s, # str
+                RHSWorkspace=ms_sampleAndContainer, # workspace
+                OutputWorkspace=abs_s, # str
+            )
+            mtd.remove("ms_tmp_sampleAndContainer")
+            ms_containerOnly = mtd["ms_tmp_containerOnly"]
+            ms_containerOnly = 1 - ms_containerOnly
+            Divide(
+                LHSWorkspace=abs_c, # str
+                RHSWorkspace=ms_containerOnly, # workspace
+                OutputWorkspace=abs_c, # str
+            )
+            mtd.remove("ms_tmp_containerOnly")
+        else:
+            logging.warning(
+                f"multiple scattering correction {ms_method}"
+                "is performed independent from absorption correction."
+                )
 
     return abs_s, abs_c
