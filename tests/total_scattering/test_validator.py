@@ -9,7 +9,7 @@ class CliTest(unittest.TestCase):
         "Instrument": "NOM",
         "Title": "ceriaDP375_PAC06_at_300K_IDL_Calib",
         "Calibration": {
-            "Filename": "/SNS/users/y8z/Data/Igor_Ceria_New/shared/NOM_calibrate_d143068_2020_02_11.h5"
+            "Filename": "test.h5"  # don't need a real file here
         },
         "AlignAndFocusArgs": {"TMin": 300.0, "TMax": 16667.0},
         "HighQLinearFitRange": 0.60,
