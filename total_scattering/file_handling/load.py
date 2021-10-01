@@ -96,12 +96,6 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     if abs_method is None:
         return '', ''
 
-    # Check against supported absorption corrections, error out early if needed
-    valid_methods = ["SampleOnly", "SampleAndContainer", "FullPaalmanPings"]
-    if abs_method not in valid_methods:
-        msg = "Unrecognized absorption correction method '{}'"
-        raise RuntimeError(msg.format(abs_method))
-
     abs_input = Load(filename, MetaDataOnly=True)
 
     # If no run characterization properties given, load any provided files
