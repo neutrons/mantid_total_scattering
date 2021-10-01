@@ -1420,7 +1420,8 @@ def TotalScatteringReduction(config: dict = None):
                 InputWorkspace=sam_placzek,
                 OutputWorkspace=sam_placzek)
 
-        # FIXME: sam_placzek might not be initialized (by condition am_inelastic_corr['Type'] == "Placzek")
+        # FIXME: sam_placzek might not be initialized
+        # FIXME: (by condition am_inelastic_corr['Type'] == "Placzek")
         for wksp in [sam_placzek, sam_corrected]:
             ConvertUnits(
                 InputWorkspace=wksp,
