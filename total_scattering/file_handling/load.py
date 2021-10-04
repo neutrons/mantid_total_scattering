@@ -157,7 +157,24 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                 if logname_wl in run and is_max_wavelength_zero:
                     props["wavelength_max"] = run[logname_wl].lastValue()
 
-    # Setup the donor workspace for absorption correction
+    # NOTE: We have two options from this point forward.
+    #       As of 10-04-2021, use option 2 to bypass the automated caching
+
+    # Option 1: use top level API from absorptioncorrutils for easy caching
+    # abs_s, abs_c = absorptioncorrutils.calculate_absorption_correction(
+    #                   filename,
+    #                   abs_method,
+    #                   props,
+    #                   sample_formula=material['ChemicalFormula'],
+    #                   mass_density=material['SampleMassDensity'],
+    #                   cache_dir=align_and_focus_args["CacheDir"],
+    #                   ms_method=ms_method,
+    # )
+
+    # Option 2 (Original method)
+    # Use low level API from absorptioncorrutils to bypass the automated
+    # caching
+    # 1. Setup the donor workspace for absorption correction
     try:
         if isinstance(filename, str):
             list_filenames = filename.split(",")
@@ -174,11 +191,13 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         msg = "Could not create absorption correction donor workspace: {}"
         raise RuntimeError(msg.format(e))
 
+    # 2. calculate the absorption workspace (first order absorption) without
+    #    calling to cache
     abs_s, abs_c = absorptioncorrutils.calc_absorption_corr_using_wksp(
             donor_ws,
             abs_method)
 
-    # Convert to effective absorption correction workspace if multiple
+    # 3. Convert to effective absorption correction workspace if multiple
     # scattering correction is requested
     # NOTE:
     #   There is no entry for specifying the element size yet, and we are
