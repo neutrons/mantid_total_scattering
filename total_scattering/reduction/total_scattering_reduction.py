@@ -503,8 +503,8 @@ def TotalScatteringReduction(config: dict = None):
     '''
 
     #################################################################
-    # Format run numbers and  with facility name and/or
-    # Retrieve file names from 'config'
+    # Figure out experimental runs either with run numbers
+    # and facility name or retrieve file name from 'config'
     #
     # including
     # sample, sample background,
@@ -812,7 +812,7 @@ def TotalScatteringReduction(config: dict = None):
 
     #################################################################
     # STEP 1: Subtract Backgrounds
-    # van       = van - ban_bg
+    # van       = van - van_bg
     # sam       = sam - container
     # container = container - container_bg
     # and save (1) van (2) sam (3) container
@@ -1155,7 +1155,7 @@ def TotalScatteringReduction(config: dict = None):
             Params=binning,
             PreserveEvents=True)
 
-    # Save the sample - back / normalized
+    # Save (sample - back) / van_corrected
     Divide(
         LHSWorkspace=sam_wksp,
         RHSWorkspace=van_corrected,
@@ -1471,7 +1471,7 @@ def TotalScatteringReduction(config: dict = None):
     # processing includes
     #   1. to absolute scale
     #   2. save to S(Q)
-    #   3. self scattering correction smd save S(Q) corrected
+    #   3. self scattering correction and save S(Q) corrected
     #   4. save to F(Q)
     #################################################################
     sam_corrected_norm = sam_corrected + '_norm'
