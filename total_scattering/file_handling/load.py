@@ -116,11 +116,15 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         chars = charTable[0]
 
         # Create the properties for the absorption workspace
-        #  Note: Should BackRun, NormRun, and NormBackRun be specified here?
+        # NOTE
+        # WaveLengthLogNames used here will be the standard default one in the
+        # future, however let's keep them in until Mantid_v6.3 comes out
         PDDetermineCharacterizations(
             InputWorkspace=abs_input,
             Characterizations=chars,
             ReductionProperties="__absreductionprops",
+            WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
+                               "BL1B:Det:TH:BL:Lambda,freq"
             )
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
@@ -129,9 +133,14 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         msg = ("No props or characterizations were given, "
                "determining props from input file")
         print(msg)
+        # NOTE
+        # WaveLengthLogNames used here will be the standard default one in the
+        # future, however let's keep them in until Mantid_v6.3 comes out
         PDDetermineCharacterizations(
             InputWorkspace=abs_input,
             ReductionProperties="__absreductionprops",
+            WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
+                               "BL1B:Det:TH:BL:Lambda,freq"
             )
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
