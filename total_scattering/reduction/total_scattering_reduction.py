@@ -575,6 +575,11 @@ def TotalScatteringReduction(config: dict = None):
     sam_ms_corr = sample.get("MultipleScatteringCorrection", None)
     sam_inelastic_corr = SetInelasticCorrection(
         sample.get('InelasticCorrection', None))
+    # get the element size
+    sam_abs_ms_param = sample.get("AbsMSParameters", None)
+    sam_elementsize = 1.0  # mm
+    if sam_abs_ms_param:
+        sam_elementsize = sam_abs_ms_param.get("ElementSize", 1.0)
 
     # Warn about having absorption correction and multiple scat correction set
     if sam_abs_corr and sam_ms_corr:
@@ -586,12 +591,22 @@ def TotalScatteringReduction(config: dict = None):
     if sam_abs_corr:
         msg = "Applying '{}' absorption correction to sample"
         log.notice(msg.format(sam_abs_corr["Type"]))
+        sam_ms_method = None
+        if sam_ms_corr:
+            sam_ms_method = sam_ms_corr.get("Type", None)
+            if sam_ms_method is not None:
+                log.notice(
+                    f"Apply {sam_ms_method} multiple scattering correction"
+                    "to sample"
+                )
         sam_abs_ws, con_abs_ws = create_absorption_wksp(
             sam_scans,
             sam_abs_corr["Type"],
             sam_geo_dict,
             sam_mat_dict,
             sam_env_dict,
+            ms_method=sam_ms_method,
+            elementsize=sam_elementsize,
             **config)
 
     # Get vanadium corrections
@@ -604,6 +619,11 @@ def TotalScatteringReduction(config: dict = None):
     van_ms_corr = van.get("MultipleScatteringCorrection", {"Type": None})
     van_inelastic_corr = SetInelasticCorrection(
         van.get('InelasticCorrection', None))
+    # get the elementsize for vanadium
+    van_abs_ms_param = van.get("AbsMSParameters", None)
+    van_elementsize = 1.0
+    if van_abs_ms_param:
+        van_elementsize = van_abs_ms_param.get("ElementSize", 1.0)
 
     # Warn about having absorption correction and multiple scat correction set
     if van_abs_corr["Type"] and van_ms_corr["Type"]:
@@ -614,11 +634,21 @@ def TotalScatteringReduction(config: dict = None):
     if van_abs_corr:
         msg = "Applying '{}' absorption correction to vanadium"
         log.notice(msg.format(van_abs_corr["Type"]))
+        van_ms_method = None
+        if van_ms_corr:
+            van_ms_method = van_ms_corr.get("Type", None)
+            if van_ms_method is not None:
+                log.notice(
+                    f"Apply {van_ms_method} multiple scattering correction"
+                    "to vanadium"
+                )
         van_abs_corr_ws, van_con_ws = create_absorption_wksp(
             van_scans,
             van_abs_corr["Type"],
             van_geo_dict,
             van_mat_dict,
+            ms_method=van_ms_method,
+            elementsize=van_elementsize,
             **config)
 
     #################################################################
@@ -728,16 +758,42 @@ def TotalScatteringReduction(config: dict = None):
         GroupingWorkspace=grp_wksp,
         Binning=binning)
 
-    # Load Sample Container Background
-
+    # -------------------------------- #
+    # Load Sample Container Background #
+    # -------------------------------- #
+    # NOTE: sample container background IS the empty instrument
+    # The full formula
+    #      alpha_s(I_s - I_e) - alpha_c(I_c - I_e)
+    # I = ----------------------------------------
+    #          alpha_v (I_v - I_v,e)
+    #
+    #      alpha_s I_s - alpha_c I_c - alpha_e I_e
+    #   = -----------------------------------------
+    #          alpha_v I_v - alpha_v I_v,e
+    # where
+    #                                                 A_c - A_s
+    # alpha_e = alpha_s - alpha_c = 1/A_s - 1/A_c = -------------
+    #                                                 A_s * A_c
     if container_bg is not None:
         print("#-----------------------------------#")
         print("# Sample Container's Background")
         print("#-----------------------------------#")
+        # NOTE: to make life easier
+        # alpha_e I_e = alpha_s I_e - alpha_c I_e
         container_bg = load(
             'container_background',
             container_bg,
+            absorption_wksp=sam_abs_ws,
             **alignAndFocusArgs)
+        tmp = load(
+            'container_background',
+            container_bg,
+            absorption_wksp=con_abs_ws,
+            **alignAndFocusArgs)
+        Minus(
+            LHSWorkspace=container_bg,
+            RHSWorkspace=tmp,
+            OutputWorkspace=container_bg)
         save_banks(
             InputWorkspace=container_bg,
             Filename=nexus_filename,
@@ -780,13 +836,36 @@ def TotalScatteringReduction(config: dict = None):
     print("Vanadium natoms:", nvan_atoms)
     print("Vanadium natoms / Sample natoms:", nvan_atoms / natoms)
 
-    # Load Vanadium Background
+    # ------------------------ #
+    # Load Vanadium Background #
+    # ------------------------ #
+    # NOTE:
+    # The full formula
+    #      alpha_s(I_s - I_e) - alpha_c(I_c - I_e)
+    # I = ----------------------------------------
+    #          alpha_v (I_v - I_v,e)
+    #
+    #      alpha_s I_s - alpha_c I_c - alpha_e I_e
+    #   = -----------------------------------------
+    #          alpha_v I_v - alpha_v I_v,e
+    #
+    # where
+    #   * I_v,e is vanadium background
+    #   * alpha_e = (alpha_s - alpha_c)
+    #
+    # ALSO, alpha is the inverse of [effective] absorption coefficient, i.e.
+    #                alpha = 1/A
     van_bg = None
     if van_bg_scans is not None:
         print("#-----------------------------------#")
         print("# Vanadium Background")
         print("#-----------------------------------#")
-        van_bg = load('vanadium_background', van_bg_scans, **alignAndFocusArgs)
+        # van_bg = alpha_v I_v,e
+        van_bg = load(
+            'vanadium_background',
+            van_bg_scans,
+            absorption_wksp=van_abs_corr_ws,
+            **alignAndFocusArgs)
         vanadium_bg_title = "vanadium_background"
         save_banks(
             InputWorkspace=van_bg,
@@ -849,12 +928,12 @@ def TotalScatteringReduction(config: dict = None):
     if container_bg is not None:
         RebinToWorkspace(
             WorkspaceToRebin=container_bg,
-            WorkspaceToMatch=container,
+            WorkspaceToMatch=sam_wksp,
             OutputWorkspace=container_bg)
         Minus(
-            LHSWorkspace=container,
+            LHSWorkspace=sam_wksp,
             RHSWorkspace=container_bg,
-            OutputWorkspace=container)
+            OutputWorkspace=sam_wksp)
 
     for wksp in [container, van_wksp, sam_wksp]:
         ConvertUnits(

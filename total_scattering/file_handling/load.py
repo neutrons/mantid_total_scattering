@@ -1,7 +1,11 @@
+import logging
+from mantid import mtd
 from mantid.simpleapi import \
     AlignAndFocusPowderFromFiles, \
     ConvertUnits, \
+    Divide, \
     Load, \
+    MultipleScatteringCorrection, \
     NormaliseByCurrent, \
     PDDetermineCharacterizations, \
     PDLoadCharacterizations, \
@@ -91,16 +95,12 @@ def add_required_shape_keys(mydict, shape):
 def create_absorption_wksp(filename, abs_method, geometry, material,
                            environment=None, props=None,
                            characterization_files=None,
+                           ms_method=None,
+                           elementsize=1.0, # mm
                            **align_and_focus_args):
     '''Create absorption workspace'''
     if abs_method is None:
         return '', ''
-
-    # Check against supported absorption corrections, error out early if needed
-    valid_methods = ["SampleOnly", "SampleAndContainer", "FullPaalmanPings"]
-    if abs_method not in valid_methods:
-        msg = "Unrecognized absorption correction method '{}'"
-        raise RuntimeError(msg.format(abs_method))
 
     abs_input = Load(filename, MetaDataOnly=True)
 
@@ -117,13 +117,16 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         chars = charTable[0]
 
         # Create the properties for the absorption workspace
-        #  Note: Should BackRun, NormRun, and NormBackRun be specified here?
+        # NOTE
+        # WaveLengthLogNames used here will be the standard default one in the
+        # future, however let's keep them in until Mantid_v6.3 comes out
         PDDetermineCharacterizations(
             InputWorkspace=abs_input,
             Characterizations=chars,
             ReductionProperties="__absreductionprops",
             WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
-                               "BL1B:Det:TH:BL:Lambda,freq")
+                               "BL1B:Det:TH:BL:Lambda,freq"
+            )
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
     # If neither run characterization properties or files, guess from input
@@ -131,11 +134,15 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         msg = ("No props or characterizations were given, "
                "determining props from input file")
         print(msg)
+        # NOTE
+        # WaveLengthLogNames used here will be the standard default one in the
+        # future, however let's keep them in until Mantid_v6.3 comes out
         PDDetermineCharacterizations(
             InputWorkspace=abs_input,
             ReductionProperties="__absreductionprops",
             WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
-                               "BL1B:Det:TH:BL:Lambda,freq")
+                               "BL1B:Det:TH:BL:Lambda,freq"
+            )
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
         # Default to wavelength from JSON input / align and focus args
@@ -160,7 +167,24 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                 if logname_wl in run and is_max_wavelength_zero:
                     props["wavelength_max"] = run[logname_wl].lastValue()
 
-    # Setup the donor workspace for absorption correction
+    # NOTE: We have two options from this point forward.
+    #       As of 10-04-2021, use option 2 to bypass the automated caching
+
+    # Option 1: use top level API from absorptioncorrutils for easy caching
+    # abs_s, abs_c = absorptioncorrutils.calculate_absorption_correction(
+    #                   filename,
+    #                   abs_method,
+    #                   props,
+    #                   sample_formula=material['ChemicalFormula'],
+    #                   mass_density=material['SampleMassDensity'],
+    #                   cache_dir=align_and_focus_args["CacheDir"],
+    #                   ms_method=ms_method,
+    # )
+
+    # Option 2 (Original method)
+    # Use low level API from absorptioncorrutils to bypass the automated
+    # caching
+    # 1. Setup the donor workspace for absorption correction
     try:
         if isinstance(filename, str):
             list_filenames = filename.split(",")
@@ -177,8 +201,58 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         msg = "Could not create absorption correction donor workspace: {}"
         raise RuntimeError(msg.format(e))
 
+    # 2. calculate the absorption workspace (first order absorption) without
+    #    calling to cache
     abs_s, abs_c = absorptioncorrutils.calc_absorption_corr_using_wksp(
             donor_ws,
-            abs_method)
+            abs_method,
+            element_size=elementsize)
+
+    # 3. Convert to effective absorption correction workspace if multiple
+    # scattering correction is requested
+    # NOTE:
+    #   Multiple scattering and absorption correction are using the same
+    #   element size when discretizing the volume.
+    if ms_method is not None:
+        MultipleScatteringCorrection(
+            InputWorkspace=donor_ws,
+            ElementSize=elementsize,
+            method=ms_method,
+            OutputWorkspace="ms_tmp"
+        )
+        if ms_method == "SampleOnly":
+            ms_sampleOnly = mtd["ms_tmp_sampleOnly"]
+            ms_sampleOnly = 1 - ms_sampleOnly
+            # abs_s now point to the effective absorption correction
+            # A = A / (1 - ms_s)
+            Divide(
+                LHSWorkspace=abs_s,  # str
+                RHSWorkspace=ms_sampleOnly,  # workspace
+                OutputWorkspace=abs_s,  # str
+                )
+            # nothing need to be done for container
+            mtd.remove("ms_tmp_sampleOnly")
+        elif ms_method == "SampleAndContainer":
+            ms_sampleAndContainer = mtd["ms_tmp_sampleAndContainer"]
+            ms_sampleAndContainer = 1 - ms_sampleAndContainer
+            Divide(
+                LHSWorkspace=abs_s,  # str
+                RHSWorkspace=ms_sampleAndContainer,  # workspace
+                OutputWorkspace=abs_s,  # str
+            )
+            mtd.remove("ms_tmp_sampleAndContainer")
+            ms_containerOnly = mtd["ms_tmp_containerOnly"]
+            ms_containerOnly = 1 - ms_containerOnly
+            Divide(
+                LHSWorkspace=abs_c,  # str
+                RHSWorkspace=ms_containerOnly,  # workspace
+                OutputWorkspace=abs_c,  # str
+            )
+            mtd.remove("ms_tmp_containerOnly")
+        else:
+            logging.warning(
+                f"multiple scattering correction {ms_method}"
+                "is performed independent from absorption correction."
+                )
 
     return abs_s, abs_c
