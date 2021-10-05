@@ -96,6 +96,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                            environment=None, props=None,
                            characterization_files=None,
                            ms_method=None,
+                           elementsize=1.0, # mm
                            **align_and_focus_args):
     '''Create absorption workspace'''
     if abs_method is None:
@@ -204,20 +205,18 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     #    calling to cache
     abs_s, abs_c = absorptioncorrutils.calc_absorption_corr_using_wksp(
             donor_ws,
-            abs_method)
+            abs_method,
+            element_size=elementsize)
 
     # 3. Convert to effective absorption correction workspace if multiple
     # scattering correction is requested
     # NOTE:
-    #   There is no entry for specifying the element size yet, and we are
-    #   unclear if heterogeneous element size will be implemented in the
-    #   future, therefore we will be using the default 1mm element size
-    #   for multiple scattering correction, regardless of the container
-    #   thickness (which might lead to incorrect results).
+    #   Multiple scattering and absorption correction are using the same
+    #   element size when discretizing the volume.
     if ms_method is not None:
         MultipleScatteringCorrection(
             InputWorkspace=donor_ws,
-            ElementSize=1.0,  # Default element size 1 mm
+            ElementSize=elementsize,
             method=ms_method,
             OutputWorkspace="ms_tmp"
         )

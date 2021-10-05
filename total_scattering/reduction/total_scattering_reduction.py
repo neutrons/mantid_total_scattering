@@ -575,6 +575,11 @@ def TotalScatteringReduction(config: dict = None):
     sam_ms_corr = sample.get("MultipleScatteringCorrection", None)
     sam_inelastic_corr = SetInelasticCorrection(
         sample.get('InelasticCorrection', None))
+    # get the element size
+    sam_abs_ms_param = sample.get("AbsMSParameters", None)
+    sam_elementsize = 1.0  # mm
+    if sam_abs_ms_param:
+        sam_elementsize = sam_abs_ms_param.get("ElementSize", 1.0)
 
     # Warn about having absorption correction and multiple scat correction set
     if sam_abs_corr and sam_ms_corr:
@@ -601,6 +606,7 @@ def TotalScatteringReduction(config: dict = None):
             sam_mat_dict,
             sam_env_dict,
             ms_method=sam_ms_method,
+            elementsize=sam_elementsize,
             **config)
 
     # Get vanadium corrections
@@ -613,6 +619,11 @@ def TotalScatteringReduction(config: dict = None):
     van_ms_corr = van.get("MultipleScatteringCorrection", {"Type": None})
     van_inelastic_corr = SetInelasticCorrection(
         van.get('InelasticCorrection', None))
+    # get the elementsize for vanadium
+    van_abs_ms_param = van.get("AbsMSParameters", None)
+    van_elementsize = 1.0
+    if van_abs_ms_param:
+        van_elementsize = van_abs_ms_param.get("ElementSize", 1.0)
 
     # Warn about having absorption correction and multiple scat correction set
     if van_abs_corr["Type"] and van_ms_corr["Type"]:
@@ -637,6 +648,7 @@ def TotalScatteringReduction(config: dict = None):
             van_geo_dict,
             van_mat_dict,
             ms_method=van_ms_method,
+            elementsize=van_elementsize,
             **config)
 
     #################################################################
