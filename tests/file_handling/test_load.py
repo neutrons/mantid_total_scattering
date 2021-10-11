@@ -193,7 +193,7 @@ class TestLoad(unittest.TestCase):
         ws_name = 'test-sample'
 
         import mantid
-        print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n Debugging -> ", mantid.__version__)
+        print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n Debugging -> ", mantid.__version__)
         print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n Debugging -> ")
 
         a_sample, a_container = create_absorption_wksp(
