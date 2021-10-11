@@ -192,6 +192,10 @@ class TestLoad(unittest.TestCase):
     def test_load_fullpaalmanpings(self):
         ws_name = 'test-sample'
 
+        import mantid
+        print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n Debugging -> ", mantid.__version__)
+        print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n Debugging -> ")
+
         a_sample, a_container = create_absorption_wksp(
             self.lab6_nomad_file_path,
             "FullPaalmanPings",
