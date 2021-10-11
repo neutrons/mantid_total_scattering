@@ -96,7 +96,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                            environment=None, props=None,
                            characterization_files=None,
                            ms_method=None,
-                           elementsize=1.0, # mm
+                           elementsize=1.0,  # mm
                            **align_and_focus_args):
     '''Create absorption workspace'''
     if abs_method is None:
