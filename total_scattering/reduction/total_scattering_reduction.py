@@ -780,14 +780,15 @@ def TotalScatteringReduction(config: dict = None):
         print("#-----------------------------------#")
         # NOTE: to make life easier
         # alpha_e I_e = alpha_s I_e - alpha_c I_e
+        container_bg_fn = container_bg
         container_bg = load(
             'container_background',
-            container_bg,
+            container_bg_fn,
             absorption_wksp=sam_abs_ws,
             **alignAndFocusArgs)
         tmp = load(
             'container_background',
-            container_bg,
+            container_bg_fn,
             absorption_wksp=con_abs_ws,
             **alignAndFocusArgs)
         Minus(
