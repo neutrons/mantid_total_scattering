@@ -22,8 +22,8 @@ def validateConfig(config: dict):
     # --------------------------------------------------------------------------
     # None               OK     ERR          ERR            ERR       ERR
     # SampleOnly         OK     OK           ERR            OK        WARN
-    # SampleAndContainer OK     ERR          OK             ERR       ERR
-    # FullPaalmanPings   OK     ERR          OK             ERR       ERR
+    # SampleAndContainer OK     OK           OK             ERR       ERR
+    # FullPaalmanPings   OK     OK           OK             ERR       ERR
     # Mayers             ERR    ERR          ERR            OK        ERR
     # Carpenter          ERR    ERR          ERR            ERR       WARN
     valid_absorption_methods = [
@@ -99,7 +99,8 @@ def validateConfig(config: dict):
                 else:
                     pass
             elif sam_abs_type in ["SampleAndContainer", "FullPaalmanPings"]:
-                if str(sam_ms_type) not in ["None", "SampleAndContainer"]:
+                list_tmp = ["None", "SampleAndContainer", "SampleOnly"]
+                if str(sam_ms_type) not in list_tmp:
                     raise ValueError(
                         f"ms_{sam_ms_type} is incompatible with"
                         f"abs_{sam_abs_type}."

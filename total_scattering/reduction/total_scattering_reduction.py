@@ -34,22 +34,18 @@ from mantid.simpleapi import \
     SaveGSS, \
     SetSample, \
     SetUncertainties, \
-    StripVanadiumPeaks
+    StripVanadiumPeaks, \
+    CalculateEfficiencyCorrection, \
+    CalculatePlaczek, \
+    LoadNexusMonitors, \
+    ConvertToPointData, \
+    Multiply
 
 from total_scattering.file_handling.load import load, create_absorption_wksp
 from total_scattering.file_handling.save import save_banks
-from total_scattering.inelastic.placzek import \
-    CalculatePlaczekSelfScattering, \
-    FitIncidentSpectrum, \
-    GetIncidentSpectrumFromMonitor
+from total_scattering.inelastic.placzek import FitIncidentSpectrum
 from total_scattering.reduction.normalizations import (
     Material, calculate_and_apply_fitted_levels, to_absolute_scale, to_f_of_q)
-
-
-# Constants
-MS_AND_ABS_CORR_WARNING = (
-    "The multiple scattering option should not be used with the "
-    "absorption correction set")
 
 
 # Utilities
@@ -266,7 +262,8 @@ def SetInelasticCorrection(inelastic_dict):
                                 "Interference": True,
                                 "SampleTemperature": "300",
                                 "FitSpectrumWith": "GaussConvCubicSpline",
-                                "LambdaBinning": "0.16,0.04,2.8"}
+                                "LambdaBinningForFit": "0.16,0.04,2.8",
+                                "LambdaBinningForCalc": "0.1,0.0001,3.0"}
             inelastic_settings = default_settings.copy()
             inelastic_settings.update(inelastic_dict)
 
@@ -578,12 +575,15 @@ def TotalScatteringReduction(config: dict = None):
     # get the element size
     sam_abs_ms_param = sample.get("AbsMSParameters", None)
     sam_elementsize = 1.0  # mm
+    con_elementsize = 1.0  # mm
     if sam_abs_ms_param:
-        sam_elementsize = sam_abs_ms_param.get("ElementSize", 1.0)
-
-    # Warn about having absorption correction and multiple scat correction set
-    if sam_abs_corr and sam_ms_corr:
-        log.warning(MS_AND_ABS_CORR_WARNING)
+        elementsize = sam_abs_ms_param.get("ElementSize", 1.0)
+        if type(elementsize) == list:
+            sam_elementsize = elementsize[0]
+            con_elementsize = elementsize[1]
+        else:
+            sam_elementsize = elementsize
+            con_elementsize = elementsize
 
     # Compute the absorption correction on the sample if it was provided
     sam_abs_ws = ''
@@ -607,6 +607,7 @@ def TotalScatteringReduction(config: dict = None):
             sam_env_dict,
             ms_method=sam_ms_method,
             elementsize=sam_elementsize,
+            con_elementsize=con_elementsize,
             **config)
 
     # Get vanadium corrections
@@ -624,10 +625,6 @@ def TotalScatteringReduction(config: dict = None):
     van_elementsize = 1.0
     if van_abs_ms_param:
         van_elementsize = van_abs_ms_param.get("ElementSize", 1.0)
-
-    # Warn about having absorption correction and multiple scat correction set
-    if van_abs_corr["Type"] and van_ms_corr["Type"]:
-        log.warning(MS_AND_ABS_CORR_WARNING)
 
     # Compute the absorption correction for the vanadium if provided
     van_abs_corr_ws = ''
@@ -999,7 +996,7 @@ def TotalScatteringReduction(config: dict = None):
                     OutputWorkspace=van_corrected,
                     MultipleScattering=False)
         else:
-            print("NO VANADIUM absorption or multiple scattering!")
+            pass
     else:
         CloneWorkspace(
             InputWorkspace=van_corrected,
@@ -1089,13 +1086,35 @@ def TotalScatteringReduction(config: dict = None):
     if van_inelastic_corr['Type'] == "Placzek":
         van_scan = van['Runs'][0]
         van_incident_wksp = 'van_incident_wksp'
-        van_inelastic_opts = van['InelasticCorrection']
+        van_inelastic_opts = SetInelasticCorrection(
+            van.get('InelasticCorrection', None))
         lambda_binning_fit = van_inelastic_opts['LambdaBinningForFit']
         lambda_binning_calc = van_inelastic_opts['LambdaBinningForCalc']
         print('van_scan:', van_scan)
-        GetIncidentSpectrumFromMonitor(
-            Filename=facility_file_format % (instr, van_scan),
+
+        monitor_wksp = 'monitor'
+        eff_corr_wksp = 'monitor_efficiency_correction_wksp'
+        LoadNexusMonitors(Filename=facility_file_format % (instr, van_scan),
+                          OutputWorkspace=monitor_wksp)
+        ConvertUnits(InputWorkspace=monitor_wksp, OutputWorkspace=monitor_wksp,
+                     Target='Wavelength', EMode='Elastic')
+        Rebin(InputWorkspace=monitor_wksp,
+              OutputWorkspace=monitor_wksp,
+              Params=lambda_binning_fit,
+              PreserveEvents=False)
+        ConvertToPointData(InputWorkspace=monitor_wksp,
+                           OutputWorkspace=monitor_wksp)
+        CalculateEfficiencyCorrection(WavelengthRange=lambda_binning_fit,
+                                      ChemicalFormula="(He3)",
+                                      DensityType="Number Density",
+                                      Density=1.93138101e-08,
+                                      Thickness=.1,
+                                      OutputWorkspace=eff_corr_wksp)
+        Multiply(
+            LHSWorkspace=monitor_wksp,
+            RHSWorkspace=eff_corr_wksp,
             OutputWorkspace=van_incident_wksp)
+        mtd[van_incident_wksp].setDistribution(True)
 
         fit_type = van['InelasticCorrection']['FitSpectrumWith']
         FitIncidentSpectrum(
@@ -1110,26 +1129,39 @@ def TotalScatteringReduction(config: dict = None):
 
         SetSample(
             InputWorkspace=van_incident_wksp,
-            Material={'ChemicalFormula': str(van_material),
-                      'SampleMassDensity': str(van_mass_density)})
+            Material=van_mat_dict)
 
         calc_interfere = van['InelasticCorrection']['Interference']
-        sample_t = float(van['InelasticCorrection']['SampleTemperature'])
-        CalculatePlaczekSelfScattering(
-            IncidentWorkspace=van_incident_wksp,
-            ParentWorkspace=van_corrected,
+        if calc_interfere:
+            van_t = float(van['InelasticCorrection']['SampleTemperature'])
+            van_pl_order = 2
+        else:
+            van_t = None
+            van_pl_order = 1
+
+        CalculatePlaczek(
+            InputWorkspace=van_corrected,
+            IncidentSpectra=van_incident_wksp,
             OutputWorkspace=van_placzek,
-            L1=19.5,
-            L2=alignAndFocusArgs['L2'],
-            Polar=alignAndFocusArgs['Polar'],
-            CalcInterfere=calc_interfere,
-            SampleT=sample_t)
+            LambdaD=1.44,
+            Order=van_pl_order,
+            ScaleByPackingFraction=False,
+            SampleTemperature=van_t)
 
         ConvertToHistogram(
             InputWorkspace=van_placzek,
             OutputWorkspace=van_placzek)
+        if mtd[van_corrected].YUnit() == "":
+            mtd[van_corrected].setYUnit("Counts")
+        mtd[van_placzek].setYUnit("Counts")
 
-        # Save before rebin in Q
+        if not mtd[van_placzek].isDistribution():
+            ConvertToDistribution(van_placzek)
+
+        bin_tmp = float(lambda_binning_calc.split(',')[1])
+        mtd[van_placzek] = mtd[van_placzek] * bin_tmp
+
+        # Rebin and save in Q
         for wksp in [van_placzek, van_corrected]:
             ConvertUnits(
                 InputWorkspace=wksp,
@@ -1150,65 +1182,6 @@ def TotalScatteringReduction(config: dict = None):
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
             Binning=binning)
-
-        # Rebin in Wavelength
-        for wksp in [van_placzek, van_corrected]:
-            ConvertUnits(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Target='Wavelength',
-                EMode='Elastic')
-            Rebin(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Params=lambda_binning_calc,
-                PreserveEvents=True)
-
-        # Save after rebin in Q
-        for wksp in [van_placzek, van_corrected]:
-            ConvertUnits(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Target='MomentumTransfer',
-                EMode='Elastic')
-
-        # Subtract correction in Wavelength
-        for wksp in [van_placzek, van_corrected]:
-            ConvertUnits(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Target='Wavelength',
-                EMode='Elastic')
-            if not mtd[wksp].isDistribution():
-                ConvertToDistribution(wksp)
-
-        Minus(
-            LHSWorkspace=van_corrected,
-            RHSWorkspace=van_placzek,
-            OutputWorkspace=van_corrected)
-
-        # Save after subtraction
-        for wksp in [van_placzek, van_corrected]:
-            ConvertUnits(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Target='MomentumTransfer',
-                EMode='Elastic')
-
-        vanadium_title += '_placzek_corrected'
-        save_banks(
-            InputWorkspace=van_corrected,
-            Filename=nexus_filename,
-            Title=vanadium_title,
-            OutputDir=OutputDir,
-            GroupingWorkspace=grp_wksp,
-            Binning=binning)
-
-    ConvertUnits(
-        InputWorkspace=van_corrected,
-        OutputWorkspace=van_corrected,
-        Target='MomentumTransfer',
-        EMode='Elastic')
 
     SetUncertainties(
         InputWorkspace=van_corrected,
@@ -1385,7 +1358,6 @@ def TotalScatteringReduction(config: dict = None):
                     OutputWorkspace=sam_corrected,
                     MultipleScattering=False)
         else:
-            print("NO SAMPLE absorption or multiple scattering!")
             CloneWorkspace(
                 InputWorkspace=sam_wksp,
                 OutputWorkspace=sam_corrected)
@@ -1437,7 +1409,10 @@ def TotalScatteringReduction(config: dict = None):
     msg = "Total scattering cross-section of Vanadium:{} sigma_v / 4*pi: {}"
     print(msg.format(sigma_v, prefactor))
 
-    mtd[sam_corrected] = prefactor * mtd[sam_corrected]
+    if van_inelastic_corr['Type'] == "Placzek":
+        mtd[sam_corrected] = (prefactor + mtd[van_placzek]) * mtd[sam_corrected]
+    else:
+        mtd[sam_corrected] = prefactor * mtd[sam_corrected]
     sample_title += '_multiply_by_vanSelfScat'
     save_banks(
         InputWorkspace=sam_corrected,
@@ -1455,65 +1430,91 @@ def TotalScatteringReduction(config: dict = None):
             error = "For Placzek correction, must specifiy a sample material."
             raise Exception(error)
 
-        ConvertUnits(
+        sam_scan = sample['Runs'][0]
+        sam_incident_wksp = 'sam_incident_wksp'
+        sam_inelastic_opts = SetInelasticCorrection(
+            sample.get('InelasticCorrection', None))
+        lambda_binning_fit = sam_inelastic_opts['LambdaBinningForFit']
+        lambda_binning_calc = sam_inelastic_opts['LambdaBinningForCalc']
+
+        monitor_wksp = 'monitor'
+        eff_corr_wksp = 'monitor_efficiency_correction_wksp'
+        LoadNexusMonitors(Filename=facility_file_format % (instr, sam_scan),
+                          OutputWorkspace=monitor_wksp)
+        ConvertUnits(InputWorkspace=monitor_wksp, OutputWorkspace=monitor_wksp,
+                     Target='Wavelength', EMode='Elastic')
+        Rebin(InputWorkspace=monitor_wksp,
+              OutputWorkspace=monitor_wksp,
+              Params=lambda_binning_fit,
+              PreserveEvents=False)
+        ConvertToPointData(InputWorkspace=monitor_wksp,
+                           OutputWorkspace=monitor_wksp)
+        CalculateEfficiencyCorrection(WavelengthRange=lambda_binning_fit,
+                                      ChemicalFormula="(He3)",
+                                      DensityType="Number Density",
+                                      Density=1.93138101e-08,
+                                      Thickness=.1,
+                                      OutputWorkspace=eff_corr_wksp)
+        Multiply(
+            LHSWorkspace=monitor_wksp,
+            RHSWorkspace=eff_corr_wksp,
+            OutputWorkspace=sam_incident_wksp)
+        mtd[sam_incident_wksp].setDistribution(True)
+
+        fit_type = sample['InelasticCorrection']['FitSpectrumWith']
+        FitIncidentSpectrum(
+            InputWorkspace=sam_incident_wksp,
+            OutputWorkspace=sam_incident_wksp,
+            FitSpectrumWith=fit_type,
+            BinningForFit=lambda_binning_fit,
+            BinningForCalc=lambda_binning_calc)
+
+        sam_placzek = 'sam_placzek'
+        SetSample(
+            InputWorkspace=sam_incident_wksp,
+            Material=sam_mat_dict)
+
+        calc_interfere = sample['InelasticCorrection']['Interference']
+        if calc_interfere:
+            sample_t = float(sample['InelasticCorrection']['SampleTemperature'])
+            sample_pl_order = 2
+        else:
+            sample_t = None
+            sample_pl_order = 1
+
+        CalculatePlaczek(
             InputWorkspace=sam_corrected,
-            OutputWorkspace=sam_corrected,
-            Target='Wavelength',
+            IncidentSpectra=sam_incident_wksp,
+            OutputWorkspace=sam_placzek,
+            LambdaD=1.44,
+            Order=sample_pl_order,
+            ScaleByPackingFraction=False,
+            SampleTemperature=sample_t)
+
+        ConvertToHistogram(
+            InputWorkspace=sam_placzek,
+            OutputWorkspace=sam_placzek)
+        if mtd[sam_corrected].YUnit() == "":
+            mtd[sam_corrected].setYUnit("Counts")
+        mtd[sam_placzek].setYUnit("Counts")
+
+        if not mtd[sam_placzek].isDistribution():
+            ConvertToDistribution(sam_placzek)
+
+        bin_tmp = float(lambda_binning_calc.split(',')[1])
+        mtd[sam_placzek] = mtd[sam_placzek] * bin_tmp
+
+        ConvertUnits(
+            InputWorkspace=sam_placzek,
+            OutputWorkspace=sam_placzek,
+            Target='MomentumTransfer',
             EMode='Elastic')
 
-        for sam_scan in sample['Runs']:
-            sam_incident_wksp = 'sam_incident_wksp'
-            sam_inelastic_opts = sample['InelasticCorrection']
-            lambda_binning_fit = sam_inelastic_opts['LambdaBinningForFit']
-            lambda_binning_calc = sam_inelastic_opts['LambdaBinningForCalc']
-            GetIncidentSpectrumFromMonitor(
-                Filename=facility_file_format % (instr, sam_scan),
-                OutputWorkspace=sam_incident_wksp)
-
-            fit_type = sample['InelasticCorrection']['FitSpectrumWith']
-            FitIncidentSpectrum(
-                InputWorkspace=sam_incident_wksp,
-                OutputWorkspace=sam_incident_wksp,
-                FitSpectrumWith=fit_type,
-                BinningForFit=lambda_binning_fit,
-                BinningForCalc=lambda_binning_calc)
-
-            sam_placzek = 'sam_placzek'
-            SetSample(
-                InputWorkspace=sam_incident_wksp,
-                Material={'ChemicalFormula': str(sam_material),
-                          'SampleMassDensity': str(sam_mass_density)})
-
-            calc_interfere = sample['InelasticCorrection']['Interference']
-            sample_t = float(sample['InelasticCorrection']['SampleTemperature'])
-            CalculatePlaczekSelfScattering(
-                IncidentWorkspace=sam_incident_wksp,
-                ParentWorkspace=sam_corrected,
-                OutputWorkspace=sam_placzek,
-                L1=19.5,
-                L2=alignAndFocusArgs['L2'],
-                Polar=alignAndFocusArgs['Polar'],
-                CalcInterfere=calc_interfere,
-                SampleT=sample_t)
-
-            ConvertToHistogram(
-                InputWorkspace=sam_placzek,
-                OutputWorkspace=sam_placzek)
-
-        # FIXME: sam_placzek might not be initialized
-        # FIXME: (by condition am_inelastic_corr['Type'] == "Placzek")
-        for wksp in [sam_placzek, sam_corrected]:
-            ConvertUnits(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Target='MomentumTransfer',
-                EMode='Elastic')
-
-            Rebin(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Params=binning,
-                PreserveEvents=True)
+        Rebin(
+            InputWorkspace=sam_placzek,
+            OutputWorkspace=sam_placzek,
+            Params=binning,
+            PreserveEvents=True)
 
         save_banks(
             InputWorkspace=sam_placzek,
