@@ -144,7 +144,7 @@ def CalculatePlaczekSelfScattering(
         dal_to_kg = 1.66E-27
         angs_to_ms = 1.E-20
 
-        energy_val = h_const**2. / (2. * neutron_mass * dal_to_kg * \
+        energy_val = h_const**2. / (2. * neutron_mass * dal_to_kg *
                                     x_lambda**2. * angs_to_ms)
         energy_term = kB_const * SampleT / energy_val
 

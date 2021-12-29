@@ -224,6 +224,6 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
     mtd[OutputWorkspace] = mtd[OutputWorkspace] * binsize
 
     SmoothData(InputWorkspace=OutputWorkspace,
-        OutputWorkspace=OutputWorkspace, NPoints=10)
+               OutputWorkspace=OutputWorkspace, NPoints=10)
 
     return mtd[OutputWorkspace]

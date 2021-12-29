@@ -1102,7 +1102,8 @@ def TotalScatteringReduction(config: dict = None):
               OutputWorkspace=monitor_wksp,
               Params=lambda_binning_fit,
               PreserveEvents=False)
-        ConvertToPointData(InputWorkspace=monitor_wksp, OutputWorkspace=monitor_wksp)
+        ConvertToPointData(InputWorkspace=monitor_wksp,
+                           OutputWorkspace=monitor_wksp)
         CalculateEfficiencyCorrection(WavelengthRange=lambda_binning_fit,
                                       ChemicalFormula="(He3)",
                                       DensityType="Number Density",
@@ -1446,7 +1447,8 @@ def TotalScatteringReduction(config: dict = None):
               OutputWorkspace=monitor_wksp,
               Params=lambda_binning_fit,
               PreserveEvents=False)
-        ConvertToPointData(InputWorkspace=monitor_wksp, OutputWorkspace=monitor_wksp)
+        ConvertToPointData(InputWorkspace=monitor_wksp,
+                           OutputWorkspace=monitor_wksp)
         CalculateEfficiencyCorrection(WavelengthRange=lambda_binning_fit,
                                       ChemicalFormula="(He3)",
                                       DensityType="Number Density",
