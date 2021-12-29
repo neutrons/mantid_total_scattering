@@ -141,7 +141,11 @@ def CalculatePlaczekSelfScattering(
         eps_2 = eps_1 * c * (2. * np.pi / x)
         kB_const = 1.38E-23  # m^2 kg s^{-2} K^{-1}
         h_const = 6.63E-34  # m^2 kg s^{-1}
-        energy_val = h_const**2. / (2. * neutron_mass * x_lambda**2.)
+        dal_to_kg = 1.66E-27
+        angs_to_ms = 1.E-20
+
+        energy_val = h_const**2. / (2. * neutron_mass * dal_to_kg * \
+                                    x_lambda**2. * angs_to_ms)
         energy_term = kB_const * SampleT / energy_val
 
     # Set default azimuthal angle

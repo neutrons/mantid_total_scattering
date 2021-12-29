@@ -97,6 +97,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                            characterization_files=None,
                            ms_method=None,
                            elementsize=1.0,  # mm
+                           con_elementsize=1.0,  # mm
                            **align_and_focus_args):
     '''Create absorption workspace'''
     if abs_method is None:
@@ -220,6 +221,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         MultipleScatteringCorrection(
             InputWorkspace=donor_ws,
             ElementSize=elementsize,
+            ContainerElementSize=con_elementsize,
             method=ms_method,
             OutputWorkspace="ms_tmp"
         )

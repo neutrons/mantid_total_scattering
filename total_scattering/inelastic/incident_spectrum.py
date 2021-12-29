@@ -7,7 +7,8 @@ from scipy import signal, ndimage, interpolate, optimize
 from mantid import mtd
 from mantid.simpleapi import (
     DeleteWorkspace, DeleteWorkspaces, ConvertToPointData, ConvertUnits,
-    CreateWorkspace, LoadNexusMonitors, Rebin, ResampleX, SplineSmoothing)
+    CreateWorkspace, LoadNexusMonitors, Rebin, ResampleX, SplineSmoothing,
+    SmoothData)
 
 # Functions for fitting the incident spectrum
 
@@ -219,4 +220,10 @@ def FitIncidentSpectrum(InputWorkspace, OutputWorkspace,
         UnitX='Wavelength',
         NSpec=3,
         Distribution=False)
+
+    mtd[OutputWorkspace] = mtd[OutputWorkspace] * binsize
+
+    SmoothData(InputWorkspace=OutputWorkspace,
+        OutputWorkspace=OutputWorkspace, NPoints=10)
+
     return mtd[OutputWorkspace]
