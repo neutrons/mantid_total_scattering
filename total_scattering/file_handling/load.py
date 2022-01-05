@@ -218,8 +218,12 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     #   Multiple scattering and absorption correction are using the same
     #   element size when discretizing the volume.
     if ms_method is not None:
+        try:
+            donor_ws_tmp = mtd[donor_ws].getItem(0)
+        except AttributeError:
+            donor_ws_tmp = mtd[donor_ws]
         MultipleScatteringCorrection(
-            InputWorkspace=donor_ws,
+            InputWorkspace=donor_ws_tmp,
             ElementSize=elementsize,
             ContainerElementSize=con_elementsize,
             method=ms_method,
