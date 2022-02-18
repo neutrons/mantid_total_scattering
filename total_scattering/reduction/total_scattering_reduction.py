@@ -1633,7 +1633,8 @@ def TotalScatteringReduction(config: dict = None):
 
     xmin_rebin = min(xmin)
     xmax_rebin = max(xmax)
-    tof_binning = "{xmin},-0.0008,{xmax}".format(xmin=xmin_rebin, xmax=xmax_rebin)
+    tof_binning = "{xmin},-0.0008,{xmax}".format(xmin=xmin_rebin,
+                                                 xmax=xmax_rebin)
 
     Rebin(
         InputWorkspace=sam_corrected,
