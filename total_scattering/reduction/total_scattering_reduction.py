@@ -568,6 +568,7 @@ def TotalScatteringReduction(config: dict = None):
     # - vanadium
     #################################################################
     # Get sample corrections
+    new_abs_methods = ['SampleOnly', 'SampleAndContainer', 'FullPaalmanPings']
     sam_abs_corr = sample.get("AbsorptionCorrection", None)
     sam_ms_corr = sample.get("MultipleScatteringCorrection", None)
     sam_inelastic_corr = SetInelasticCorrection(
@@ -589,26 +590,27 @@ def TotalScatteringReduction(config: dict = None):
     sam_abs_ws = ''
     con_abs_ws = ''
     if sam_abs_corr:
-        msg = "Applying '{}' absorption correction to sample"
-        log.notice(msg.format(sam_abs_corr["Type"]))
-        sam_ms_method = None
-        if sam_ms_corr:
-            sam_ms_method = sam_ms_corr.get("Type", None)
-            if sam_ms_method is not None:
-                log.notice(
-                    f"Apply {sam_ms_method} multiple scattering correction"
-                    "to sample"
-                )
-        sam_abs_ws, con_abs_ws = create_absorption_wksp(
-            sam_scans,
-            sam_abs_corr["Type"],
-            sam_geo_dict,
-            sam_mat_dict,
-            sam_env_dict,
-            ms_method=sam_ms_method,
-            elementsize=sam_elementsize,
-            con_elementsize=con_elementsize,
-            **config)
+        if sam_abs_corr["Type"] in new_abs_methods:
+            msg = "Applying '{}' absorption correction to sample"
+            log.notice(msg.format(sam_abs_corr["Type"]))
+            sam_ms_method = None
+            if sam_ms_corr:
+                sam_ms_method = sam_ms_corr.get("Type", None)
+                if sam_ms_method is not None:
+                    log.notice(
+                        f"Apply {sam_ms_method} multiple scattering correction"
+                        "to sample"
+                    )
+            sam_abs_ws, con_abs_ws = create_absorption_wksp(
+                sam_scans,
+                sam_abs_corr["Type"],
+                sam_geo_dict,
+                sam_mat_dict,
+                sam_env_dict,
+                ms_method=sam_ms_method,
+                elementsize=sam_elementsize,
+                con_elementsize=con_elementsize,
+                **config)
 
     # Get vanadium corrections
     van_mass_density = van.get('MassDensity', van_mass_density)
@@ -629,24 +631,25 @@ def TotalScatteringReduction(config: dict = None):
     # Compute the absorption correction for the vanadium if provided
     van_abs_corr_ws = ''
     if van_abs_corr:
-        msg = "Applying '{}' absorption correction to vanadium"
-        log.notice(msg.format(van_abs_corr["Type"]))
-        van_ms_method = None
-        if van_ms_corr:
-            van_ms_method = van_ms_corr.get("Type", None)
-            if van_ms_method is not None:
-                log.notice(
-                    f"Apply {van_ms_method} multiple scattering correction"
-                    "to vanadium"
-                )
-        van_abs_corr_ws, van_con_ws = create_absorption_wksp(
-            van_scans,
-            van_abs_corr["Type"],
-            van_geo_dict,
-            van_mat_dict,
-            ms_method=van_ms_method,
-            elementsize=van_elementsize,
-            **config)
+        if van_abs_corr["Type"] in new_abs_methods:
+            msg = "Applying '{}' absorption correction to vanadium"
+            log.notice(msg.format(van_abs_corr["Type"]))
+            van_ms_method = None
+            if van_ms_corr:
+                van_ms_method = van_ms_corr.get("Type", None)
+                if van_ms_method is not None:
+                    log.notice(
+                        f"Apply {van_ms_method} multiple scattering correction"
+                        "to vanadium"
+                    )
+            van_abs_corr_ws, van_con_ws = create_absorption_wksp(
+                van_scans,
+                van_abs_corr["Type"],
+                van_geo_dict,
+                van_mat_dict,
+                ms_method=van_ms_method,
+                elementsize=van_elementsize,
+                **config)
 
     #################################################################
     # Set up parameters for AlignAndFocus
@@ -1630,7 +1633,7 @@ def TotalScatteringReduction(config: dict = None):
 
     xmin_rebin = min(xmin)
     xmax_rebin = max(xmax)
-    tof_binning = "{xmin},-0.01,{xmax}".format(xmin=xmin_rebin, xmax=xmax_rebin)
+    tof_binning = "{xmin},-0.0008,{xmax}".format(xmin=xmin_rebin, xmax=xmax_rebin)
 
     Rebin(
         InputWorkspace=sam_corrected,
