@@ -32,6 +32,7 @@ from mantid.simpleapi import \
     Rebin, \
     RebinToWorkspace, \
     SaveGSS, \
+    SaveFocusedXYE, \
     SetSample, \
     SetUncertainties, \
     StripVanadiumPeaks, \
@@ -89,7 +90,14 @@ def get_each_spectra_xmin_xmax(wksp):
     for i in range(numSpectra):
         x = wksp.readX(i)
         xmin.append(np.nanmin(x[x != -np.inf]))
-        xmax.append(np.nanmax(x[x != np.inf]))
+        y = wksp.readY(i)
+        num_zeros = 0
+        for ii in range(1, len(y) + 1):
+            if y[-ii] != 0 and not np.isnan(y[-ii]):
+                break
+            num_zeros += 1
+        xmax_tmp = x[len(y) - num_zeros - 1]
+        xmax.append(min(xmax_tmp, np.nanmax(x[x != np.inf])))
     return xmin, xmax
 
 # -----------------------------------------------------
@@ -1632,9 +1640,12 @@ def TotalScatteringReduction(config: dict = None):
         Xmax=xmax)
 
     xmin_rebin = min(xmin)
+    if "TMin" in alignAndFocusArgs.keys():
+        tmin = alignAndFocusArgs["TMin"]
+        print(f"[Info] 'TMin = {tmin}' found in the input config file. Will use it.")
+        xmin_rebin = tmin
     xmax_rebin = max(xmax)
-    tof_binning = "{xmin},-0.0008,{xmax}".format(xmin=xmin_rebin,
-                                                 xmax=xmax_rebin)
+    tof_binning = "{xmin},-0.0008,{xmax}".format(xmin=xmin_rebin, xmax=xmax_rebin)
 
     Rebin(
         InputWorkspace=sam_corrected,
@@ -1649,6 +1660,10 @@ def TotalScatteringReduction(config: dict = None):
         MultiplyByBinWidth=True,
         Format="SLOG",
         ExtendedHeader=True)
+
+    SaveFocusedXYE(
+        InputWorkspace=sam_corrected,
+        Filename=os.path.join(os.path.abspath(OutputDir), title+".xye"))
 
     if final_message:
         log.warning(final_message)
