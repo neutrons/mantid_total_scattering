@@ -1642,10 +1642,13 @@ def TotalScatteringReduction(config: dict = None):
     xmin_rebin = min(xmin)
     if "TMin" in alignAndFocusArgs.keys():
         tmin = alignAndFocusArgs["TMin"]
-        print(f"[Info] 'TMin = {tmin}' found in the input config file. Will use it.")
+        info_part1 = f"[Info] 'TMin = {tmin}' found in the input config file."
+        info_part2 = f" Will use it for Bragg output."
+        print(info_part1 + info_part2)
         xmin_rebin = tmin
     xmax_rebin = max(xmax)
-    tof_binning = "{xmin},-0.0008,{xmax}".format(xmin=xmin_rebin, xmax=xmax_rebin)
+    tof_binning = "{xmin},-0.0008,{xmax}".format(xmin=xmin_rebin,
+                                                 xmax=xmax_rebin)
 
     Rebin(
         InputWorkspace=sam_corrected,
