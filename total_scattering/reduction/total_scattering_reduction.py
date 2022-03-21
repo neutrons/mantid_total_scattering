@@ -1643,7 +1643,7 @@ def TotalScatteringReduction(config: dict = None):
     if "TMin" in alignAndFocusArgs.keys():
         tmin = alignAndFocusArgs["TMin"]
         info_part1 = f"[Info] 'TMin = {tmin}' found in the input config file."
-        info_part2 = f" Will use it for Bragg output."
+        info_part2 = " Will use it for Bragg output."
         print(info_part1 + info_part2)
         xmin_rebin = tmin
     xmax_rebin = max(xmax)
