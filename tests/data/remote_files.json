@@ -2,5 +2,5 @@
     "files": {
         "ceriaDP375_SofQ.nxs": "3db1039974b585de813e709f61afafc8"
     },
-    "address": "http://198.74.56.37/ftp/external-data/MD5"
+    "address": "https://testdata.mantidproject.org/ftp/external-data/MD5/"
 }
