@@ -2,6 +2,14 @@ import json
 import os
 import sys
 
+try:
+    import urllib
+    fetcher = urllib.urlretrieve
+except AttributeError:
+    import urllib.request
+    fetcher = urllib.request.urlretrieve
+
+
 this_module_path = sys.modules[__name__].__file__
 
 
