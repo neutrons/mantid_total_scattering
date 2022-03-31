@@ -1647,6 +1647,8 @@ def TotalScatteringReduction(config: dict = None):
         print(info_part1 + info_part2)
         xmin_rebin = tmin
     xmax_rebin = max(xmax)
+    # Note: For the moment, bin size for Bragg output is hard coded.
+    # May need to make it user input if necessary.
     tof_binning = "{xmin},-0.0008,{xmax}".format(xmin=xmin_rebin,
                                                  xmax=xmax_rebin)
 
