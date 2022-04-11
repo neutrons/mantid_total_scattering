@@ -85,7 +85,8 @@ jobs:
 
       - name: Trigger ORNL GitLab Pipeline for DEV
         if: ${{ github.ref == 'refs/heads/next' }}
-        run: curl -sX POST -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=main -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=mantidtotalscattering-dev ${{ secrets.GITLAB_TRIGGER_URL }} > /dev/null
+        run: curl -sX POST -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=main -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=mantidtotalscattering-dev ${{ secrets.GITLAB_TRIGGER_URL }}
+        #run: curl -sX POST -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=main -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=mantidtotalscattering-dev ${{ secrets.GITLAB_TRIGGER_URL }} > /dev/null
 
       - name: Trigger ORNL GitLab Pipeline for QA
         if: ${{ github.ref == 'refs/heads/qa' }}
