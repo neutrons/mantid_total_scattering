@@ -1350,6 +1350,10 @@ def TotalScatteringReduction(config: dict = None):
 
     sam_corrected = 'sam_corrected'
     if sam_abs_corr and sam_ms_corr:
+        # When full PP approach is used for absorption correction, the
+        # calculation was performed when loading data at the stage of
+        # align and focus. Multiple scattering calculation was also
+        # embedded there.
         if sam_abs_corr['Type'] == 'Carpenter' \
                 or sam_ms_corr['Type'] == 'Carpenter':
             CarpenterSampleCorrection(
