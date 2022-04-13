@@ -40,7 +40,10 @@ from mantid.simpleapi import \
     CalculatePlaczek, \
     LoadNexusMonitors, \
     ConvertToPointData, \
-    Multiply
+    Multiply, \
+    GetIPTS, \
+    SaveNexus, \
+    LoadNexus
 
 from total_scattering.file_handling.load import load, create_absorption_wksp
 from total_scattering.file_handling.save import save_banks
@@ -448,6 +451,17 @@ def TotalScatteringReduction(config: dict = None):
     else:
         sam_env_dict = {'Name': 'InAir',
                         'Container': 'PAC06'}
+
+    abs_cache_fn = sam_mat_dict["ChemicalFormula"].replace(" ", "_")
+    tmp_fn = "_md_" + str(sam_mat_dict['SampleMassDensity']).replace(".", "p")
+    abs_cache_fn += tmp_fn
+    abs_cache_fn += ("_pf_" + str(sam_packing_fraction).replace(".", "p"))
+    abs_cache_fn += ("_sp_" + sam_geo_dict['Shape'])
+    abs_cache_fn += ("_r_" + str(sam_geo_dict['Radius']).replace(".", "p"))
+    abs_cache_fn += ("_h_" + str(sam_geo_dict['Height']).replace(".", "p"))
+    abs_cache_fn += ("_env_" + sam_env_dict['Name'])
+    abs_cache_fn += ("_cont_" + sam_env_dict['Container'])
+
     # Get normalization info
     van = get_normalization(config)
     van_mass_density = van.get('MassDensity', None)
@@ -460,6 +474,15 @@ def TotalScatteringReduction(config: dict = None):
                     'Height': config['Normalization']['Geometry']['Height']}
     van_mat_dict = {'ChemicalFormula': van_material,
                     'SampleMassDensity': van_mass_density}
+
+    abs_cache_fn_v = van_mat_dict["ChemicalFormula"].replace(" ", "_")
+    tmp_fn = "_md_" + str(van_mat_dict['SampleMassDensity']).replace(".", "p")
+    abs_cache_fn_v += tmp_fn
+    abs_cache_fn_v += ("_pf_" + str(van_packing_fraction).replace(".", "p"))
+    abs_cache_fn_v += ("_sp_" + van_geo_dict['Shape'])
+    abs_cache_fn_v += ("_r_" + str(van_geo_dict['Radius']).replace(".", "p"))
+    abs_cache_fn_v += ("_h_" + str(van_geo_dict['Height']).replace(".", "p"))
+    abs_cache_fn_v += ("_env_" + sam_env_dict['Name'])
 
     # Get calibration, characterization, and other settings
     merging = config['Merging']
@@ -609,16 +632,52 @@ def TotalScatteringReduction(config: dict = None):
                         f"Apply {sam_ms_method} multiple scattering correction"
                         "to sample"
                     )
-            sam_abs_ws, con_abs_ws = create_absorption_wksp(
-                sam_scans,
-                sam_abs_corr["Type"],
-                sam_geo_dict,
-                sam_mat_dict,
-                sam_env_dict,
-                ms_method=sam_ms_method,
-                elementsize=sam_elementsize,
-                con_elementsize=con_elementsize,
-                **config)
+            ipts = GetIPTS(Instrument='NOM',
+                           RunNumber=sam_scans.split(",")[0].split("_")[1])
+            abs_cache_fn_s = abs_cache_fn + "_s.nxs"
+            abs_cache_fn_c = abs_cache_fn + "_c.nxs"
+            central_cache_f_s = os.path.join(ipts, "shared/caching",
+                                             abs_cache_fn_s)
+            central_cache_f_c = os.path.join(ipts, "shared/caching",
+                                             abs_cache_fn_c)
+            f_s_exists = os.path.exists(central_cache_f_s)
+            f_c_exists = os.path.exists(central_cache_f_c)
+            redo_cond_1 = not f_s_exists
+            so = sam_abs_corr["Type"] == "SampleOnly"
+            redo_cond_2 = f_s_exists and (not f_c_exists) and (not so)
+
+            if redo_cond_1 or redo_cond_2:
+                sam_abs_ws, con_abs_ws = create_absorption_wksp(
+                    sam_scans,
+                    sam_abs_corr["Type"],
+                    sam_geo_dict,
+                    sam_mat_dict,
+                    sam_env_dict,
+                    ms_method=sam_ms_method,
+                    elementsize=sam_elementsize,
+                    con_elementsize=con_elementsize,
+                    **config)
+                # save abs workspaces to cached file
+                if not os.path.exists(os.path.join(ipts, "shared/caching")):
+                    os.makedirs(os.path.join(ipts, "shared/caching"))
+                SaveNexus(InputWorkspace=sam_abs_ws,
+                          Filename=central_cache_f_s)
+                if con_abs_ws != "":
+                    SaveNexus(InputWorkspace=con_abs_ws,
+                              Filename=central_cache_f_c)
+            else:
+                # read cached abs workspaces
+                msg = "Cached absorption file found for sample."
+                msg += " Will load and use it."
+                log.notice(msg)
+                sam_abs_ws = LoadNexus(Filename=central_cache_f_s)
+                if f_c_exists:
+                    msg = "Cached absorption file found for container."
+                    msg += " Will load and use it."
+                    log.notice(msg)
+                    con_abs_ws = LoadNexus(Filename=central_cache_f_c)
+                else:
+                    con_abs_ws = ""
 
     # Get vanadium corrections
     van_mass_density = van.get('MassDensity', van_mass_density)
@@ -650,14 +709,25 @@ def TotalScatteringReduction(config: dict = None):
                         f"Apply {van_ms_method} multiple scattering correction"
                         "to vanadium"
                     )
-            van_abs_corr_ws, van_con_ws = create_absorption_wksp(
-                van_scans,
-                van_abs_corr["Type"],
-                van_geo_dict,
-                van_mat_dict,
-                ms_method=van_ms_method,
-                elementsize=van_elementsize,
-                **config)
+            abs_cache_fn_v += "_vanadium.nxs"
+            central_cache_f_v = os.path.join("/SNS/NOM/shared/mts_abs_ms",
+                                             abs_cache_fn_v)
+            if not os.path.exists(central_cache_f_v):
+                van_abs_corr_ws, van_con_ws = create_absorption_wksp(
+                    van_scans,
+                    van_abs_corr["Type"],
+                    van_geo_dict,
+                    van_mat_dict,
+                    ms_method=van_ms_method,
+                    elementsize=van_elementsize,
+                    **config)
+                SaveNexus(InputWorkspace=van_abs_corr_ws,
+                          Filename=central_cache_f_v)
+            else:
+                msg = "Cached absorption file found for vanadium."
+                msg += " Will load and use it."
+                log.notice(msg)
+                van_abs_corr_ws = LoadNexus(Filename=central_cache_f_v)
 
     #################################################################
     # Set up parameters for AlignAndFocus
