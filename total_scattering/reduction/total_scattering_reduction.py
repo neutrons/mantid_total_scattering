@@ -643,7 +643,7 @@ def TotalScatteringReduction(config: dict = None):
             f_s_exists = os.path.exists(central_cache_f_s)
             f_c_exists = os.path.exists(central_cache_f_c)
             redo_cond_1 = not f_s_exists
-            so = sam_abs_corr["Type"] is "SampleOnly"
+            so = sam_abs_corr["Type"] == "SampleOnly"
             redo_cond_2 = f_s_exists and (not f_c_exists) and (not so)
 
             if redo_cond_1 or redo_cond_2:
@@ -662,7 +662,7 @@ def TotalScatteringReduction(config: dict = None):
                     os.makedirs(os.path.join(ipts, "shared/caching"))
                 SaveNexus(InputWorkspace=sam_abs_ws,
                           Filename=central_cache_f_s)
-                if not con_abs_ws is "":
+                if con_abs_ws != "":
                     SaveNexus(InputWorkspace=con_abs_ws,
                               Filename=central_cache_f_c)
             else:
@@ -728,7 +728,6 @@ def TotalScatteringReduction(config: dict = None):
                 msg += " Will load and use it."
                 log.notice(msg)
                 van_abs_corr_ws = LoadNexus(Filename=central_cache_f_v)
-                van_con_ws = ""
 
     #################################################################
     # Set up parameters for AlignAndFocus
