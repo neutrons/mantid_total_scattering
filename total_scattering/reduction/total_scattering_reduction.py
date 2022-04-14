@@ -586,8 +586,14 @@ def TotalScatteringReduction(config: dict = None):
     # Output nexus filename
     nexus_filename = title + '.nxs'
     try:
-        os.remove(nexus_filename)
+        os.remove(os.path.join(OutputDir, nexus_filename))
+        msg = "Old NeXusfile found. Will delete it."
+        msg1 = "Old NeXus file: {}"
+        log.notice(msg)
+        log.notice(msg1.format(os.path.join(OutputDir, nexus_filename)))
     except OSError:
+        msg = "Old NeXus file not found. Moving forward."
+        log.notice(msg)
         pass
 
     #################################################################
@@ -1320,6 +1326,16 @@ def TotalScatteringReduction(config: dict = None):
 
     # Output an initial I(Q) for sample
     iq_filename = title + '_initial_iofq_banks.nxs'
+    try:
+        os.remove(os.path.join(OutputDir, iq_filename))
+        msg = "Old NeXus file found for initial iofq. Will delete it."
+        msg1 = "Old NeXus file: {}"
+        log.notice(msg)
+        log.notice(msg1.format(os.path.join(OutputDir, iq_filename)))
+    except OSError:
+        msg = "Old NeXus file not found for initial iofq. Moving forward."
+        log.notice(msg)
+        pass
     save_banks(
         InputWorkspace=sam_wksp,
         Filename=iq_filename,
