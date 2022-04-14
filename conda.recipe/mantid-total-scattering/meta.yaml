@@ -20,7 +20,7 @@ requirements:
     - scikit-learn
 
   run:
-    - mantid-framework=6
+    - mantid=6
     - python
     - matplotlib
     - scikit-learn
