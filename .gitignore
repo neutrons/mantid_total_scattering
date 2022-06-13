@@ -214,3 +214,5 @@ total_scattering/isis/polaris/test_input.json
 # conda
 conda_build/
 
+# vscode settings
+total_scattering/.vscode
