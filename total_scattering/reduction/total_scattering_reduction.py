@@ -510,7 +510,7 @@ def TotalScatteringReduction(config: dict = None):
 
     debug_mode = config.get("DebugMode", False)
     if debug_mode:
-        print("[Info] Debug mode enabled. Intermediate workspaces will be saved.")
+        print("[Info] Debug mode enabled. Intermediate workspaces to be saved.")
         print("[Info] Reduction time is supposed to increase significantly.")
     else:
         print("[Info] Debug mode disabled. Only final workspace will be saved.")
