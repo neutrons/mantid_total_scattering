@@ -445,24 +445,9 @@ def TotalScatteringReduction(config: dict = None):
                     'Radius': config['Sample']['Geometry']['Radius'],
                     'Height': config['Sample']['Geometry']['Height']}
 
-    sam_ms_corr = sample.get("MultipleScatteringCorrection", None)
-    # If no multiple scattering correction enabled, we then pass
-    # the specified mass density to the abs calculator, without
-    # considering packing fraction. The purpose of this is to enable
-    # the using of cached absorption calculation even the packing
-    # fraction is changed - it can be applied later as an extra factor.
-    if sam_ms_corr is None:
-        sam_mat_dict = {'ChemicalFormula': sam_material,
-                        'SampleMassDensity': sam_mass_density}
-    # When multiple scattering correction is enabled, we then pass the
-    # effective density in - since we have double integral in MS calculation
-    # which then means the impact of packing fraction is not simply an
-    # overall factor any more. In this case, if the packing fraction is
-    # changed, we do need to redo the whole calculation.
-    else:
-        sam_eff_density = sam_mass_density * sam_packing_fraction
-        sam_mat_dict = {'ChemicalFormula': sam_material,
-                        'SampleMassDensity': sam_eff_density}
+    sam_eff_density = sam_mass_density * sam_packing_fraction
+    sam_mat_dict = {'ChemicalFormula': sam_material,
+                    'SampleMassDensity': sam_eff_density}
 
     if 'Environment' in config:
         sam_env_dict = {'Name': config['Environment']['Name'],
@@ -474,8 +459,7 @@ def TotalScatteringReduction(config: dict = None):
     abs_cache_fn = sam_mat_dict["ChemicalFormula"].replace(" ", "_")
     tmp_fn = "_md_" + str(sam_mat_dict['SampleMassDensity']).replace(".", "p")
     abs_cache_fn += tmp_fn
-    if sam_ms_corr is not None:
-        abs_cache_fn += ("_pf_" + str(sam_packing_fraction).replace(".", "p"))
+    abs_cache_fn += ("_pf_" + str(sam_packing_fraction).replace(".", "p"))
     abs_cache_fn += ("_sp_" + sam_geo_dict['Shape'])
     abs_cache_fn += ("_r_" + str(sam_geo_dict['Radius']).replace(".", "p"))
     abs_cache_fn += ("_h_" + str(sam_geo_dict['Height']).replace(".", "p"))
@@ -493,20 +477,14 @@ def TotalScatteringReduction(config: dict = None):
                     'Radius': config['Normalization']['Geometry']['Radius'],
                     'Height': config['Normalization']['Geometry']['Height']}
 
-    van_ms_corr = van.get("MultipleScatteringCorrection", None)
-    if van_ms_corr is None:
-        van_mat_dict = {'ChemicalFormula': van_material,
-                        'SampleMassDensity': van_mass_density}
-    else:
-        van_eff_density = van_mass_density * van_packing_fraction
-        van_mat_dict = {'ChemicalFormula': van_material,
-                        'SampleMassDensity': van_eff_density}
+    van_eff_density = van_mass_density * van_packing_fraction
+    van_mat_dict = {'ChemicalFormula': van_material,
+                    'SampleMassDensity': van_eff_density}
 
     abs_cache_fn_v = van_mat_dict["ChemicalFormula"].replace(" ", "_")
     tmp_fn = "_md_" + str(van_mat_dict['SampleMassDensity']).replace(".", "p")
     abs_cache_fn_v += tmp_fn
-    if van_ms_corr is not None:
-        abs_cache_fn_v += ("_pf_" + str(van_packing_fraction).replace(".", "p"))
+    abs_cache_fn_v += ("_pf_" + str(van_packing_fraction).replace(".", "p"))
     abs_cache_fn_v += ("_sp_" + van_geo_dict['Shape'])
     abs_cache_fn_v += ("_r_" + str(van_geo_dict['Radius']).replace(".", "p"))
     abs_cache_fn_v += ("_h_" + str(van_geo_dict['Height']).replace(".", "p"))
@@ -703,8 +681,6 @@ def TotalScatteringReduction(config: dict = None):
                     os.makedirs(os.path.join(ipts, "shared/caching"))
                 SaveNexus(InputWorkspace=sam_abs_ws,
                           Filename=central_cache_f_s)
-                if sam_ms_method is None:
-                    sam_abs_ws *= sam_packing_fraction
                 if con_abs_ws != "":
                     SaveNexus(InputWorkspace=con_abs_ws,
                               Filename=central_cache_f_c)
@@ -714,8 +690,6 @@ def TotalScatteringReduction(config: dict = None):
                 msg += " Will load and use it."
                 log.notice(msg)
                 sam_abs_ws = LoadNexus(Filename=central_cache_f_s)
-                if sam_ms_method is None:
-                    sam_abs_ws *= sam_packing_fraction
                 if f_c_exists:
                     msg = "Cached absorption file found for container."
                     msg += " Will load and use it."
