@@ -81,6 +81,10 @@ class TestNormalizations(unittest.TestCase):
                                                           q_ranges)
         offsets = {2: -0.4079, 3: 0.58826, 4: 0.74313, 5: 0.79304}
         slopes = {2: -0.4079, 3: 0.58826, 4: 0.74313, 5: 0.79304}
+
+        print("Debugging -> ", offset)
+        print("Debugging -> ", slope)
+
         for key in q_ranges:
             self.assertTrue(np.allclose(offsets[key], offset[key],
                                         rtol=1e-3, equal_nan=True))
