@@ -79,8 +79,8 @@ class TestNormalizations(unittest.TestCase):
         q_ranges = ts.get_self_scattering_level(config, 45.0)
         offset, slope = calculate_and_apply_fitted_levels(self.s_of_q,
                                                           q_ranges)
-        offsets = {2: -0.4079, 3: 0.58826, 4: 0.74313, 5: 0.79304}
-        slopes = {2: -0.4079, 3: 0.58826, 4: 0.74313, 5: 0.79304}
+        offsets = {2: -27.71581, 3: 0.20049, 4: 0.47820, 5: 0.22630}
+        slopes = {2: 1.56386, 3: 0.00882, 4: -0.006766, 5: -0.000582}
 
         print("Debugging -> ", offset)
         print("Debugging -> ", slope)
@@ -100,4 +100,4 @@ class TestNormalizations(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()  # pragma: no cover
+    riaDP375_SofQ.nxs.main()  # pragma: no cover
