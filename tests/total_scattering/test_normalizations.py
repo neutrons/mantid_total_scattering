@@ -100,4 +100,4 @@ class TestNormalizations(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    riaDP375_SofQ.nxs.main()  # pragma: no cover
+    unittest.main()  # pragma: no cover
