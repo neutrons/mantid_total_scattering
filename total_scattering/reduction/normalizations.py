@@ -96,8 +96,6 @@ def calculate_and_apply_fitted_levels(
 
         DeleteWorkspace(tmp_wks)
         DeleteWorkspace('tmp_wks_fitted_Parameters')
-        DeleteWorkspace('tmp_wks_fitted_Workspaces')
-        DeleteWorkspace('tmp_wks_fitted_NormalisedCovarianceMatrix')
 
     return offset, slope
 
