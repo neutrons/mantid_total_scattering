@@ -2,12 +2,11 @@
 from mantid.api import mtd
 from mantid.dataobjects import Workspace2D
 from mantid.simpleapi import (
-    CloneWorkspace, CreateWorkspace, DeleteWorkspace, MatchSpectra,
-    RenameWorkspace)
+    CreateWorkspace, DeleteWorkspace,
+    RenameWorkspace, Fit)
 
 # standard imports
-import numpy as np
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 
 class Material:
@@ -64,7 +63,6 @@ def calculate_and_apply_fitted_levels(
     :return: fitted offset and slope for all banks
     """
     input_workspace = mtd[str(input_workspace)]
-    bad_levels = dict()
 
     # Check units (and for now, throw error if not in MomentumTransfer)
     if input_workspace.getAxis(0).getUnit().unitID() != "MomentumTransfer":
@@ -74,8 +72,8 @@ def calculate_and_apply_fitted_levels(
                 input_workspace.getAxis(0).getUnit().unitID()))
 
     # Perform the horizontal fitting to each bank in q_ranges
-    offset = list()
-    slope = list()
+    offset = dict()
+    slope = dict()
     for key, value in q_ranges.items():
         # get corresponding workspace index number in S(Q) from the bank number
         ws_index = key - 1
@@ -93,8 +91,8 @@ def calculate_and_apply_fitted_levels(
         offset_tmp = mtd['tmp_wks_fitted_Parameters'].row(0)['Value']
         slope_tmp = mtd['tmp_wks_fitted_Parameters'].row(1)['Value']
 
-        offset.append(offset_tmp)
-        slope.append(slope_tmp)
+        offset[key] = offset_tmp
+        slope[key] = slope_tmp
 
         DeleteWorkspace(tmp_wks)
         DeleteWorkspace('tmp_wks_fitted_Parameters')

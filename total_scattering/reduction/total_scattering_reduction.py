@@ -1798,20 +1798,20 @@ def TotalScatteringReduction(config: dict = None):
         log_file_out.write(header_line)
         i_pf = sam_packing_fraction
         s_pf_all = list()
-        for i in range(len(offset)):
-            log_file_out.write("{0:8d}{1:<16.3F}{2:<15.3F}".format(i + 1,
-                                                                   offset[i],
-                                                                   slope[i]))
-            s_pf = sam_packing_fraction * offset[i] / material.btot_sqrd_avg
+        for key, item in offset.items():
+            log_file_out.write("{0:8d}{1:<16.3F}{2:<15.3F}".format(key,
+                                                                   item,
+                                                                   slope[key]))
+            s_pf = sam_packing_fraction * item / material.btot_sqrd_avg
             s_pf_all.append(s_pf)
-            log_file_out.write("{1:<12.1F}{2:<12.1F}".format(i_pf, s_pf))
+            log_file_out.write("{0:<12.1F}{1:<12.1F}".format(i_pf, s_pf))
             log_file_out.write("\n")
         sep_line1 = "-------------------------------"
         sep_line1 += "---------------------------------\n"
         log_file_out.write(sep_line1)
         log_file_out.write("{0:39s}".format("Average"))
         ave_s_pf = sum(s_pf_all) / float(len(s_pf_all))
-        log_file_out.write("{1:<12.1F}{2:<12.1F}\n".format(i_pf, ave_s_pf))
+        log_file_out.write("{0:<12.1F}{1:<12.1F}\n".format(i_pf, ave_s_pf))
         log_file_out.write(sep_line)
 
     log_file_out.close()
@@ -1867,7 +1867,9 @@ def TotalScatteringReduction(config: dict = None):
 
     SaveFocusedXYE(
         InputWorkspace=sam_corrected,
-        Filename=os.path.join(os.path.abspath(OutputDir), 'Topas', title+".xye"))
+        Filename=os.path.join(os.path.abspath(OutputDir),
+                              'Topas',
+                              title+".xye"))
 
     if final_message:
         log.warning(final_message)
