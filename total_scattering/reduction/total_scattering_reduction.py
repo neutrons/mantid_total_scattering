@@ -444,8 +444,26 @@ def TotalScatteringReduction(config: dict = None):
     sam_geo_dict = {'Shape': 'Cylinder',
                     'Radius': config['Sample']['Geometry']['Radius'],
                     'Height': config['Sample']['Geometry']['Height']}
-    sam_mat_dict = {'ChemicalFormula': sam_material,
-                    'SampleMassDensity': sam_mass_density}
+
+    sam_ms_corr = sample.get("MultipleScatteringCorrection", None)
+    # If no multiple scattering correction enabled, we then pass
+    # the specified mass density to the abs calculator, without
+    # considering packing fraction. The purpose of this is to enable
+    # the using of cached absorption calculation even the packing
+    # fraction is changed - it can be applied later as an extra factor.
+    if sam_ms_corr is None:
+        sam_mat_dict = {'ChemicalFormula': sam_material,
+                        'SampleMassDensity': sam_mass_density}
+    # When multiple scattering correction is enabled, we then pass the
+    # effective density in - since we have double integral in MS calculation
+    # which then means the impact of packing fraction is not simply an
+    # overall factor any more. In this case, if the packing fraction is
+    # changed, we do need to redo the whole calculation.
+    else:
+        sam_eff_density = sam_mass_density * sam_packing_fraction
+        sam_mat_dict = {'ChemicalFormula': sam_material,
+                        'SampleMassDensity': sam_eff_density}
+
     if 'Environment' in config:
         sam_env_dict = {'Name': config['Environment']['Name'],
                         'Container': config['Environment']['Container']}
@@ -456,7 +474,8 @@ def TotalScatteringReduction(config: dict = None):
     abs_cache_fn = sam_mat_dict["ChemicalFormula"].replace(" ", "_")
     tmp_fn = "_md_" + str(sam_mat_dict['SampleMassDensity']).replace(".", "p")
     abs_cache_fn += tmp_fn
-    abs_cache_fn += ("_pf_" + str(sam_packing_fraction).replace(".", "p"))
+    if sam_ms_corr is not None:
+        abs_cache_fn += ("_pf_" + str(sam_packing_fraction).replace(".", "p"))
     abs_cache_fn += ("_sp_" + sam_geo_dict['Shape'])
     abs_cache_fn += ("_r_" + str(sam_geo_dict['Radius']).replace(".", "p"))
     abs_cache_fn += ("_h_" + str(sam_geo_dict['Height']).replace(".", "p"))
@@ -473,13 +492,21 @@ def TotalScatteringReduction(config: dict = None):
     van_geo_dict = {'Shape': 'Cylinder',
                     'Radius': config['Normalization']['Geometry']['Radius'],
                     'Height': config['Normalization']['Geometry']['Height']}
-    van_mat_dict = {'ChemicalFormula': van_material,
-                    'SampleMassDensity': van_mass_density}
+
+    van_ms_corr = van.get("MultipleScatteringCorrection", None)
+    if van_ms_corr is None:
+        van_mat_dict = {'ChemicalFormula': van_material,
+                        'SampleMassDensity': van_mass_density}
+    else:
+        van_eff_density = van_mass_density * van_packing_fraction
+        van_mat_dict = {'ChemicalFormula': van_material,
+                        'SampleMassDensity': van_eff_density}
 
     abs_cache_fn_v = van_mat_dict["ChemicalFormula"].replace(" ", "_")
     tmp_fn = "_md_" + str(van_mat_dict['SampleMassDensity']).replace(".", "p")
     abs_cache_fn_v += tmp_fn
-    abs_cache_fn_v += ("_pf_" + str(van_packing_fraction).replace(".", "p"))
+    if van_ms_corr is not None:
+        abs_cache_fn_v += ("_pf_" + str(van_packing_fraction).replace(".", "p"))
     abs_cache_fn_v += ("_sp_" + van_geo_dict['Shape'])
     abs_cache_fn_v += ("_r_" + str(van_geo_dict['Radius']).replace(".", "p"))
     abs_cache_fn_v += ("_h_" + str(van_geo_dict['Height']).replace(".", "p"))
@@ -676,6 +703,8 @@ def TotalScatteringReduction(config: dict = None):
                     os.makedirs(os.path.join(ipts, "shared/caching"))
                 SaveNexus(InputWorkspace=sam_abs_ws,
                           Filename=central_cache_f_s)
+                if sam_ms_method is None:
+                    sam_abs_ws *= sam_packing_fraction
                 if con_abs_ws != "":
                     SaveNexus(InputWorkspace=con_abs_ws,
                               Filename=central_cache_f_c)
@@ -685,6 +714,8 @@ def TotalScatteringReduction(config: dict = None):
                 msg += " Will load and use it."
                 log.notice(msg)
                 sam_abs_ws = LoadNexus(Filename=central_cache_f_s)
+                if sam_ms_method is None:
+                    sam_abs_ws *= sam_packing_fraction
                 if f_c_exists:
                     msg = "Cached absorption file found for container."
                     msg += " Will load and use it."
@@ -737,11 +768,15 @@ def TotalScatteringReduction(config: dict = None):
                     **config)
                 SaveNexus(InputWorkspace=van_abs_corr_ws,
                           Filename=central_cache_f_v)
+                if van_ms_method is None:
+                    van_abs_corr_ws *= van_packing_fraction
             else:
                 msg = "Cached absorption file found for vanadium."
                 msg += " Will load and use it."
                 log.notice(msg)
                 van_abs_corr_ws = LoadNexus(Filename=central_cache_f_v)
+                if van_ms_method is None:
+                    van_abs_corr_ws *= van_packing_fraction
 
     #################################################################
     # Set up parameters for AlignAndFocus
@@ -1709,6 +1744,13 @@ def TotalScatteringReduction(config: dict = None):
     #   3. self scattering correction and save S(Q) corrected
     #   4. save to F(Q)
     #################################################################
+    if self_scattering_level_correction:
+        offset, slope = \
+            calculate_and_apply_fitted_levels(sam_corrected,
+                                              self_scattering_level_correction)
+    else:
+        offset = None
+
     sam_corrected_norm = sam_corrected + '_norm'
     to_absolute_scale(sam_corrected, sam_corrected_norm)
     save_banks(
@@ -1719,30 +1761,8 @@ def TotalScatteringReduction(config: dict = None):
         GroupingWorkspace=grp_wksp,
         Binning=binning)
 
-    if self_scattering_level_correction:
-        sam_corrected_norm_scaled = sam_corrected_norm + '_scaled'
-        _, bad_fitted_levels = \
-            calculate_and_apply_fitted_levels(sam_corrected_norm,
-                                              self_scattering_level_correction,
-                                              sam_corrected_norm_scaled)
-        if bad_fitted_levels:
-            for bank, scale in bad_fitted_levels.items():
-                final_message +=\
-                    f'Bank {bank} potentially has a tilted baseline with ' \
-                    f'the fitted scale = {scale} ' \
-                    f'and was not scaled in {sam_corrected_norm_scaled}\n'
-        save_banks(
-            InputWorkspace=sam_corrected_norm_scaled,
-            Filename=nexus_filename,
-            Title="SQ_banks_normalized_scaled",
-            OutputDir=OutputDir,
-            GroupingWorkspace=grp_wksp,
-            Binning=binning)
-    else:
-        sam_corrected_norm_scaled = sam_corrected_norm  # just an alias
-
     fq_banks = 'FQ_banks'
-    to_f_of_q(sam_corrected_norm_scaled, fq_banks)
+    to_f_of_q(sam_corrected_norm, fq_banks)
     save_banks(
         InputWorkspace=fq_banks,
         Filename=nexus_filename,
@@ -1753,12 +1773,48 @@ def TotalScatteringReduction(config: dict = None):
 
     # Print log information
     material = Material(sam_corrected)
-    print("<b>^2:", material.bcoh_avg_sqrd)
-    print("<b^2>:", material.btot_sqrd_avg)
-    print("Laue term:", material.laue_monotonic_diffuse_scat)
-    print("sample total xsection:", material.totalScatterXSection())
-    print("vanadium total xsection:",
-          Material(van_corrected).totalScatterXSection())
+    log_file_out = open(os.path.join(os.path.abspath(OutputDir), 'README.LOG'),
+                        "w")
+    sep_line = "==============================="
+    sep_line += "=================================\n"
+    log_file_out.write(sep_line)
+    log_file_out.write("{0:32s}{1:<20.10F}\n".format('<b>^2:',
+                                                     material.bcoh_avg_sqrd))
+    log_file_out.write("{0:32s}{1:<20.10F}\n".format("<b^2>:",
+                                                     material.btot_sqrd_avg))
+    laue_term = material.laue_monotonic_diffuse_scat
+    log_file_out.write("{0:32s}{1:<20.10F}\n".format("Laue term:", laue_term))
+    tsxsection = material.totalScatterXSection()
+    log_file_out.write("{0:32s}{1:<20.10F}\n".format("Sample total xsection:",
+                                                     tsxsection))
+    tsxsection = Material(van_corrected).totalScatterXSection()
+    log_file_out.write("{0:32s}{1:<20.10F}\n".format("Vanadium total xsection:",
+                                                     tsxsection))
+    log_file_out.write(sep_line)
+
+    if offset:
+        header_line = "Bank    HighQ offset    HighQ Slope    Input PF"
+        header_line += "    Suggested PF\n"
+        log_file_out.write(header_line)
+        i_pf = sam_packing_fraction
+        s_pf_all = list()
+        for i in range(len(offset)):
+            log_file_out.write("{0:8d}{1:<16.3F}{2:<15.3F}".format(i + 1,
+                                                                   offset[i],
+                                                                   slope[i]))
+            s_pf = sam_packing_fraction * offset[i] / material.btot_sqrd_avg
+            s_pf_all.append(s_pf)
+            log_file_out.write("{1:<12.1F}{2:<12.1F}".format(i_pf, s_pf))
+            log_file_out.write("\n")
+        sep_line1 = "-------------------------------"
+        sep_line1 += "---------------------------------\n"
+        log_file_out.write(sep_line1)
+        log_file_out.write("{0:39s}".format("Average"))
+        ave_s_pf = sum(s_pf_all) / float(len(s_pf_all))
+        log_file_out.write("{1:<12.1F}{2:<12.1F}\n".format(i_pf, ave_s_pf))
+        log_file_out.write(sep_line)
+
+    log_file_out.close()
 
     #################################################################
     #   STEP 8.1 Output Bragg Diffraction
@@ -1802,7 +1858,7 @@ def TotalScatteringReduction(config: dict = None):
 
     SaveGSS(
         InputWorkspace=sam_corrected,
-        Filename=os.path.join(os.path.abspath(OutputDir), title+".gsa"),
+        Filename=os.path.join(os.path.abspath(OutputDir), 'GSAS', title+".gsa"),
         SplitFiles=False,
         Append=False,
         MultiplyByBinWidth=True,
@@ -1811,7 +1867,7 @@ def TotalScatteringReduction(config: dict = None):
 
     SaveFocusedXYE(
         InputWorkspace=sam_corrected,
-        Filename=os.path.join(os.path.abspath(OutputDir), title+".xye"))
+        Filename=os.path.join(os.path.abspath(OutputDir), 'Topas', title+".xye"))
 
     if final_message:
         log.warning(final_message)
