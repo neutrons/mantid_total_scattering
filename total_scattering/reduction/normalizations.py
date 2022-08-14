@@ -2,12 +2,11 @@
 from mantid.api import mtd
 from mantid.dataobjects import Workspace2D
 from mantid.simpleapi import (
-    CloneWorkspace, CreateWorkspace, DeleteWorkspace, MatchSpectra,
-    RenameWorkspace)
+    CreateWorkspace, DeleteWorkspace,
+    RenameWorkspace, Fit)
 
 # standard imports
-import numpy as np
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 
 class Material:
@@ -55,25 +54,15 @@ def to_absolute_scale(
 
 def calculate_and_apply_fitted_levels(
         input_workspace: Union[str, Workspace2D],
-        q_ranges: dict,
-        output_workspace: Optional[str] = None) -> Tuple[Workspace2D, dict]:
-    r"""Fits a horizontal line to each bank and region specified in q_ranges.
-    Scales the full bank data in input_workspace by the offset (fitted level)
-    and returns a new workspace with the scaled data (s_q_norm)
+        q_ranges: dict) -> Tuple[Workspace2D, dict]:
+    r"""Fits a straight line to each bank and region specified in q_ranges.
 
     :param input_workspace: workspace containing S(Q) with spectra for each
     bank, in MomentumTransfer units
     :param q_ranges: dictionary of bank number with tuple range of Q fitting
-    :param output_workspace: name of output workspace. If `None`, the name is
-    that of the input_workspace plus the `_scaled` suffix.
-    :return: Clone of input_workspace scaled by fitted level for banks
-    specified in q_ranges, and a dict of banks with bad fitted levels (<= 0)
+    :return: fitted offset and slope for all banks
     """
-    if output_workspace is None:
-        output_workspace = str(input_workspace) + '_scaled'
-
     input_workspace = mtd[str(input_workspace)]
-    bad_levels = dict()
 
     # Check units (and for now, throw error if not in MomentumTransfer)
     if input_workspace.getAxis(0).getUnit().unitID() != "MomentumTransfer":
@@ -82,11 +71,9 @@ def calculate_and_apply_fitted_levels(
             "but has units '{}'".format(
                 input_workspace.getAxis(0).getUnit().unitID()))
 
-    # Setup the output workspace. This gets returned as-is if q_ranges is empty
-    s_q_norm = CloneWorkspace(InputWorkspace=input_workspace,
-                              OutputWorkspace=str(output_workspace))
-
     # Perform the horizontal fitting to each bank in q_ranges
+    offset = dict()
+    slope = dict()
     for key, value in q_ranges.items():
         # get corresponding workspace index number in S(Q) from the bank number
         ws_index = key - 1
@@ -96,38 +83,21 @@ def calculate_and_apply_fitted_levels(
         # Extract the bank between the fit regions
         bank_x = input_workspace.readX(ws_index)[start_index:end_index]
         bank_y = input_workspace.readY(ws_index)[start_index:end_index]
-        bank_e = input_workspace.readE(ws_index)[start_index:end_index]
 
-        # Create reference spectrum which is flat line at 1.0
-        ref_y = np.zeros(bank_x.shape) + 1.0
+        tmp_wks = CreateWorkspace(bank_x, bank_y)
+        Fit("name=UserFunction, Formula=a+b*x, a=1, b=0",
+            tmp_wks,
+            Output='tmp_wks_fitted')
+        offset_tmp = mtd['tmp_wks_fitted_Parameters'].row(0)['Value']
+        slope_tmp = mtd['tmp_wks_fitted_Parameters'].row(1)['Value']
 
-        # Create a workspace with 2 spectra (bank data and reference spectrum)
-        # as input to MatchSpectra so that the bank data can be fit to the flat
-        # line at 1.0
-        CreateWorkspace(np.concatenate((bank_x, bank_x)),
-                        np.concatenate((ref_y, bank_y)),
-                        np.concatenate((ref_y, bank_e)),
-                        NSpec=2,
-                        OutputWorkspace="__tmp_bank_fit")
-        match_result = MatchSpectra(InputWorkspace="__tmp_bank_fit",
-                                    OutputWorkspace="__tmp_bank_fit",
-                                    ReferenceSpectrum=1,
-                                    CalculateOffset=True,
-                                    CalculateScale=False)
-        offset = match_result.Offset[1]
-        scale = match_result.Scale[1]
-        # Scale away from 1.0 means the baseline is tilting and therefore we
-        # may have some uncorrected effect (e.g., hydrogen background).
-        if abs(scale - 1.0) > 0.5:
-            bad_levels[key] = scale
-        else:
-            # scale full bank data by offset
-            factor_tmp = 1.0 / (1.0 - offset)
-            s_q_norm.setY(ws_index, s_q_norm.dataY(ws_index) * factor_tmp)
+        offset[key] = offset_tmp
+        slope[key] = slope_tmp
 
-        DeleteWorkspace("__tmp_bank_fit")
+        DeleteWorkspace(tmp_wks)
+        DeleteWorkspace('tmp_wks_fitted_Parameters')
 
-    return s_q_norm, bad_levels
+    return offset, slope
 
 
 def to_f_of_q(

@@ -77,15 +77,18 @@ class TestNormalizations(unittest.TestCase):
                                                     "Bank4": [30.0, 40.0],
                                                     "Bank5": [30.0, 40.0]}}
         q_ranges = ts.get_self_scattering_level(config, 45.0)
-        s_q_norm, bad_fits = calculate_and_apply_fitted_levels(self.s_of_q,
-                                                               q_ranges)
-        # bank 2 will have a negative offset for the given range
-        self.assertEqual(len(bad_fits), 0)
-        offsets = {2: -0.4079, 3: 0.58826, 4: 0.74313, 5: 0.79304}
+        offset, slope = calculate_and_apply_fitted_levels(self.s_of_q,
+                                                          q_ranges)
+        offsets = {2: -27.71581, 3: 0.20049, 4: 0.47820, 5: 0.22630}
+        slopes = {2: 1.56386, 3: 0.00882, 4: -0.006766, 5: -0.000582}
+
+        print("Debugging -> ", offset)
+        print("Debugging -> ", slope)
+
         for key in q_ranges:
-            norm_y = s_q_norm.readY(key - 1)
-            bank_y = self.s_of_q.readY(key - 1)
-            self.assertTrue(np.allclose(norm_y * (1.0 - offsets[key]), bank_y,
+            self.assertTrue(np.allclose(offsets[key], offset[key],
+                                        rtol=1e-3, equal_nan=True))
+            self.assertTrue(np.allclose(slopes[key], slope[key],
                                         rtol=1e-3, equal_nan=True))
 
     def test_to_f_of_q(self):
