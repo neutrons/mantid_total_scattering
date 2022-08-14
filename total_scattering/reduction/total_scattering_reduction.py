@@ -742,15 +742,11 @@ def TotalScatteringReduction(config: dict = None):
                     **config)
                 SaveNexus(InputWorkspace=van_abs_corr_ws,
                           Filename=central_cache_f_v)
-                if van_ms_method is None:
-                    van_abs_corr_ws *= van_packing_fraction
             else:
                 msg = "Cached absorption file found for vanadium."
                 msg += " Will load and use it."
                 log.notice(msg)
                 van_abs_corr_ws = LoadNexus(Filename=central_cache_f_v)
-                if van_ms_method is None:
-                    van_abs_corr_ws *= van_packing_fraction
 
     #################################################################
     # Set up parameters for AlignAndFocus
