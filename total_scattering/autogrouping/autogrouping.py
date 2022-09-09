@@ -116,6 +116,10 @@ def autogrouping(config):
     fitpeaks_args = get_key("FitPeaksArgs", config)
     diamond_peaks = np.asarray(
         get_key("DiamondPeaks", config).strip().split(","), dtype=float)
+    if "DSpaceBin" in config:
+        dspace_bin = get_key("DSpaceBin", config)
+    else:
+        dspace_bin = "0.001"
     thresholds = get_key("ParameterThresholds", config)
     for threshold in thresholds:
         thresholds[threshold] = tuple(
@@ -182,7 +186,8 @@ def autogrouping(config):
                         EMode="Elastic")
 
     # Rebin (in d-space)
-    wksp = Rebin(InputWorkspace=wksp, Params=(0.1, 0.001, 3.0))
+    dspace_bin = float(dspace_bin)
+    wksp = Rebin(InputWorkspace=wksp, Params=(0.1, dspace_bin, 3.0))
 
     wsindex = list(range(wksp.getNumberHistograms()))
     clustering_input = None
