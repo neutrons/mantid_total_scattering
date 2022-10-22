@@ -510,7 +510,7 @@ def TotalScatteringReduction(config: dict = None):
 
     # Grouping
     grouping = merging.get('Grouping', None)
-    cache_dir = config.get("CacheDir", os.path.abspath('.'))
+    cache_dir = config.get("CacheDir", None)
     OutputDir = config.get("OutputDir", os.path.abspath('.'))
 
     debug_mode = config.get("DebugMode", False)
@@ -760,8 +760,9 @@ def TotalScatteringReduction(config: dict = None):
     alignAndFocusArgs['ResampleX'] = -6000
     alignAndFocusArgs['Dspacing'] = False
     alignAndFocusArgs['PreserveEvents'] = False
-    alignAndFocusArgs['MaxChunkSize'] = 8
-    alignAndFocusArgs['CacheDir'] = os.path.abspath(cache_dir)
+    alignAndFocusArgs['MaxChunkSize'] = 0
+    if cache_dir is not None:
+        alignAndFocusArgs['CacheDir'] = os.path.abspath(cache_dir)
     # add resonance filter related properties
     # NOTE:
     #    the default behaivor is no filtering if not specified.
