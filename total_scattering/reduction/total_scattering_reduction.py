@@ -881,20 +881,27 @@ def TotalScatteringReduction(config: dict = None):
         # NOTE: to make life easier
         # alpha_e I_e = alpha_s I_e - alpha_c I_e
         container_bg_fn = container_bg
-        container_bg = load(
-            'container_background',
-            container_bg_fn,
-            absorption_wksp=sam_abs_ws,
-            **alignAndFocusArgs)
-        tmp = load(
-            'container_background',
-            container_bg_fn,
-            absorption_wksp=con_abs_ws,
-            **alignAndFocusArgs)
-        Minus(
-            LHSWorkspace=container_bg,
-            RHSWorkspace=tmp,
-            OutputWorkspace=container_bg)
+        if sam_abs_corr is not None:
+            container_bg = load(
+                'container_background',
+                container_bg_fn,
+                absorption_wksp=sam_abs_ws,
+                **alignAndFocusArgs)
+            tmp = load(
+                'container_background_tmp',
+                container_bg_fn,
+                absorption_wksp=con_abs_ws,
+                **alignAndFocusArgs)
+            Minus(
+                LHSWorkspace=container_bg,
+                RHSWorkspace=tmp,
+                OutputWorkspace=container_bg)
+        else:
+            container_bg = load(
+                'container_background',
+                container_bg_fn,
+                absorption_wksp=sam_abs_ws,
+                **alignAndFocusArgs)
         if debug_mode:
             save_banks(
                 InputWorkspace=container_bg,
