@@ -147,6 +147,57 @@ git clone https://github.com/neutrons/mantid_total_scattering.git
 cd mantid_total_scattering
 ```
 
+Located in the main directory of the repo, we have two ways to do the local
+testing for `mantidtotalscattering` using a selected version of `mantid` build.
+Suppose we want to use a local build of `mantid` framework, the first way we can
+follow is as below,
+
+```bash
+MANTID_REPO_DIR/build/bin/mantidpython total_scattering/cli.py INPUT_JSON_FILE
+```
+
+where the `build` directory under `MANTID_REPO_DIR` can be with any arbitrary
+name -- that is basically where we would be building our `mantid` framework.
+
+The second way we can try is to launch `mantidtotalscattering` from within
+`mantidworkbench`. To do this, again, assuming we are located in the main
+`mantidtotalscattering` directory, we can execute,
+
+```bash
+MANTID_REPO_DIR/build/bin/launch_mantidworkbench.sh
+```
+
+to start up the local version of `mantidworkbench`. Then we can load the
+following script into `mantidworkbench` and execute it,
+
+```python
+import json
+from total_scattering.reduction import TotalScatteringReduction
+from total_scattering.reduction import validateConfig
+
+with open("FULL_PATH_TO_INPUT_JSON_FILE", "r") as handle:
+    config = json.load(handle)
+
+# validate the config
+validateConfig(config)
+
+# Run total scattering reduction
+TotalScatteringReduction(config)
+```
+
+where we need to replace `FULL_PATH_TO_INPUT_JSON_FILE` with the full path to
+our input json file.
+
+***N. B. *** To build a local version of `mantid` framework, we can check out
+the `mantid` repo, change directory into the main repo directory and execute the
+following commands,
+
+```bash
+mkdir build && cd build
+scl enable devtoolset-7 "cmake3 -G Ninja ../"
+ninja-build all
+```
+
 Tests
 ===========================================================
 To build and run the tests via [pytest](https://docs.pytest.org), use:
