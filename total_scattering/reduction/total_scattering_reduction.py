@@ -1129,39 +1129,39 @@ def TotalScatteringReduction(config: dict = None):
                     OutputWorkspace=wksp,
                     Target="MomentumTransfer",
                     EMode="Elastic")
-            RebinToWorkspace(
-                WorkspaceToRebin=container,
-                WorkspaceToMatch=sam_wksp,
-                OutputWorkspace=container)
-            RebinToWorkspace(
-                WorkspaceToRebin=container_bg,
-                WorkspaceToMatch=sam_wksp,
-                OutputWorkspace=container_bg)
-            Minus(
-                LHSWorkspace=container,
-                RHSWorkspace=container_bg,
-                OutputWorkspace=container)
-            save_banks(
-                InputWorkspace=container,
-                Filename=nexus_filename,
-                Title=container_title,
-                OutputDir=OutputDir,
-                GroupingWorkspace=grp_wksp,
-                Binning=binning)
-            save_banks(
-                InputWorkspace=van_wksp,
-                Filename=nexus_filename,
-                Title=vanadium_title,
-                OutputDir=OutputDir,
-                GroupingWorkspace=grp_wksp,
-                Binning=binning)
-            save_banks(
-                InputWorkspace=sam_wksp,
-                Filename=nexus_filename,
-                Title=sample_title,
-                OutputDir=OutputDir,
-                GroupingWorkspace=grp_wksp,
-                Binning=binning)
+        RebinToWorkspace(
+            WorkspaceToRebin=container,
+            WorkspaceToMatch=sam_wksp,
+            OutputWorkspace=container)
+        RebinToWorkspace(
+            WorkspaceToRebin=container_bg,
+            WorkspaceToMatch=sam_wksp,
+            OutputWorkspace=container_bg)
+        Minus(
+            LHSWorkspace=container,
+            RHSWorkspace=container_bg,
+            OutputWorkspace=container)
+        save_banks(
+            InputWorkspace=container,
+            Filename=nexus_filename,
+            Title=container_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
+        save_banks(
+            InputWorkspace=van_wksp,
+            Filename=nexus_filename,
+            Title=vanadium_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
+        save_banks(
+            InputWorkspace=sam_wksp,
+            Filename=nexus_filename,
+            Title=sample_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
 
     #################################################################
     # STEP 2.0: Prepare vanadium as normalization calibration
