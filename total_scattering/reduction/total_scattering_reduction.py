@@ -520,6 +520,10 @@ def TotalScatteringReduction(config: dict = None):
     else:
         print("[Info] Debug mode disabled. Only final workspace will be saved.")
 
+    strip_container_pks = config.get("StripContainerPeaks", False)
+    if strip_container_pks:
+        print("[Info] Container peaks will be stripped.")
+
     # Create Nexus file basenames
     sample['Runs'] = expand_ints(sample['Runs'])
     sample['Background']['Runs'] = expand_ints(
@@ -1029,6 +1033,64 @@ def TotalScatteringReduction(config: dict = None):
             RHSWorkspace=van_bg,
             OutputWorkspace=van_wksp)
 
+    # For PAC can container, we may need to strip the vanadium peaks.
+    if strip_container_pks:
+        ConvertUnits(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            Target='dSpacing',
+            EMode='Elastic')
+
+        StripVanadiumPeaks(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            BackgroundType='Quadratic')
+
+        container_title = 'container_peaks_stripped'
+        if debug_mode:
+            ConvertUnits(
+                InputWorkspace=container,
+                OutputWorkspace=container,
+                Target='MomentumTransfer',
+                EMode='Elastic')
+            save_banks(
+                InputWorkspace=container,
+                Filename=nexus_filename,
+                Title=container_title,
+                OutputDir=OutputDir,
+                GroupingWorkspace=grp_wksp,
+                Binning=binning)
+
+        ConvertUnits(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            Target='TOF',
+            EMode='Elastic')
+
+        FFTSmooth(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            Filter="Butterworth",
+            Params='20,2',
+            IgnoreXBins=True,
+            AllSpectra=True)
+
+        ConvertUnits(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            Target='MomentumTransfer',
+            EMode='Elastic')
+
+        if debug_mode:
+            container_title += '_smoothed'
+            save_banks(
+                InputWorkspace=container,
+                Filename=nexus_filename,
+                Title=container_title,
+                OutputDir=OutputDir,
+                GroupingWorkspace=grp_wksp,
+                Binning=binning)
+
     RebinToWorkspace(
         WorkspaceToRebin=container,
         WorkspaceToMatch=sam_wksp,
@@ -1038,7 +1100,11 @@ def TotalScatteringReduction(config: dict = None):
         RHSWorkspace=container,
         OutputWorkspace=sam_wksp)
 
-    if container_bg is not None:
+    # If no absorption correction is to be performed, we don't
+    # need to subtract the container bkg. Refer to the note
+    # in the `Load Sample Container Background` section above
+    # for the mechanism being used.
+    if container_bg is not None and sam_abs_corr is not None:
         RebinToWorkspace(
             WorkspaceToRebin=container_bg,
             WorkspaceToMatch=sam_wksp,
@@ -1048,38 +1114,54 @@ def TotalScatteringReduction(config: dict = None):
             RHSWorkspace=container_bg,
             OutputWorkspace=sam_wksp)
 
-    container_title = "container_minus_back"
+    if not strip_container_pks:
+        container_title = "container_minus_back"
+    else:
+        container_title += "_minus_back"
+
     vanadium_title = "vanadium_minus_back"
     sample_title = "sample_minus_back"
     if debug_mode:
         for wksp in [container, van_wksp, sam_wksp]:
-            ConvertUnits(
-                InputWorkspace=wksp,
-                OutputWorkspace=wksp,
-                Target="MomentumTransfer",
-                EMode="Elastic")
-        if debug_mode:
-            save_banks(
-                InputWorkspace=container,
-                Filename=nexus_filename,
-                Title=container_title,
-                OutputDir=OutputDir,
-                GroupingWorkspace=grp_wksp,
-                Binning=binning)
-            save_banks(
-                InputWorkspace=van_wksp,
-                Filename=nexus_filename,
-                Title=vanadium_title,
-                OutputDir=OutputDir,
-                GroupingWorkspace=grp_wksp,
-                Binning=binning)
-            save_banks(
-                InputWorkspace=sam_wksp,
-                Filename=nexus_filename,
-                Title=sample_title,
-                OutputDir=OutputDir,
-                GroupingWorkspace=grp_wksp,
-                Binning=binning)
+            if mtd[wksp].getDimension(0).getUnits() != "Angstrom^-1":
+                ConvertUnits(
+                    InputWorkspace=wksp,
+                    OutputWorkspace=wksp,
+                    Target="MomentumTransfer",
+                    EMode="Elastic")
+        RebinToWorkspace(
+            WorkspaceToRebin=container,
+            WorkspaceToMatch=sam_wksp,
+            OutputWorkspace=container)
+        RebinToWorkspace(
+            WorkspaceToRebin=container_bg,
+            WorkspaceToMatch=sam_wksp,
+            OutputWorkspace=container_bg)
+        Minus(
+            LHSWorkspace=container,
+            RHSWorkspace=container_bg,
+            OutputWorkspace=container)
+        save_banks(
+            InputWorkspace=container,
+            Filename=nexus_filename,
+            Title=container_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
+        save_banks(
+            InputWorkspace=van_wksp,
+            Filename=nexus_filename,
+            Title=vanadium_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
+        save_banks(
+            InputWorkspace=sam_wksp,
+            Filename=nexus_filename,
+            Title=sample_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
 
     #################################################################
     # STEP 2.0: Prepare vanadium as normalization calibration
@@ -1331,12 +1413,13 @@ def TotalScatteringReduction(config: dict = None):
 
     for name in wksp_list:
         if not debug_mode and name is not van_corrected:
-            ConvertUnits(
-                InputWorkspace=name,
-                OutputWorkspace=name,
-                Target='MomentumTransfer',
-                EMode='Elastic',
-                ConvertFromPointData=False)
+            if mtd[name].getDimension(0).getUnits() != "Angstrom^-1":
+                ConvertUnits(
+                    InputWorkspace=name,
+                    OutputWorkspace=name,
+                    Target='MomentumTransfer',
+                    EMode='Elastic',
+                    ConvertFromPointData=False)
 
         Rebin(
             InputWorkspace=name,
@@ -1360,8 +1443,7 @@ def TotalScatteringReduction(config: dict = None):
             GroupingWorkspace=grp_wksp,
             Binning=binning)
 
-    # Save the sample / normalized (ie no background subtraction)
-    if debug_mode:
+        # Save the sample / normalized (i.e., no background subtraction)
         Divide(
            LHSWorkspace=sam_raw,
            RHSWorkspace=van_corrected,
@@ -1404,12 +1486,13 @@ def TotalScatteringReduction(config: dict = None):
             wksp_list.append(van_bg)
 
         for name in wksp_list:
-            ConvertUnits(
-                InputWorkspace=name,
-                OutputWorkspace=name,
-                Target='MomentumTransfer',
-                EMode='Elastic',
-                ConvertFromPointData=False)
+            if mtd[name].getDimension(0).getUnits() != "Angstrom^-1":
+                ConvertUnits(
+                    InputWorkspace=name,
+                    OutputWorkspace=name,
+                    Target='MomentumTransfer',
+                    EMode='Elastic',
+                    ConvertFromPointData=False)
 
             Rebin(
                 InputWorkspace=name,
@@ -1424,14 +1507,13 @@ def TotalScatteringReduction(config: dict = None):
             OutputWorkspace=container)
 
         container_title += '_normalized'
-        if debug_mode:
-            save_banks(
-                InputWorkspace=container,
-                Filename=nexus_filename,
-                Title=container_title,
-                OutputDir=OutputDir,
-                GroupingWorkspace=grp_wksp,
-                Binning=binning)
+        save_banks(
+            InputWorkspace=container,
+            Filename=nexus_filename,
+            Title=container_title,
+            OutputDir=OutputDir,
+            GroupingWorkspace=grp_wksp,
+            Binning=binning)
 
         # Save the container / normalized (ie no background subtraction)
         Divide(
