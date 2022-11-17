@@ -794,6 +794,7 @@ def TotalScatteringReduction(config: dict = None):
                 LoadDetectorsGroupingFile(InputFile=grouping['Output'],
                                           OutputWorkspace=grp_wksp)
     # If no output grouping specified, create it with Calibration Grouping
+    load_grouping = False
     if not output_grouping:
         LoadDiffCal(alignAndFocusArgs['CalFilename'],
                     InstrumentName=instr,
@@ -801,9 +802,10 @@ def TotalScatteringReduction(config: dict = None):
                     MakeGroupingWorkspace=True,
                     MakeCalWorkspace=False,
                     MakeMaskWorkspace=False)
+        load_grouping = True
 
     # Setup the 6 bank method if no grouping specified
-    if not grouping:
+    if not grouping and not (output_grouping or load_grouping):
         CreateGroupingWorkspace(InstrumentName=instr,
                                 GroupDetectorsBy='Group',
                                 OutputWorkspace=grp_wksp)
