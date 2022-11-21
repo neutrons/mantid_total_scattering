@@ -520,9 +520,20 @@ def TotalScatteringReduction(config: dict = None):
     else:
         print("[Info] Debug mode disabled. Only final workspace will be saved.")
 
-    strip_container_pks = config.get("StripContainerPeaks", False)
-    if strip_container_pks:
-        print("[Info] Container peaks will be stripped.")
+    # Vanadium peak stripping parameters
+    van_ps = config.get("StripVanPeaksParams", None)
+    if van_ps is not None:
+        van_ps_fwhm = van_ps.get("FWHM", 7)
+        van_ps_tol = van_ps.get("Tolerance", 4)
+        van_ps_bkg_type = van_ps.get("BackgroundType", "Quadratic")
+        van_ps_hb = van_ps.get("HighBackground", True)
+        van_ps_pp_tol = van_ps.get("PeakPositionTolerance", 0.01)
+    else:
+        van_ps_fwhm = 7
+        van_ps_tol = 4
+        van_ps_bkg_type = "Quadratic"
+        van_ps_hb = True
+        van_ps_pp_tol = 0.01
 
     # Create Nexus file basenames
     sample['Runs'] = expand_ints(sample['Runs'])
@@ -1035,64 +1046,6 @@ def TotalScatteringReduction(config: dict = None):
             RHSWorkspace=van_bg,
             OutputWorkspace=van_wksp)
 
-    # For PAC can container, we may need to strip the vanadium peaks.
-    if strip_container_pks:
-        ConvertUnits(
-            InputWorkspace=container,
-            OutputWorkspace=container,
-            Target='dSpacing',
-            EMode='Elastic')
-
-        StripVanadiumPeaks(
-            InputWorkspace=container,
-            OutputWorkspace=container,
-            BackgroundType='Quadratic')
-
-        container_title = 'container_peaks_stripped'
-        if debug_mode:
-            ConvertUnits(
-                InputWorkspace=container,
-                OutputWorkspace=container,
-                Target='MomentumTransfer',
-                EMode='Elastic')
-            save_banks(
-                InputWorkspace=container,
-                Filename=nexus_filename,
-                Title=container_title,
-                OutputDir=OutputDir,
-                GroupingWorkspace=grp_wksp,
-                Binning=binning)
-
-        ConvertUnits(
-            InputWorkspace=container,
-            OutputWorkspace=container,
-            Target='TOF',
-            EMode='Elastic')
-
-        FFTSmooth(
-            InputWorkspace=container,
-            OutputWorkspace=container,
-            Filter="Butterworth",
-            Params='20,2',
-            IgnoreXBins=True,
-            AllSpectra=True)
-
-        ConvertUnits(
-            InputWorkspace=container,
-            OutputWorkspace=container,
-            Target='MomentumTransfer',
-            EMode='Elastic')
-
-        if debug_mode:
-            container_title += '_smoothed'
-            save_banks(
-                InputWorkspace=container,
-                Filename=nexus_filename,
-                Title=container_title,
-                OutputDir=OutputDir,
-                GroupingWorkspace=grp_wksp,
-                Binning=binning)
-
     RebinToWorkspace(
         WorkspaceToRebin=container,
         WorkspaceToMatch=sam_wksp,
@@ -1116,11 +1069,7 @@ def TotalScatteringReduction(config: dict = None):
             RHSWorkspace=container_bg,
             OutputWorkspace=sam_wksp)
 
-    if not strip_container_pks:
-        container_title = "container_minus_back"
-    else:
-        container_title += "_minus_back"
-
+    container_title = "container_minus_back"
     vanadium_title = "vanadium_minus_back"
     sample_title = "sample_minus_back"
     if debug_mode:
@@ -1250,7 +1199,11 @@ def TotalScatteringReduction(config: dict = None):
     StripVanadiumPeaks(
         InputWorkspace=van_corrected,
         OutputWorkspace=van_corrected,
-        BackgroundType='Quadratic')
+        FWHM=van_ps_fwhm,
+        Tolerance=van_ps_tol,
+        BackgroundType=van_ps_bkg_type,
+        HighBackground=van_ps_hb,
+        PeakPositionTolerance=van_ps_pp_tol)
 
     vanadium_title += '_peaks_stripped'
     if debug_mode:
