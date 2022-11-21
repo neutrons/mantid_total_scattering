@@ -1069,8 +1069,7 @@ def TotalScatteringReduction(config: dict = None):
             RHSWorkspace=container_bg,
             OutputWorkspace=sam_wksp)
 
-    container_title += "_minus_back"
-
+    container_title = "container_minus_back"
     vanadium_title = "vanadium_minus_back"
     sample_title = "sample_minus_back"
     if debug_mode:
