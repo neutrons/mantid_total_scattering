@@ -147,17 +147,21 @@ git clone https://github.com/neutrons/mantid_total_scattering.git
 cd mantid_total_scattering
 ```
 
-Located in the main directory of the repo, we have two ways to do the local
+Located in the main directory of the repo, we have several ways to do the local
 testing for `mantidtotalscattering` using a selected version of `mantid` build.
-Suppose we want to use a local build of `mantid` framework, the first way we can
-follow is as below,
+The new way of Mantid building has been changed to use conda, and detailed
+information can be found here, [https://developer.mantidproject.org/GettingStarted/GettingStartedCondaLinux.html#gettingstartedcondalinux](https://developer.mantidproject.org/GettingStarted/GettingStartedCondaLinux.html#gettingstartedcondalinux).
+Suppose we are following exactly the instruction in the link above to build
+Mantid, we will have a conda environment `mantid-developer`, in which case we
+can execute the command below to use the local Mantid build to work with the
+local version of `mantidtotalscattering`,
 
 ```bash
-MANTID_REPO_DIR/build/bin/mantidpython total_scattering/cli.py INPUT_JSON_FILE
+MANTID-DEVELOPER_ENV_LOCATION/bin/python total_scattering/cli.py INPUT_JSON_FILE
 ```
 
-where the `build` directory under `MANTID_REPO_DIR` can be with any arbitrary
-name -- that is basically where we would be building our `mantid` framework.
+where `MANTID-DEVELOPER_ENV_LOCATION` can be obtained via `conda env list` to
+list out all conda environments and their corresponding location.
 
 The second way we can try is to launch `mantidtotalscattering` from within
 `mantidworkbench`. To do this, again, assuming we are located in the main
@@ -188,15 +192,25 @@ TotalScatteringReduction(config)
 where we need to replace `FULL_PATH_TO_INPUT_JSON_FILE` with the full path to
 our input json file.
 
-***N. B. *** To build a local version of `mantid` framework, we can check out
-the `mantid` repo, change directory into the main repo directory and execute the
-following commands,
+N. B. To build a local version of `mantid` framework, we can check out
+this link, [https://developer.mantidproject.org/GettingStarted/GettingStartedCondaLinux.html#gettingstartedcondalinux](https://developer.mantidproject.org/GettingStarted/GettingStartedCondaLinux.html#gettingstartedcondalinux).
 
-```bash
-mkdir build && cd build
-scl enable devtoolset-7 "cmake3 -G Ninja ../"
-ninja-build all
-```
+The third way is to set up a local virtual environment for
+`mantidtotalscattering` and add in the python path of local Mantid build. To do
+this, follow the steps below,
+
+1. virtualenv -p MANTID-DEVELOPER_ENV_LOCATION/bin/python --system-site-packages .venv
+
+2. source .venv/bin/activate
+
+3. python MANTID_REPO_DIR/build/bin/AddPythonPath.py
+
+4. pip install -r requirements.txt -r requirements-dev.txt
+
+5. python setup.py develop
+
+where `MANTID-DEVELOPER_ENV_LOCATION` can be obtained via `conda env list` to
+list out all conda environments and their corresponding location.
 
 Tests
 ===========================================================
