@@ -5,18 +5,10 @@ env:
 
 on:
   workflow_dispatch:
-    branches:
-      - '*'
-    tags:
-      - 'v*'
-  push:
-    branches:
-      - '*'
-    tags:
-      - 'v*'
   pull_request:
-    branches:
-      - '*'
+  push:
+    branches: [next]
+    tags: ['v*']
 
 jobs:
   linux:
