@@ -3,12 +3,13 @@ from __future__ import absolute_import, division, print_function
 import json
 from total_scattering.reduction import TotalScatteringReduction
 from total_scattering.reduction import validateConfig
+from total_scattering import __version__ as mts_version
 import sys
 
 
 def main(config=None):
 
-    version = "1.0.3.12012022.1"
+    version = mts_version
 
     # Read in JSON if not provided to main()
     if not config:
