@@ -8,6 +8,34 @@ from total_scattering import __date__ as mts_date
 from total_scattering import __commit__ as mts_commit
 import sys
 
+info_print = '''\n=======================MantidTotalScattering=======================
+
+Version      => {0:s}
+Time Stamp   => {1:s}
+Commit SHA   => {2:s}
+
+=======================MantidTotalScattering=======================
+
+Go to https://github.com/neutrons/mantid_total_scattering/commits
+Select a branch and check out the commit history with reference
+to the SHA value printed above.
+
+=======================MantidTotalScattering=======================
+
+Here follows is listed the correspondence between the repo branch
+and the deployed versions on SNS analysis.
+
+=======================MantidTotalScattering=======================
+
+|-------------------|-----------------------------|---------------|-------------|
+| Deployed Version  | Command                     | GitHub Branch | Release Tag |
+|-------------------|-----------------------------|---------------|-------------|
+| Production        | mantidtotalscattering       | main          | vx.x.x      |
+| Release Candidate | mantidtotalscattering --qa  | qa            | vx.x.xrcx   |
+| Development       | mantidtotalscattering --dev | next          | N/A         |
+|-------------------|-----------------------------|---------------|-------------|
+'''
+
 
 def main(config=None):
 
@@ -18,60 +46,10 @@ def main(config=None):
     # Read in JSON if not provided to main()
     if not config:
         if len(sys.argv) == 1:
-            print("=======================MantidTotalScattering=======================")
-            print("")
-            print("Version      => " + version)
-            print("Time Stamp   => " + mts_date)
-            print("Commit SHA   => " + mts_commit)
-            print("")
-            print("=======================MantidTotalScattering=======================")
-            print("")
-            print("Go to https://github.com/neutrons/mantid_total_scattering/commits")
-            print("Select a branch and check out the commit history with reference")
-            print("to the SHA value printed above.")
-            print("")
-            print("=======================MantidTotalScattering=======================")
-            print("")
-            print("Here follows is listed the correspondence between the repo branch")
-            print("and the deployed versions on SNS analysis.")
-            print("")
-            print("=======================MantidTotalScattering=======================")
-            print("")
-            print("|-------------------|-----------------------------|---------------|-------------|")
-            print("| Deployed Version  | Command                     | GitHub Branch | Release Tag |")
-            print("|-------------------|-----------------------------|---------------|-------------|")
-            print("| Production        | mantidtotalscattering       | main          | vx.x.x      |")
-            print("| Release Candidate | mantidtotalscattering --qa  | qa            | vx.x.xrcx   |")
-            print("| Development       | mantidtotalscattering --dev | next          | N/A         |")
-            print("|-------------------|-----------------------------|---------------|-------------|")
+            print(info_print.format(version, up_date, up_commit))
             return
         elif sys.argv[1] == "-v" or sys.argv[1] == "--version":
-            print("=======================MantidTotalScattering=======================")
-            print("")
-            print("Version      => " + version)
-            print("Time Stamp   => " + mts_date)
-            print("Commit SHA   => " + mts_commit)
-            print("")
-            print("=======================MantidTotalScattering=======================")
-            print("")
-            print("Go to https://github.com/neutrons/mantid_total_scattering/commits")
-            print("Select a branch and check out the commit history with reference")
-            print("to the SHA value printed above.")
-            print("")
-            print("=======================MantidTotalScattering=======================")
-            print("")
-            print("Here follows is listed the correspondence between the repo branch")
-            print("and the deployed versions on SNS analysis.")
-            print("")
-            print("=======================MantidTotalScattering=======================")
-            print("")
-            print("|-------------------|-----------------------------|---------------|-------------|")
-            print("| Deployed Version  | Command                     | GitHub Branch | Release Tag |")
-            print("|-------------------|-----------------------------|---------------|-------------|")
-            print("| Production        | mantidtotalscattering       | main          | vx.x.x      |")
-            print("| Release Candidate | mantidtotalscattering --qa  | qa            | vx.x.xrcx   |")
-            print("| Development       | mantidtotalscattering --dev | next          | N/A         |")
-            print("|-------------------|-----------------------------|---------------|-------------|")
+            print(info_print.format(version, up_date, up_commit))
             return
 
         import argparse
