@@ -216,8 +216,10 @@ Tests
 ===========================================================
 To build and run the tests via [pytest](https://docs.pytest.org), use:
 ```bash
-/path/to/mantid/build/bin/mantidpython setup.py test
+python setup.py test
 ```
+**N. B.** This is assuming that the `mantid-developer` conda environment mentioned
+above is active.
 
 To build and run tests via [Docker](https://docs.docker.com/), use:
 
@@ -227,13 +229,34 @@ docker build -t unit-test-env -f .ci/Dockerfile.nightly_ubuntu16.04_python3 . &&
 
 Tagging a New Version
 ===========================================================
-Mantid Total Scattering uses [versioneer](https://github.com/python-versioneer/python-versioneer). These are the instructions to create a new version, working on a local clone
+Mantid Total Scattering uses [versioneer](https://github.com/python-versioneer/python-versioneer). These are the instructions to create a new version, working on a local clone,
+
 ```bash
 git branch --track main origin/main  #  create a local main branch set to follow remote main
 git checkout main
 git fetch -p -t  # fetch all changes from the remote repo
 git rebase -v origin/main  # sync with remote main branch
-git merge --ff-only origin/next  # merge in all of the changes in branch next
-git tag v.0.2.13  # create the tag in the format that versioneer has been configured
-git push --tags origin main  # push the tag to remote to kick off the deploy step
+git merge --ff-only origin/qa  # merge in all of the changes in branch next
+git tag v1.0.7  # create the tag in the format that versioneer has been configured
+git push origin v1.0.7  # push the tag to remote to kick off the deploy step
 ```
+
+The steps above will tag a new main release (the production release) and will
+kick off the pipeline action which will further trigger the connected GitLab
+action to deploy the built conda package to SNS analysis cluster (to the central
+`mantidtotalscattering` conda environment located at `/opt/anaconda/envs`). If
+we want to tag a release candidate, follow the steps below,
+
+```bash
+git branch --track qa origin/qa  #  create a local main branch set to follow remote main
+git checkout qa
+git fetch -p -t  # fetch all changes from the remote repo
+git rebase -v origin/qa  # sync with remote main branch
+git merge --ff-only origin/next  # merge in all of the changes in branch next
+git tag v1.0.8rc1  # create the tag in the format that versioneer has been configured
+git push origin v1.0.8rc1  # push the tag to remote to kick off the deploy step
+```
+
+This will kick off the pipeline action which will further trigger the connected
+GitLab action to deploy the built conda package to SNS analysis cluster (to the
+central `mantidtotalscattering-qa` conda environment located at `/opt/anaconda/envs`).
