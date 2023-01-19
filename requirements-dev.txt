@@ -2,7 +2,7 @@ bandit
 flake8
 pytest
 pytest-cov
-tox
+tox=4.0.8
 tox-conda
 matplotlib
 scikit-learn
