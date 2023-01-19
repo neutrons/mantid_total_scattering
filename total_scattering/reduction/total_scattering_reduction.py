@@ -1814,7 +1814,7 @@ def TotalScatteringReduction(config: dict = None):
         i_pf = sam_packing_fraction
         s_pf_all = dict()
         for key, item in offset.items():
-            log_file_out.write("{0:8d}{1:<16.3F}{2:<15.3F}".format(key,
+            log_file_out.write("{0:<8d}{1:<16.3F}{2:<15.3F}".format(key,
                                                                    item,
                                                                    slope[key]))
             s_pf = sam_packing_fraction * item / material.btot_sqrd_avg
