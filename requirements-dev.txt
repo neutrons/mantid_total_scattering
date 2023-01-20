@@ -3,6 +3,6 @@ flake8
 pytest
 pytest-cov
 tox=3.27.1
-tox-conda
+tox-conda=0.10.1
 matplotlib
 scikit-learn
