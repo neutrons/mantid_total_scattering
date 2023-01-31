@@ -157,11 +157,12 @@ can execute the command below to use the local Mantid build to work with the
 local version of `mantidtotalscattering`,
 
 ```bash
-MANTID-DEVELOPER_ENV_LOCATION/bin/python total_scattering/cli.py INPUT_JSON_FILE
+conda activate mantid-developer
+python MANTID_REPO_DIR/build/bin/AddPythonPath.py
+python total_scattering/cli.py INPUT_JSON_FILE
 ```
 
-where `MANTID-DEVELOPER_ENV_LOCATION` can be obtained via `conda env list` to
-list out all conda environments and their corresponding location.
+where `MANTID_REPO_DIR` refers to the full path of the `mantid` repo directory.
 
 The second way we can try is to launch `mantidtotalscattering` from within
 `mantidworkbench`. To do this, again, assuming we are located in the main
@@ -209,8 +210,7 @@ this, follow the steps below,
 
 5. python setup.py develop
 
-where `MANTID-DEVELOPER_ENV_LOCATION` can be obtained via `conda env list` to
-list out all conda environments and their corresponding location.
+where `MANTID_REPO_DIR` refers to the full path of the `mantid` repo directory.
 
 Tests
 ===========================================================

@@ -91,7 +91,7 @@ def calculate_and_apply_fitted_levels(
         offset_tmp = mtd['tmp_wks_fitted_Parameters'].row(0)['Value']
         slope_tmp = mtd['tmp_wks_fitted_Parameters'].row(1)['Value']
 
-        offset[key] = offset_tmp
+        offset[key] = offset_tmp + (value[0] + value[1]) * slope_tmp / 2.0
         slope[key] = slope_tmp
 
         DeleteWorkspace(tmp_wks)
