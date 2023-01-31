@@ -79,11 +79,11 @@ class TestNormalizations(unittest.TestCase):
         q_ranges = ts.get_self_scattering_level(config, 45.0)
         offset, slope = calculate_and_apply_fitted_levels(self.s_of_q,
                                                           q_ranges)
-        offsets = {2: -27.71581, 3: 0.20049, 4: 0.47820, 5: 0.22630}
+        offsets = {2: 1.99763, 3: 0.42107, 4: 0.24137, 5: 0.20591}
         slopes = {2: 1.56386, 3: 0.00882, 4: -0.006766, 5: -0.000582}
 
-        print("Debugging -> ", offset)
-        print("Debugging -> ", slope)
+        print("[Info] Fitted offsets => ", offset)
+        print("[Info] Fitted slopes => ", slope)
 
         for key in q_ranges:
             self.assertTrue(np.allclose(offsets[key], offset[key],

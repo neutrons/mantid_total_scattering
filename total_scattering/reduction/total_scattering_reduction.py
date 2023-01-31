@@ -1788,7 +1788,8 @@ def TotalScatteringReduction(config: dict = None):
 
     # Print log information
     material = Material(sam_corrected)
-    log_file_out = open(os.path.join(os.path.abspath(OutputDir), 'README.LOG'),
+    log_file_out = open(os.path.join(os.path.abspath(OutputDir),
+                                     f'{title}.log'),
                         "w")
     sep_line = "==============================="
     sep_line += "=================================\n"
