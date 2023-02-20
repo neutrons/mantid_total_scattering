@@ -456,13 +456,13 @@ def TotalScatteringReduction(config: dict = None):
         sam_env_dict = {'Name': 'InAir',
                         'Container': 'PAC06'}
 
-    abs_cache_fn = sam_mat_dict["ChemicalFormula"].replace(" ", "_")
-    tmp_fn = "_md_" + str(sam_mat_dict['SampleMassDensity']).replace(".", "p")
+    abs_cache_fn = sam_mat_dict["ChemicalFormula"].replace(" ", "_").replace(".", "p")
+    tmp_fn = "_md_" + "{0:7.5F}".format(sam_mat_dict['SampleMassDensity']).replace(".", "p")
     abs_cache_fn += tmp_fn
-    abs_cache_fn += ("_pf_" + str(sam_packing_fraction).replace(".", "p"))
+    abs_cache_fn += ("_pf_" + "{0:3.1F}".format(sam_packing_fraction).replace(".", "p"))
     abs_cache_fn += ("_sp_" + sam_geo_dict['Shape'])
-    abs_cache_fn += ("_r_" + str(sam_geo_dict['Radius']).replace(".", "p"))
-    abs_cache_fn += ("_h_" + str(sam_geo_dict['Height']).replace(".", "p"))
+    abs_cache_fn += ("_r_" + "{0:6.4F}".format(sam_geo_dict['Radius']).replace(".", "p"))
+    abs_cache_fn += ("_h_" + "{0:3.1F}".format(sam_geo_dict['Height']).replace(".", "p"))
     abs_cache_fn += ("_env_" + sam_env_dict['Name'])
     abs_cache_fn += ("_cont_" + sam_env_dict['Container'])
 
@@ -481,13 +481,13 @@ def TotalScatteringReduction(config: dict = None):
     van_mat_dict = {'ChemicalFormula': van_material,
                     'SampleMassDensity': van_eff_density}
 
-    abs_cache_fn_v = van_mat_dict["ChemicalFormula"].replace(" ", "_")
-    tmp_fn = "_md_" + str(van_mat_dict['SampleMassDensity']).replace(".", "p")
+    abs_cache_fn_v = van_mat_dict["ChemicalFormula"].replace(" ", "_").replace(".", "p")
+    tmp_fn = "_md_" + "{0:7.5F}".format(van_mat_dict['SampleMassDensity']).replace(".", "p")
     abs_cache_fn_v += tmp_fn
-    abs_cache_fn_v += ("_pf_" + str(van_packing_fraction).replace(".", "p"))
+    abs_cache_fn_v += ("_pf_" + "{0:3.1F}".format(van_packing_fraction).replace(".", "p"))
     abs_cache_fn_v += ("_sp_" + van_geo_dict['Shape'])
-    abs_cache_fn_v += ("_r_" + str(van_geo_dict['Radius']).replace(".", "p"))
-    abs_cache_fn_v += ("_h_" + str(van_geo_dict['Height']).replace(".", "p"))
+    abs_cache_fn_v += ("_r_" + "{0:6.4F}".format(van_geo_dict['Radius']).replace(".", "p"))
+    abs_cache_fn_v += ("_h_" + "{0:3.1F}".format(van_geo_dict['Height']).replace(".", "p"))
     abs_cache_fn_v += ("_env_" + sam_env_dict['Name'])
 
     # Get calibration, characterization, and other settings
