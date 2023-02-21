@@ -191,7 +191,9 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             list_filenames = filename.split(",")
             filename = list_filenames[0]
 
-        find_env = not material["ChemicalFormula"] == "V"
+        cond1 = material["ChemicalFormula"] == "V"
+        cond2 = material["ChemicalFormula"] == "V1"
+        find_env = not (cond1 or cond2)
 
         donor_ws = absorptioncorrutils.create_absorption_input(
             filename,
