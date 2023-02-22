@@ -1820,7 +1820,7 @@ def TotalScatteringReduction(config: dict = None):
                                                                     slope[key]))
             s_pf = sam_packing_fraction * item / material.btot_sqrd_avg
             s_pf_all[key] = s_pf
-            log_file_out.write("{0:<12.1F}{1:<12.1F}".format(i_pf, s_pf))
+            log_file_out.write("{0:<12.3F}{1:<12.3F}".format(i_pf, s_pf))
             log_file_out.write("\n")
         sep_line1 = "-------------------------------"
         sep_line1 += "---------------------------------\n"
@@ -1830,7 +1830,7 @@ def TotalScatteringReduction(config: dict = None):
             used_s_pf = s_pf_all[1]
         else:
             used_s_pf = s_pf_all[5]
-        log_file_out.write("{0:<12.1F}{1:<12.1F}\n".format(i_pf, used_s_pf))
+        log_file_out.write("{0:<12.3F}{1:<12.3F}\n".format(i_pf, used_s_pf))
         log_file_out.write(sep_line)
 
     log_file_out.close()
