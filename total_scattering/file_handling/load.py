@@ -10,8 +10,18 @@ from mantid.simpleapi import \
     PDDetermineCharacterizations, \
     PDLoadCharacterizations, \
     PropertyManagerDataService, \
-    SetSample
+    SetSample, \
+    Rebin, \
+    CreateGroupingWorkspace, \
+    GroupDetectors, \
+    LoadNexus, \
+    SaveNexusProcessed
 from mantid.utils import absorptioncorrutils
+from sklearn.cluster import KMeans
+import os
+import re
+import hashlib
+import base64
 
 _shared_shape_keys = ["Shape", "Height", "Center"]
 required_shape_keys = {
@@ -21,15 +31,135 @@ required_shape_keys = {
 }
 
 
-def load(ws_name, input_files,
+def load(ws_name, input_files, group_wksp,
+         facility=None, instr_name=None, ipts=None, group_num=None,
          geometry=None, chemical_formula=None, mass_density=None,
-         absorption_wksp='', **align_and_focus_args):
-    '''Load workspace'''
-    AlignAndFocusPowderFromFiles(
-        OutputWorkspace=ws_name,
-        Filename=input_files,
-        AbsorptionWorkspace=absorption_wksp,
-        **align_and_focus_args)
+         absorption_wksp='', q_bin_params='0.,0.0001,40.',
+         **align_and_focus_args):
+    '''Routine for loading workspace'''
+ 
+    # Figure out the list of run number
+    run_list = list()
+    for item in input_files:
+        if "/" in item or "\\" in item:
+            file_n = os.path.basename(item)
+            reg_test = re.search('.*_[0-9]+\.nxs\.h5', file_n)
+            if reg_test is None:
+                run_list.append("-1")
+            else:
+                run_list.append(reg_test.group(0).split(".")[0].split("_")[1])
+        else:
+            run_list.append(item.split("_")[1])
+
+    if group_wksp is None:
+        # Given the current implementation mechanism, if the input
+        # `group_wksp` is None, that means there was no absorption
+        # calculation involved in the preparation stage (i.e., before
+        # calling current load method). In such a situation, we go
+        # ahead to perform the align and focus in the old way by
+        # calling the `AlignAndFocusPowderFromFiles` algorithm,
+        # followed by saving the summed file to cache. For sure,
+        # if such a cache file already exists, we load it in.
+
+        # Figure out a unique name for the summed cache file
+        hash_obj = hashlib.sha256(str(run_list).encode())
+        hash_str = hash_obj.hexdigest()
+        short_hash_str = base64.urlsafe_b64encode(hash_str.encode()).decode()[:12]
+        cache_sf_bn = f"{instr_name}_mts_summed_{short_hash_str}.nxs"
+        cache_sf_fn = os.path.join(facility,
+                                   instr,
+                                   ipts,
+                                   "share",
+                                   "autoreduce",
+                                   cache_sf_bn)
+
+        if os.path.isfile(cache_sf_fn):
+            LoadNexus(Filename=cache_sf_exist, OutputWorkspace=ws_name)
+        else:
+            AlignAndFocusPowderFromFiles(
+                OutputWorkspace=ws_name,
+                Filename=input_files,
+                AbsorptionWorkspace=absorption_wksp,
+                **align_and_focus_args)
+            ConvertUnits(
+                InputWorkspace=ws_name,
+                OutputWorkspace=ws_name,
+                Target="MomentumTransfer",
+                EMode="Elastic")
+            Rebin(InputWorkspace=ws_name, Params=q_bin_params)
+    else:
+        for run_i, run in enumerate(run_list):
+            if run == "-1":
+                cache_f_exist = False
+            else:
+                cache_f_bn = f"{instr_name}_{run}_mts_reduced.nxs"
+                cache_f_fn = os.path.join(facility,
+                                          instr,
+                                          ipts,
+                                          "share",
+                                          "autoreduce",
+                                          cache_f_bn)
+                if os.path.isfile(cache_f_fn):
+                    cache_f_exist = True
+                else:
+                    cache_f_exist = False
+            if cache_f_exist and group_num == 0:
+                LoadNexus(Filename=cache_f_exist, OutputWorkspace=wksp_tmp)
+                if absorption_wksp != '':
+                    ConvertUnits(
+                        InputWorkspace=absorption_wksp,
+                        OutputWorkspace=absorption_wksp,
+                        Target="MomentumTransfer",
+                        EMode="Elastic")
+                    RebinToWorkspace(WorkspaceToRebin=absorption_wksp,
+                                    WorkspaceToMatch=wksp_tmp,
+                                     OutputWorkspace=absorption_wksp)
+                    Divide(LHSWorkspace=wksp_tmp,
+                           RHSWorkspace=absorption_wksp,
+                           OutputWorkspace=wksp_tmp,
+                           AllowDifferentNumberSpectra=True)
+            else:
+                # TODO: Save the rebinned wksp
+                # TODO: `Divide` only when the abs wksp exists
+                wksp_tmp = "wksp_tmp"
+                AlignAndFocusPowderFromFiles(
+                    OutputWorkspace=wksp_tmp,
+                    Filename=input_files[run_i],
+                    GroupingWorkspace=group_wksp,
+                    **align_and_focus_args)
+                ConvertUnits(
+                    InputWorkspace=wksp_tmp,
+                    OutputWorkspace=wksp_tmp,
+                    Target="MomentumTransfer",
+                    EMode="Elastic")
+                Rebin(InputWorkspace=wksp_tmp, Params=q_bin_params)
+                SaveNexusProcessed(
+                    InputWorkspace=wksp_tmp,
+                    Filename=cache_f_fn,
+                    Title=f"{run}_cached",
+                    WorkspaceIndexList=range(
+                        mtd[wksp_tmp].getNumberHistograms()))
+                if absorption_wksp != '':
+                    ConvertUnits(
+                        InputWorkspace=absorption_wksp,
+                        OutputWorkspace=absorption_wksp,
+                        Target="MomentumTransfer",
+                        EMode="Elastic")
+                    Rebin(InputWorkspace=absorption_wksp, Params=q_bin_params)
+                    Divide(LHSWorkspace=wksp_tmp,
+                           RHSWorkspace=absorption_wksp,
+                           OutputWorkspace=wksp_tmp,
+                           AllowDifferentNumberSpectra=True)
+
+            # Accumulate individual files
+            if run_i == 0:
+                CloneWorkspace(InputWorkspace=wksp_tmp,
+                               OutputWorkspace=ws_name)
+            else:
+                Plus(LHSWorkspace=ws_name,
+                     RHSWorkspace=wksp_tmp,
+                     OutputWorkspace=ws_name)
+
     NormaliseByCurrent(
         InputWorkspace=ws_name,
         OutputWorkspace=ws_name,
@@ -37,11 +167,6 @@ def load(ws_name, input_files,
     if geometry and chemical_formula and mass_density:
         set_sample(ws_name, geometry, chemical_formula, mass_density)
 
-    ConvertUnits(
-        InputWorkspace=ws_name,
-        OutputWorkspace=ws_name,
-        Target="MomentumTransfer",
-        EMode="Elastic")
     return ws_name
 
 
@@ -92,16 +217,121 @@ def add_required_shape_keys(mydict, shape):
     return new_dict
 
 
+def mask_generator(group_wksp, abs_ref_file):
+    '''Generate a mask list given the input file containing
+    the list of detectors that we don't want to mask, together with
+    a group workspace. We don't need much information from the
+    provided grouping workspace beyond all those detector IDs. In
+    fact, this input workspace can be any workspace containing the
+    instrument geometry.
+    '''
+    with open(abs_ref_file, "r") as f:
+        ref_list = [int(line.strip()) for line in f.readlines()]
+
+    num_dets = group_wksp.getNumberHistograms()
+    all_det_ids = list()
+    for i in range(num_dets):
+        all_det_ids.append(getDetector(i).getID())
+
+    return [i for i in all_det_ids if i not in ref_list]
+
+
+def abs_grouping(sam_abs_ws,
+                 con_abs_ws,
+                 num_clusters,
+                 group_out_file,
+                 group_ref_det_out_file):
+    Rebin(InputWorkspace=sam_abs_ws,
+          OutputWorkspace="abs_pbp",
+          Params="0.1,0.05,3.0")
+    
+    num_spectra = mtd['abs_pbp'].getNumberHistograms()
+    num_monitors = int(np.sum(mtd['abs_pbp'].detectorInfo().detectorIDs() < 0))
+    
+    print("[Info] Clustering the absorption spectra for all detectors...")
+    all_spectra = list()
+    all_spectra_id = dict()
+    for i in range(num_monitors, num_spectra):
+        y_tmp = mtd['abs_pbp'].readY(i)
+        all_spectra.append(y_tmp)
+        all_spectra_id[i] = mtd['abs_pbp'].getDetector(i).getID()
+    
+    X = np.array(all_spectra)
+    clustering = KMeans(n_clusters=num_clusters).fit(X)
+    
+    labels = clustering.labels_
+    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    n_noise_ = list(labels).count(-1)
+    print("[Info] Done with the clustering of absorption spectra.")
+    
+    CreateGroupingWorkspace(InputWorkspace="abs_pbp",
+                            OutputWorkspace="grouping")
+    grouping = mtd["grouping"]
+    for i, label in enumerate(labels):
+        if label == -1:
+            continue
+        det_id = all_spectra_id[i + num_monitors]
+        det_id = mtd['abs_pbp'].detectorInfo().indexOf(det_id) - num_monitors
+        grouping.setY(det_id, [int(label + 1)])
+    
+    SaveDetectorsGrouping(InputWorkspace=grouping,
+                          OutputFile=group_out_file)
+    GroupDetectors(InputWorkspace=sam_abs_ws,
+                   OutputWorkspace="sam_abs_grouped", Behaviour="Average",
+                   CopyGroupingFromWorkspace=grouping)
+    sam_abs_grouped = mtd['sam_abs_grouped']
+    if con_abs_ws != "":
+        GroupDetectors(InputWorkspace=con_abs_ws,
+                       OutputWorkspace="con_abs_grouped", Behaviour="Average",
+                       CopyGroupingFromWorkspace=grouping)
+        con_abs_grouped = mtd['con_abs_grouped']
+    else:
+        con_abs_grouped = ""
+    
+    print("[Info] Check the similarity of absorption spectra within groups.")
+    ref_id = list()
+    for i in range(num_clusters):
+        ref_id.append(list(labels).index(i))
+    with open(group_ref_det_out_file, "w") as f:
+        for i, item in enumerate(ref_id):
+            if i == len(ref_id) - 1:
+                f.write("{0:d}".format(item))
+            else:
+                f.write("{0:d}\n".format(item))
+    
+    perct_max_tmp = list()
+    for i, group in enumerate(labels):
+        perct_tmp = list()
+        for j in range(len(all_spectra[i])):
+            top = abs(all_spectra[i][j] - all_spectra[ref_id[group]][j])
+            bottom = all_spectra[ref_id[group]][j]
+            perct_tmp.append(top / bottom * 100.)
+        perct_max_tmp.append(max(perct_tmp))
+    perct_max = max(perct_max_tmp)
+    
+    print(f"[Info] # of clusters: {n_clusters_}")
+    print(f"[Info] # of noise: {n_noise_}")
+    print("[Info] Maximum percentage difference: {0:3.1F}".format(perct_max))
+
+    return sam_abs_grouped, con_abs_grouped, grouping
+
+
 def create_absorption_wksp(filename, abs_method, geometry, material,
                            environment=None, props=None,
                            characterization_files=None,
                            ms_method=None,
                            elementsize=1.0,  # mm
                            con_elementsize=1.0,  # mm
+                           group_wksp_in=None,
+                           num_groups=0,
+                           group_out_file=None,
+                           group_ref_det_out_file=None,
                            **align_and_focus_args):
+    group_wksp_out = group_wksp_in
+
     '''Create absorption workspace'''
     if abs_method is None:
-        return '', ''
+        return '', '', ''
 
     abs_input = Load(filename, MetaDataOnly=True)
 
@@ -186,6 +416,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     # Use low level API from absorptioncorrutils to bypass the automated
     # caching
     # 1. Setup the donor workspace for absorption correction
+    re_gen_group = num_groups > 0
     try:
         if isinstance(filename, str):
             list_filenames = filename.split(",")
@@ -201,6 +432,10 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             environment=environment,
             find_environment=find_env)
 
+        if not (group_wksp_in is None or re_gen_group):
+            mask_list = mask_generator(group_wksp_in)
+            MaskDetectors(Workspace=donor_ws, DetectorList=mask_list)
+
     except RuntimeError as e:
         msg = "Could not create absorption correction donor workspace: {}"
         raise RuntimeError(msg.format(e))
@@ -211,6 +446,13 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             donor_ws,
             abs_method,
             element_size=elementsize)
+
+    if not (group_wksp_in is None or re_gen_group):
+        if abs_s != "":
+            MaskDetectors(Workspace=abs_s, DetectorList=mask_list)
+        if abs_c != "":
+            MaskDetectors(Workspace=abs_c, DetectorList=mask_list)
+
 
     # 3. Convert to effective absorption correction workspace if multiple
     # scattering correction is requested
@@ -264,4 +506,23 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                 "is performed independent from absorption correction."
                 )
 
-    return abs_s, abs_c
+    if not (group_wksp_in is None or re_gen_group):
+        if abs_s != "":
+            GroupDetectors(InputWorkspace=abs_s,
+                           OutputWorkspace=abs_s, Behaviour="Sum",
+                           CopyGroupingFromWorkspace=group_wksp_in)
+        if abs_c != "":
+            GroupDetectors(InputWorkspace=abs_c,
+                           OutputWorkspace=abs_c,
+                           Behaviour="Sum",
+                           CopyGroupingFromWorkspace=group_wksp_in)
+
+    if group_wksp_in is None or re_gen_group:
+        abs_s_g, abs_c_g, group_wksp_out = abs_grouping(abs_s,
+                                                        abs_c,
+                                                        num_groups,
+                                                        group_out_file,
+                                                        group_ref_det_out_file)
+        return abs_s_g, abs_c_g, group_wksp_out
+
+    return abs_s, abs_c, group_wksp_out
