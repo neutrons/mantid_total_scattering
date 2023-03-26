@@ -435,7 +435,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             find_environment=find_env)
 
         if not (group_wksp_in is None or re_gen_group):
-            mask_list = mask_generator(group_wksp_in)
+            mask_list = mask_generator(group_wksp_in, group_ref_det_out_file)
             MaskDetectors(Workspace=donor_ws, DetectorList=mask_list)
 
     except RuntimeError as e:
@@ -519,7 +519,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                            Behaviour="Sum",
                            CopyGroupingFromWorkspace=group_wksp_in)
 
-    if group_wksp_in is None or re_gen_group:
+    if re_gen_group:
         abs_s_g, abs_c_g, group_wksp_out = abs_grouping(abs_s,
                                                         abs_c,
                                                         num_groups,
