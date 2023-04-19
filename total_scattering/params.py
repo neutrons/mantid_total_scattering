@@ -19,7 +19,7 @@ class ParamsLoader:
             config_loc_in = config_loc
 
         self.config_loc = config_loc_in
-        self.abs_ms_sn = abs_ms_loc
+        self.abs_ms_sn = abs_ms_sn
 
         with open(self.config_loc[facility][instrument]) as f:
             self.config_params = json.load(f)

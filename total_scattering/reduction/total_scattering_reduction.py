@@ -484,12 +484,14 @@ def TotalScatteringReduction(config: dict = None):
     abs_cache_fn_v += ("_r_" + "{0:6.4F}".format(van_geo_dict['Radius']).replace(".", "p"))
     abs_cache_fn_v += ("_h_" + "{0:3.1F}".format(van_geo_dict['Height']).replace(".", "p"))
     abs_cache_fn_v += ("_env_" + sam_env_dict['Name'])
+    # Since there is only one allowed value for the type of absorption
+    # correction for vanadium, we don't include its value in the cache file name.
     van_abs_corr = van.get("AbsorptionCorrection", {"Type": None})
     van_ms_corr = van.get("MultipleScatteringCorrection", {"Type": None})
     if van_ms_corr["Type"]:
         abs_cache_fn_v += ("_" + gen_config.abs_ms_sn[van_ms_corr["Type"]])
     else:
-        abs_cache_fn += "_None"
+        abs_cache_fn_v += "_None"
 
     # Get calibration, characterization, and other settings
     merging = config['Merging']
@@ -673,6 +675,22 @@ def TotalScatteringReduction(config: dict = None):
     # Compute the absorption correction on the sample if it was provided
     sam_abs_ws = ''
     con_abs_ws = ''
+    gen_config_dir = os.path.dirname(params.config_loc[facility][instr])
+    group_file = os.path.join(gen_config_dir, "abs_grouping.xml")
+    group_det_file = os.path.join(gen_config_dir, "abs_grouping_ref_dets.txt")
+    sg_index_f = os.path.join(gen_config_dir, "group_index.txt")
+    sg_dict = dict()
+    with open(sg_index_f, "r") as f_handle:
+        line_tmp = f_handle.readline()
+        while line_tmp:
+            line_tmp = f_handle.readline()
+            if line_tmp:
+                line_tmp = line_tmp.strip()
+                key_tmp = line_tmp.split()[0]
+                start_tmp = int(line_tmp.split()[1])
+                stop_tmp = int(line_tmp.split()[2])
+                sg_dict[key_tmp] = [start_tmp, stop_tmp]
+
     if sam_abs_corr:
         if sam_abs_corr["Type"] in new_abs_methods:
             msg = "Applying '{}' absorption correction to sample"
@@ -695,7 +713,7 @@ def TotalScatteringReduction(config: dict = None):
             central_cache_f_s = os.path.join(gen_config.config_params["CacheDir"],
                                              ipts,
                                              abs_cache_fn_s)
-            central_cache_f_c = os.path.join(gen_config.config_params["CacheDir"]
+            central_cache_f_c = os.path.join(gen_config.config_params["CacheDir"],
                                              ipts,
                                              abs_cache_fn_c)
             f_s_exists = os.path.exists(central_cache_f_s)
@@ -705,9 +723,6 @@ def TotalScatteringReduction(config: dict = None):
             redo_cond_2 = f_s_exists and (not f_c_exists) and (not so)
 
             if redo_cond_1 or redo_cond_2:
-                gen_config_dir = os.path.dirname(params.config_loc)
-                group_file = os.path.join(gen_config_dir, "abs_grouping.xml")
-                group_det_file = os.path.join(gen_config_dir, "abs_grouping_ref_dets.txt")
                 if os.path.isfile(group_file):
                     group_wksp = LoadDetectorsGroupingFile(InputFile=group_file)
                 else:
@@ -726,6 +741,7 @@ def TotalScatteringReduction(config: dict = None):
                     num_groups=num_regen_groups,
                     group_out_file=group_file,
                     group_ref_det_out_file=group_det_file,
+                    sg_index_f=sg_index_f,
                     **config)
                 # Save abs workspaces to cached file
                 if not os.path.exists(os.path.join(gen_config.config_params["CacheDir"],
@@ -739,10 +755,8 @@ def TotalScatteringReduction(config: dict = None):
                               Filename=central_cache_f_c)
             else:
                 # read cached abs workspaces
-                gen_config_dir = os.path.dirname(params.config_loc)
-                group_file = os.path.join(gen_config_dir, "abs_grouping.xml")
                 if os.path.isfile(group_file):
-                    group_wksp = LoadDetectorsGroupingFile(InputFile=group_file)
+                    group_wksp_out = LoadDetectorsGroupingFile(InputFile=group_file)
                 else:
                     err_msg = "Focused absorption spectra file found, "
                     err_msg += "but grouping file not found.\n"
@@ -805,7 +819,9 @@ def TotalScatteringReduction(config: dict = None):
                     van_mat_dict,
                     ms_method=van_ms_method,
                     elementsize=van_elementsize,
-                    group_wksp,
+                    group_wksp_in=group_wksp_out,
+                    group_ref_det_out_file=group_det_file,
+                    sg_index_f=sg_index_f,
                     **config)
                 SaveNexus(InputWorkspace=van_abs_corr_ws,
                           Filename=central_cache_f_v)
@@ -828,6 +844,9 @@ def TotalScatteringReduction(config: dict = None):
     alignAndFocusArgs['Dspacing'] = False
     alignAndFocusArgs['PreserveEvents'] = False
     alignAndFocusArgs['MaxChunkSize'] = 0
+    pe_tmp = gen_config.config_params["PreserveEvents"]
+    alignAndFocusArgs['PreserveEvents'] = pe_tmp
+    qparams = gen_config.config_params["QParamsProcessing"]
     if cache_dir is not None:
         alignAndFocusArgs['CacheDir'] = os.path.abspath(cache_dir)
     # add resonance filter related properties
@@ -843,13 +862,21 @@ def TotalScatteringReduction(config: dict = None):
         otherArgs = config["AlignAndFocusArgs"]
         alignAndFocusArgs.update(otherArgs)
 
+    if not "TMin" in alignAndFocusArgs:
+        alignAndFocusArgs['TMin'] = gen_config.config_params["TMIN"]
+    if not "TMax" in alignAndFocusArgs:
+        alignAndFocusArgs['TMax'] = gen_config.config_params["TMAX"]
+
     # Setup grouping
     output_grouping = False
     grp_wksp = "wksp_output_group"
 
     if grouping:
         if 'Initial' in grouping:
-            if grouping['Initial'] and not grouping['Initial'] == u'':
+            condt_1 = grouping['Initial']
+            condt_2 = not grouping['Initial'] == u''
+            condt_3 = group_wksp_out is None
+            if condt_1 and condt_2 and condt_3:
                 alignAndFocusArgs['GroupFilename'] = grouping['Initial']
         if 'Output' in grouping:
             if grouping['Output'] and not grouping['Output'] == u'':
@@ -887,10 +914,17 @@ def TotalScatteringReduction(config: dict = None):
     sam_wksp = load(
         'sample',
         sam_scans,
-        sam_geometry,
-        sam_material,
-        sam_mass_density,
-        sam_abs_ws,
+        group_wksp_out,
+        facility=facility,
+        instr_name=instr,
+        ipts=ipts,
+        group_num=num_regen_groups,
+        geometry=sam_geometry,
+        chemical_formula=sam_material,
+        mass_density=sam_mass_density,
+        absorption_wksp=sam_abs_ws,
+        out_group_dict=sg_dict,
+        qparams=qparams,
         **alignAndFocusArgs)
     sample_title = "sample_and_container"
     if debug_mode:
@@ -916,7 +950,14 @@ def TotalScatteringReduction(config: dict = None):
     container = load(
         'container',
         container_scans,
+        group_wksp_out,
+        facility=facility,
+        instr_name=instr,
+        ipts=ipts,
+        group_num=num_regen_groups,
         absorption_wksp=con_abs_ws,
+        out_group_dict=sg_dict,
+        qparams=qparams,
         **alignAndFocusArgs)
     if debug_mode:
         save_banks(
@@ -954,12 +995,26 @@ def TotalScatteringReduction(config: dict = None):
             container_bg = load(
                 'container_background',
                 container_bg_fn,
+                group_wksp_out,
+                facility=facility,
+                instr_name=instr,
+                ipts=ipts,
+                group_num=num_regen_groups,
                 absorption_wksp=sam_abs_ws,
+                out_group_dict=sg_dict,
+                qparams=qparams,
                 **alignAndFocusArgs)
             tmp = load(
                 'container_background_tmp',
                 container_bg_fn,
+                group_wksp_out,
+                facility=facility,
+                instr_name=instr,
+                ipts=ipts,
+                group_num=num_regen_groups,
                 absorption_wksp=con_abs_ws,
+                out_group_dict=sg_dict,
+                qparams=qparams,
                 **alignAndFocusArgs)
             Minus(
                 LHSWorkspace=container_bg,
@@ -969,7 +1024,14 @@ def TotalScatteringReduction(config: dict = None):
             container_bg = load(
                 'container_background',
                 container_bg_fn,
+                group_wksp_out,
+                facility=facility,
+                instr_name=instr,
+                ipts=ipts,
+                group_num=num_regen_groups,
                 absorption_wksp=sam_abs_ws,
+                out_group_dict=sg_dict,
+                qparams=qparams,
                 **alignAndFocusArgs)
         if debug_mode:
             save_banks(
@@ -987,10 +1049,17 @@ def TotalScatteringReduction(config: dict = None):
     van_wksp = load(
         'vanadium',
         van_scans,
-        van_geometry,
-        van_material,
-        van_mass_density,
-        van_abs_corr_ws,
+        group_wksp_out,
+        facility=facility,
+        instr_name=instr,
+        ipts=ipts,
+        group_num=num_regen_groups,
+        geometry=van_geometry,
+        chemical_formula=van_material,
+        mass_density=van_mass_density,
+        absorption_wksp=van_abs_corr_ws,
+        out_group_dict=sg_dict,
+        qparams=qparams,
         **alignAndFocusArgs)
 
     vanadium_title = "vanadium_and_background"
@@ -1043,7 +1112,14 @@ def TotalScatteringReduction(config: dict = None):
         van_bg = load(
             'vanadium_background',
             van_bg_scans,
+            group_wksp_out,
+            facility=facility,
+            instr_name=instr,
+            ipts=ipts,
+            group_num=num_regen_groups,
             absorption_wksp=van_abs_corr_ws,
+            out_group_dict=sg_dict,
+            qparams=qparams,
             **alignAndFocusArgs)
 
         vanadium_bg_title = "vanadium_background"

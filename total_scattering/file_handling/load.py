@@ -12,12 +12,21 @@ from mantid.simpleapi import \
     PropertyManagerDataService, \
     SetSample, \
     Rebin, \
+    RebinToWorkspace, \
     CreateGroupingWorkspace, \
+    SaveDetectorsGrouping, \
     GroupDetectors, \
     LoadNexus, \
-    SaveNexusProcessed
+    SaveNexusProcessed, \
+    CloneWorkspace, \
+    Plus, \
+    MaskDetectors, \
+    LoadDiffCal, \
+    DiffractionFocussing, \
+    SaveNexus
 from mantid.utils import absorptioncorrutils
 from sklearn.cluster import KMeans
+import numpy as np
 import os
 import re
 import hashlib
@@ -34,13 +43,14 @@ required_shape_keys = {
 def load(ws_name, input_files, group_wksp,
          facility=None, instr_name=None, ipts=None, group_num=None,
          geometry=None, chemical_formula=None, mass_density=None,
-         absorption_wksp='', q_bin_params='0.,0.0001,40.',
+         absorption_wksp='', out_group_dict=None,
+         qparams='0.01,0.001,40.0',
          **align_and_focus_args):
     '''Routine for loading workspace'''
  
     # Figure out the list of run number
     run_list = list()
-    for item in input_files:
+    for item in input_files.split(","):
         if "/" in item or "\\" in item:
             file_n = os.path.basename(item)
             reg_test = re.search('.*_[0-9]+\.nxs\.h5', file_n)
@@ -62,14 +72,15 @@ def load(ws_name, input_files, group_wksp,
         # if such a cache file already exists, we load it in.
 
         # Figure out a unique name for the summed cache file
+        # The codes here were originating from GPT3.5-turbo API
         hash_obj = hashlib.sha256(str(run_list).encode())
         hash_str = hash_obj.hexdigest()
         short_hash_str = base64.urlsafe_b64encode(hash_str.encode()).decode()[:12]
         cache_sf_bn = f"{instr_name}_mts_summed_{short_hash_str}.nxs"
-        cache_sf_fn = os.path.join(facility,
-                                   instr,
+        cache_sf_fn = os.path.join("/" + facility,
+                                   instr_name,
                                    ipts,
-                                   "share",
+                                   "shared",
                                    "autoreduce",
                                    cache_sf_bn)
 
@@ -86,70 +97,53 @@ def load(ws_name, input_files, group_wksp,
                 OutputWorkspace=ws_name,
                 Target="MomentumTransfer",
                 EMode="Elastic")
-            Rebin(InputWorkspace=ws_name, Params=q_bin_params)
+            SaveNexusProcessed(ws_name, cache_sf_fn, Title="cache_summed")
     else:
         for run_i, run in enumerate(run_list):
             if run == "-1":
                 cache_f_exist = False
             else:
                 cache_f_bn = f"{instr_name}_{run}_mts_reduced.nxs"
-                cache_f_fn = os.path.join(facility,
-                                          instr,
+                cache_f_fn = os.path.join("/" + facility,
+                                          instr_name,
                                           ipts,
-                                          "share",
+                                          "shared",
                                           "autoreduce",
                                           cache_f_bn)
                 if os.path.isfile(cache_f_fn):
                     cache_f_exist = True
                 else:
                     cache_f_exist = False
+
+            # `group_num == 0` means no regeneration of grouping
+            # was ever initialized and only in such cases will we
+            # move ahead to load in the existing cache file.
             if cache_f_exist and group_num == 0:
-                LoadNexus(Filename=cache_f_exist, OutputWorkspace=wksp_tmp)
-                if absorption_wksp != '':
-                    ConvertUnits(
-                        InputWorkspace=absorption_wksp,
-                        OutputWorkspace=absorption_wksp,
-                        Target="MomentumTransfer",
-                        EMode="Elastic")
-                    RebinToWorkspace(WorkspaceToRebin=absorption_wksp,
-                                    WorkspaceToMatch=wksp_tmp,
-                                     OutputWorkspace=absorption_wksp)
-                    Divide(LHSWorkspace=wksp_tmp,
-                           RHSWorkspace=absorption_wksp,
-                           OutputWorkspace=wksp_tmp,
-                           AllowDifferentNumberSpectra=True)
+                wksp_tmp = LoadNexus(Filename=cache_f_fn)
             else:
-                # TODO: Save the rebinned wksp
-                # TODO: `Divide` only when the abs wksp exists
                 wksp_tmp = "wksp_tmp"
                 AlignAndFocusPowderFromFiles(
                     OutputWorkspace=wksp_tmp,
-                    Filename=input_files[run_i],
+                    Filename=input_files.split(",")[run_i],
                     GroupingWorkspace=group_wksp,
                     **align_and_focus_args)
+                tmin_tmp = align_and_focus_args["TMin"]
+                tmax_tmp = align_and_focus_args["TMax"]
+                params = f"{tmin_tmp}, -0.0008, {tmax_tmp}"
+                Rebin(InputWorkspace=wksp_tmp,
+                      OutputWorkspace=wksp_tmp,
+                      Params=params)
                 ConvertUnits(
                     InputWorkspace=wksp_tmp,
                     OutputWorkspace=wksp_tmp,
-                    Target="MomentumTransfer",
+                    Target="Wavelength",
                     EMode="Elastic")
-                Rebin(InputWorkspace=wksp_tmp, Params=q_bin_params)
                 SaveNexusProcessed(
                     InputWorkspace=wksp_tmp,
                     Filename=cache_f_fn,
                     Title=f"{run}_cached",
                     WorkspaceIndexList=range(
                         mtd[wksp_tmp].getNumberHistograms()))
-                if absorption_wksp != '':
-                    ConvertUnits(
-                        InputWorkspace=absorption_wksp,
-                        OutputWorkspace=absorption_wksp,
-                        Target="MomentumTransfer",
-                        EMode="Elastic")
-                    Rebin(InputWorkspace=absorption_wksp, Params=q_bin_params)
-                    Divide(LHSWorkspace=wksp_tmp,
-                           RHSWorkspace=absorption_wksp,
-                           OutputWorkspace=wksp_tmp,
-                           AllowDifferentNumberSpectra=True)
 
             # Accumulate individual files
             if run_i == 0:
@@ -160,10 +154,53 @@ def load(ws_name, input_files, group_wksp,
                      RHSWorkspace=wksp_tmp,
                      OutputWorkspace=ws_name)
 
+    if not group_wksp is None and absorption_wksp != '':
+        RebinToWorkspace(
+            WorkspaceToRebin=absorption_wksp,
+            WorkspaceToMatch=ws_name,
+            OutputWorkspace=absorption_wksp)
+        Divide(LHSWorkspace=mtd[ws_name],
+               RHSWorkspace=absorption_wksp,
+               OutputWorkspace=ws_name,
+               AllowDifferentNumberSpectra=True)
+
+    if not group_wksp is None:
+        spec_map = dict()
+        for i in range(mtd[ws_name].getNumberHistograms()):
+            spec_id = mtd[ws_name].getSpectrum(i).getSpectrumNo()
+            spec_map[spec_id] = i
+        
+        g_pattern = ""
+        for _, item in out_group_dict.items():
+            min_tmp = item[0]
+            max_tmp = item[1]
+            list_tmp = [num for num in spec_map.keys() if num >= min_tmp]
+            min_min = spec_map[min(list_tmp)]
+            list_tmp = [num for num in spec_map.keys() if num <= max_tmp]
+            max_max = spec_map[max(list_tmp)]
+        
+            g_pattern += f"{min_min}-{max_max},"
+        
+        g_pattern = g_pattern[:-1]
+
+        ConvertUnits(
+            InputWorkspace=ws_name,
+            OutputWorkspace=ws_name,
+            Target="MomentumTransfer",
+            EMode="Elastic")
+        Rebin(
+            InputWorkspace=ws_name,
+            OutputWorkspace=ws_name,
+            Params=qparams)
+        GroupDetectors(InputWorkspace=ws_name,
+                       OutputWorkspace=ws_name,
+                       GroupingPattern=g_pattern)
+
     NormaliseByCurrent(
         InputWorkspace=ws_name,
         OutputWorkspace=ws_name,
         RecalculatePCharge=True)
+
     if geometry and chemical_formula and mass_density:
         set_sample(ws_name, geometry, chemical_formula, mass_density)
 
@@ -231,7 +268,7 @@ def mask_generator(group_wksp, abs_ref_file):
     num_dets = group_wksp.getNumberHistograms()
     all_det_ids = list()
     for i in range(num_dets):
-        all_det_ids.append(getDetector(i).getID())
+        all_det_ids.append(group_wksp.getDetector(i).getID())
 
     return [i for i in all_det_ids if i not in ref_list]
 
@@ -240,29 +277,51 @@ def abs_grouping(sam_abs_ws,
                  con_abs_ws,
                  num_clusters,
                  group_out_file,
-                 group_ref_det_out_file):
+                 group_ref_det_out_file,
+                 subgroup_index_file):
     Rebin(InputWorkspace=sam_abs_ws,
           OutputWorkspace="abs_pbp",
           Params="0.1,0.05,3.0")
     
     num_spectra = mtd['abs_pbp'].getNumberHistograms()
     num_monitors = int(np.sum(mtd['abs_pbp'].detectorInfo().detectorIDs() < 0))
-    
+
+    output_group, spectra_count, group_count = CreateGroupingWorkspace(
+        InputWorkspace="abs_pbp",
+        GroupDetectorsBy="Group")
+    sub_num_clusters = int(num_clusters / group_count)
+
+    with open(subgroup_index_file, "w") as f:
+        f.write("# Start & Stop index of subgroups\n")
+        for i in range(group_count):
+            start_index = sub_num_clusters * i + 1
+            stop_index = sub_num_clusters * (i + 1)
+            f.write("{0:<10s}{1:<10d}{2:<10d}\n".format("Bank-" + str(i),
+                                                        start_index,
+                                                        stop_index))
+
     print("[Info] Clustering the absorption spectra for all detectors...")
-    all_spectra = list()
     all_spectra_id = dict()
-    for i in range(num_monitors, num_spectra):
-        y_tmp = mtd['abs_pbp'].readY(i)
-        all_spectra.append(y_tmp)
-        all_spectra_id[i] = mtd['abs_pbp'].getDetector(i).getID()
+    all_spectra_all = list()
+    labels = list()
+    for j in range(group_count):
+        all_spectra = list()
+        for i in range(num_monitors, num_spectra):
+            if output_group.readY(i) == float(j + 1):
+                y_tmp = mtd['abs_pbp'].readY(i)
+                all_spectra.append(y_tmp)
+                all_spectra_id[i] = mtd['abs_pbp'].getDetector(i).getID()
+        all_spectra_all.extend(all_spectra)
+
+        X = np.array(all_spectra)
+        clustering = KMeans(n_clusters=sub_num_clusters, n_init=10).fit(X)
     
-    X = np.array(all_spectra)
-    clustering = KMeans(n_clusters=num_clusters).fit(X)
-    
-    labels = clustering.labels_
+        labels_tmp = [x + j * sub_num_clusters for x in clustering.labels_]
+        labels.extend(labels_tmp)
+        print(f"[Info] Done with the clustering of absorption spectra for bank-{j + 1}.")
+
     n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
     n_noise_ = list(labels).count(-1)
-    print("[Info] Done with the clustering of absorption spectra.")
     
     CreateGroupingWorkspace(InputWorkspace="abs_pbp",
                             OutputWorkspace="grouping")
@@ -290,21 +349,21 @@ def abs_grouping(sam_abs_ws,
     
     print("[Info] Check the similarity of absorption spectra within groups.")
     ref_id = list()
-    for i in range(num_clusters):
-        ref_id.append(list(labels).index(i))
+    for i in range(group_count * sub_num_clusters):
+        ref_id.append(list(labels).index(i) + 2)
     with open(group_ref_det_out_file, "w") as f:
         for i, item in enumerate(ref_id):
             if i == len(ref_id) - 1:
                 f.write("{0:d}".format(item))
             else:
                 f.write("{0:d}\n".format(item))
-    
+ 
     perct_max_tmp = list()
     for i, group in enumerate(labels):
         perct_tmp = list()
-        for j in range(len(all_spectra[i])):
-            top = abs(all_spectra[i][j] - all_spectra[ref_id[group]][j])
-            bottom = all_spectra[ref_id[group]][j]
+        for j in range(len(all_spectra_all[i])):
+            top = abs(all_spectra_all[i][j] - all_spectra_all[ref_id[group]][j])
+            bottom = all_spectra_all[ref_id[group]][j]
             perct_tmp.append(top / bottom * 100.)
         perct_max_tmp.append(max(perct_tmp))
     perct_max = max(perct_max_tmp)
@@ -326,6 +385,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                            num_groups=0,
                            group_out_file=None,
                            group_ref_det_out_file=None,
+                           sg_index_f=None,
                            **align_and_focus_args):
     group_wksp_out = group_wksp_in
 
@@ -524,7 +584,8 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                                                         abs_c,
                                                         num_groups,
                                                         group_out_file,
-                                                        group_ref_det_out_file)
+                                                        group_ref_det_out_file,
+                                                        sg_index_f)
         return abs_s_g, abs_c_g, group_wksp_out
 
     return abs_s, abs_c, group_wksp_out
