@@ -20,10 +20,7 @@ from mantid.simpleapi import \
     SaveNexusProcessed, \
     CloneWorkspace, \
     Plus, \
-    MaskDetectors, \
-    LoadDiffCal, \
-    DiffractionFocussing, \
-    SaveNexus
+    MaskDetectors
 from mantid.utils import absorptioncorrutils
 from sklearn.cluster import KMeans
 import numpy as np
@@ -47,13 +44,13 @@ def load(ws_name, input_files, group_wksp,
          qparams='0.01,0.001,40.0',
          **align_and_focus_args):
     '''Routine for loading workspace'''
- 
+
     # Figure out the list of run number
     run_list = list()
     for item in input_files.split(","):
         if "/" in item or "\\" in item:
             file_n = os.path.basename(item)
-            reg_test = re.search('.*_[0-9]+\.nxs\.h5', file_n)
+            reg_test = re.search('.*_[0-9]+\\.nxs\\.h5', file_n)
             if reg_test is None:
                 run_list.append("-1")
             else:
@@ -204,13 +201,13 @@ def load(ws_name, input_files, group_wksp,
                    OutputWorkspace=ws_name,
                    AllowDifferentNumberSpectra=True)
 
-    if not group_wksp is None:
+    if group_wksp is not None:
         spec_map = dict()
         for i in range(mtd[ws_name].getNumberHistograms()):
             spec_id = mtd[ws_name].getSpectrum(i).getSpectrumNo()
             spec_map[spec_id] = i
-        
         g_pattern = ""
+
         for _, item in out_group_dict.items():
             min_tmp = item[0]
             max_tmp = item[1]
@@ -218,9 +215,9 @@ def load(ws_name, input_files, group_wksp,
             min_min = spec_map[min(list_tmp)]
             list_tmp = [num for num in spec_map.keys() if num <= max_tmp]
             max_max = spec_map[max(list_tmp)]
-        
+
             g_pattern += f"{min_min}-{max_max},"
-        
+
         g_pattern = g_pattern[:-1]
 
         ConvertUnits(
@@ -322,7 +319,7 @@ def abs_grouping(sam_abs_ws,
     Rebin(InputWorkspace=sam_abs_ws,
           OutputWorkspace="abs_pbp",
           Params="0.1,0.05,3.0")
-    
+
     num_spectra = mtd['abs_pbp'].getNumberHistograms()
     num_monitors = int(np.sum(mtd['abs_pbp'].detectorInfo().detectorIDs() < 0))
 
@@ -355,14 +352,14 @@ def abs_grouping(sam_abs_ws,
 
         X = np.array(all_spectra)
         clustering = KMeans(n_clusters=sub_num_clusters, n_init=10).fit(X)
-    
+
         labels_tmp = [x + j * sub_num_clusters for x in clustering.labels_]
         labels.extend(labels_tmp)
         print(f"[Info] Done with the clustering of absorption spectra for bank-{j + 1}.")
 
     n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
     n_noise_ = list(labels).count(-1)
-    
+
     CreateGroupingWorkspace(InputWorkspace="abs_pbp",
                             OutputWorkspace="grouping")
     grouping = mtd["grouping"]
@@ -372,7 +369,7 @@ def abs_grouping(sam_abs_ws,
         det_id = all_spectra_id[i + num_monitors]
         det_id = mtd['abs_pbp'].detectorInfo().indexOf(det_id) - num_monitors
         grouping.setY(det_id, [int(label + 1)])
-    
+
     SaveDetectorsGrouping(InputWorkspace=grouping,
                           OutputFile=group_out_file)
     GroupDetectors(InputWorkspace=sam_abs_ws,
@@ -386,7 +383,7 @@ def abs_grouping(sam_abs_ws,
         con_abs_grouped = mtd['con_abs_grouped']
     else:
         con_abs_grouped = ""
-    
+
     print("[Info] Check the similarity of absorption spectra within groups.")
     ref_id = list()
     for i in range(group_count * sub_num_clusters):
@@ -397,7 +394,7 @@ def abs_grouping(sam_abs_ws,
                 f.write("{0:d}".format(item))
             else:
                 f.write("{0:d}\n".format(item))
- 
+
     perct_max_tmp = list()
     for i, group in enumerate(labels):
         perct_tmp = list()
@@ -407,7 +404,7 @@ def abs_grouping(sam_abs_ws,
             perct_tmp.append(top / bottom * 100.)
         perct_max_tmp.append(max(perct_tmp))
     perct_max = max(perct_max_tmp)
-    
+
     print(f"[Info] # of clusters: {n_clusters_}")
     print(f"[Info] # of noise: {n_noise_}")
     print("[Info] Maximum percentage difference: {0:3.1F}".format(perct_max))
@@ -554,7 +551,6 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             MaskDetectors(Workspace=abs_s, DetectorList=mask_list)
         if abs_c != "":
             MaskDetectors(Workspace=abs_c, DetectorList=mask_list)
-
 
     # 3. Convert to effective absorption correction workspace if multiple
     # scattering correction is requested

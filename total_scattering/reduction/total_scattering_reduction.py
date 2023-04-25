@@ -489,7 +489,6 @@ def TotalScatteringReduction(config: dict = None):
         sam_env_dict = {'Name': 'InAir',
                         'Container': 'PAC06'}
 
-
     # Get normalization info
     van = get_normalization(config)
     van_mass_density = van.get('MassDensity', None)
@@ -863,7 +862,7 @@ def TotalScatteringReduction(config: dict = None):
                         f"Apply {van_ms_method} multiple scattering correction"
                         "to vanadium"
                     )
-            if not group_wksp_out is None:
+            if group_wksp_out is not None:
                 group_wksp_out_van = group_wksp_out
                 abs_cache_fn_v += "_g.nxs"
             else:
@@ -928,9 +927,9 @@ def TotalScatteringReduction(config: dict = None):
         otherArgs = config["AlignAndFocusArgs"]
         alignAndFocusArgs.update(otherArgs)
 
-    if not "TMin" in alignAndFocusArgs:
+    if "TMin" not in alignAndFocusArgs:
         alignAndFocusArgs['TMin'] = gen_config.config_params["TMIN"]
-    if not "TMax" in alignAndFocusArgs:
+    if "TMax" not in alignAndFocusArgs:
         alignAndFocusArgs['TMax'] = gen_config.config_params["TMAX"]
 
     # Setup grouping
