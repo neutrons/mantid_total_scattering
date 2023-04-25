@@ -418,6 +418,34 @@ def get_normalization(config):
     return out
 
 
+def chem_form_normalizer(chem_form_in):
+    list_in = chem_form_in.split()
+    list_out = dict()
+    coeff_all = 0.
+    for item in list_in:
+        if not any(char.isdigit() for char in item):
+            ele_tmp = item
+            coeff_tmp = 1.
+        else:
+            pos = 0
+            for char in item:
+                if char.isdigit() or char == ".":
+                    break
+                else:
+                    pos += 1
+            ele_tmp = item[:pos]
+            coeff_tmp = float(item[pos:])
+        list_out[ele_tmp] = coeff_tmp
+        coeff_all += coeff_tmp
+
+    chem_form_out = list()
+    for key, item in list_out.items():
+        str_tmp = key + "%.2g" % (item / coeff_all)
+        chem_form_out.append(str_tmp)
+
+    return " ".join(chem_form_out)
+
+
 def TotalScatteringReduction(config: dict = None):
     #################################################################
     # Parse configuration from input argument 'config'
@@ -444,6 +472,7 @@ def TotalScatteringReduction(config: dict = None):
     sam_packing_fraction = sample.get('PackingFraction', None)
     sam_geometry = sample.get('Geometry', None)
     sam_material = sample.get('Material', None)
+    sam_material = chem_form_normalizer(sam_material)
 
     sam_geo_dict = {'Shape': 'Cylinder',
                     'Radius': config['Sample']['Geometry']['Radius'],
@@ -467,6 +496,7 @@ def TotalScatteringReduction(config: dict = None):
     van_packing_fraction = van.get('PackingFraction', 1.0)
     van_geometry = van.get('Geometry', None)
     van_material = van.get('Material', 'V')
+    van_material = chem_form_normalizer(van_material)
 
     van_geo_dict = {'Shape': 'Cylinder',
                     'Radius': config['Normalization']['Geometry']['Radius'],
@@ -602,6 +632,14 @@ def TotalScatteringReduction(config: dict = None):
     # Override Nexus file basename with Filenames if present
     if "Filenames" in sample:
         sam_scans = ','.join(sample["Filenames"])
+
+    # Grab the IPTS
+    ipts = GetIPTS(Instrument=instr,
+                   RunNumber=sam_scans.split(",")[0].split("_")[1])
+    if ipts[-1] == "/":
+        ipts = ipts[:-1]
+    ipts = os.path.basename(ipts)
+
     if "Filenames" in sample['Background']:
         container_scans = ','.join(sample['Background']["Filenames"])
     if "Background" in sample['Background']:
@@ -670,7 +708,8 @@ def TotalScatteringReduction(config: dict = None):
     else:
         abs_cache_fn += "_None"
 
-    num_regen_groups = 0
+    num_regen_groups = gen_config.config_params.get("ReGenerateGrouping", 0)
+    num_regen_groups = int(num_regen_groups)
     group_wksp_out = None
     # Compute the absorption correction on the sample if it was provided
     sam_abs_ws = ''
@@ -703,11 +742,6 @@ def TotalScatteringReduction(config: dict = None):
                         f"Apply {sam_ms_method} multiple scattering correction"
                         "to sample"
                     )
-            ipts = GetIPTS(Instrument=instr,
-                           RunNumber=sam_scans.split(",")[0].split("_")[1])
-            if ipts[-1] == "/":
-                ipts = ipts[:-1]
-            ipts = os.path.basename(ipts)
             abs_cache_fn_s = abs_cache_fn + "_s_g.nxs"
             abs_cache_fn_c = abs_cache_fn + "_c_g.nxs"
             central_cache_f_s = os.path.join(gen_config.config_params["CacheDir"],
@@ -722,12 +756,11 @@ def TotalScatteringReduction(config: dict = None):
             so = sam_abs_corr["Type"] == "SampleOnly"
             redo_cond_2 = f_s_exists and (not f_c_exists) and (not so)
 
-            if redo_cond_1 or redo_cond_2:
+            if num_regen_groups > 0 or redo_cond_1 or redo_cond_2:
                 if os.path.isfile(group_file):
                     group_wksp = LoadDetectorsGroupingFile(InputFile=group_file)
                 else:
                     group_wksp = None
-                num_regen_groups = int(gen_config.config_params["ReGenerateGrouping"])
                 sam_abs_ws, con_abs_ws, group_wksp_out = create_absorption_wksp(
                     sam_scans,
                     sam_abs_corr["Type"],
@@ -743,6 +776,7 @@ def TotalScatteringReduction(config: dict = None):
                     group_ref_det_out_file=group_det_file,
                     sg_index_f=sg_index_f,
                     **config)
+                num_regen_groups = 0
                 # Save abs workspaces to cached file
                 if not os.path.exists(os.path.join(gen_config.config_params["CacheDir"],
                                                    ipts)):
@@ -754,23 +788,44 @@ def TotalScatteringReduction(config: dict = None):
                     SaveNexus(InputWorkspace=con_abs_ws,
                               Filename=central_cache_f_c)
             else:
-                # read cached abs workspaces
-                if os.path.isfile(group_file):
-                    group_wksp_out = LoadDetectorsGroupingFile(InputFile=group_file)
-                else:
-                    err_msg = "Focused absorption spectra file found, "
-                    err_msg += "but grouping file not found.\n"
-                    err_msg += "Consider remove the cached absorption "
-                    err_msg += "file at,\n"
-                    err_msg += f"{central_cache_f_s}"
-                    if f_c_exists:
-                        err_msg += f"\nand\n{central_cache_f_c}"
-                    raise RuntimeError(err_msg)
-
                 msg = "Cached absorption file found for sample."
                 msg += " Will load and use it."
                 log.notice(msg)
                 sam_abs_ws = LoadNexus(Filename=central_cache_f_s)
+                num_spec_abs = sam_abs_ws.getNumberHistograms()
+                if os.path.isfile(group_file):
+                    if os.path.isfile(sg_index_f):
+                        with open(sg_index_f, "r") as f:
+                            lines = f.readlines()
+                        if len(lines[-1].strip()) == 0:
+                            lines = lines.pop(-1)
+                        num_groups_read = int(lines[-1].strip().split()[2])
+                        if num_spec_abs == num_groups_read:
+                            group_wksp_out = LoadDetectorsGroupingFile(
+                                InputFile=group_file)
+                            num_regen_groups = 0
+                        else:
+                            if num_spec_abs < 1E4:
+                                err_msg = "Group file exists, but absorption "
+                                err_msg += "cache is not focused. Such an "
+                                err_msg += "prevents us from moving on."
+                                raise RuntimeError(err_msg)
+                            else:
+                                group_wksp_out = None
+                    else:
+                        err_msg = "Grouping file exists, but group "
+                        err_msg += "index file not found. Hence "
+                        err_msg += "we have to stop."
+                        raise RuntimeError(err_msg)
+                else:
+                    if num_spec_abs < 1E4:
+                        err_msg = "Focused absorption spectra file found, "
+                        err_msg += "but grouping file not found. "
+                        err_msg += "Hence we have to stop."
+                        raise RuntimeError(err_msg)
+                    else:
+                        group_wksp_out = None
+
                 if f_c_exists:
                     msg = "Cached absorption file found for container."
                     msg += " Will load and use it."
@@ -795,6 +850,7 @@ def TotalScatteringReduction(config: dict = None):
 
     # Compute the absorption correction for the vanadium if provided
     van_abs_corr_ws = ''
+    group_wksp_out_van = None
     if van_abs_corr:
         if van_abs_corr["Type"] in new_abs_methods:
             msg = "Applying '{}' absorption correction to vanadium"
@@ -807,7 +863,16 @@ def TotalScatteringReduction(config: dict = None):
                         f"Apply {van_ms_method} multiple scattering correction"
                         "to vanadium"
                     )
-            abs_cache_fn_v += "_g.nxs"
+            if not group_wksp_out is None:
+                group_wksp_out_van = group_wksp_out
+                abs_cache_fn_v += "_g.nxs"
+            else:
+                if os.path.isfile(group_file):
+                    group_wksp_out_van = LoadDetectorsGroupingFile(
+                        InputFile=group_file)
+                    abs_cache_fn_v += "_g.nxs"
+                else:
+                    abs_cache_fn_v += ".nxs"
             central_cache_dir = gen_config.config_params["CacheDir"]
             central_cache_f_v = os.path.join(central_cache_dir,
                                              abs_cache_fn_v)
@@ -819,7 +884,8 @@ def TotalScatteringReduction(config: dict = None):
                     van_mat_dict,
                     ms_method=van_ms_method,
                     elementsize=van_elementsize,
-                    group_wksp_in=group_wksp_out,
+                    group_wksp_in=group_wksp_out_van,
+                    num_groups=num_regen_groups,
                     group_ref_det_out_file=group_det_file,
                     sg_index_f=sg_index_f,
                     **config)
@@ -1049,7 +1115,7 @@ def TotalScatteringReduction(config: dict = None):
     van_wksp = load(
         'vanadium',
         van_scans,
-        group_wksp_out,
+        group_wksp_out_van,
         facility=facility,
         instr_name=instr,
         ipts=ipts,

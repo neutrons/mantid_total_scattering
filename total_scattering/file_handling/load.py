@@ -85,18 +85,58 @@ def load(ws_name, input_files, group_wksp,
                                    cache_sf_bn)
 
         if os.path.isfile(cache_sf_fn):
-            LoadNexus(Filename=cache_sf_exist, OutputWorkspace=ws_name)
+            LoadNexus(Filename=cache_sf_fn, OutputWorkspace=ws_name)
         else:
-            AlignAndFocusPowderFromFiles(
-                OutputWorkspace=ws_name,
-                Filename=input_files,
-                AbsorptionWorkspace=absorption_wksp,
-                **align_and_focus_args)
-            ConvertUnits(
-                InputWorkspace=ws_name,
-                OutputWorkspace=ws_name,
-                Target="MomentumTransfer",
-                EMode="Elastic")
+            for run_i, run in enumerate(run_list):
+                if run == "-1":
+                    cache_f_exist = False
+                else:
+                    cache_f_bn = f"{instr_name}_{run}_mts_reduced_no_subg.nxs"
+                    cache_f_fn = os.path.join("/" + facility,
+                                              instr_name,
+                                              ipts,
+                                              "shared",
+                                              "autoreduce",
+                                              cache_f_bn)
+                    if os.path.isfile(cache_f_fn):
+                        cache_f_exist = True
+                    else:
+                        cache_f_exist = False
+
+                if cache_f_exist:
+                    wksp_tmp = LoadNexus(Filename=cache_f_fn)
+                else:
+                    wksp_tmp = "wksp_tmp"
+                    AlignAndFocusPowderFromFiles(
+                        OutputWorkspace=wksp_tmp,
+                        Filename=input_files.split(",")[run_i],
+                        AbsorptionWorkspace=absorption_wksp,
+                        **align_and_focus_args)
+                    ConvertUnits(
+                        InputWorkspace=wksp_tmp,
+                        OutputWorkspace=wksp_tmp,
+                        Target="MomentumTransfer",
+                        EMode="Elastic")
+                    Rebin(
+                        InputWorkspace=wksp_tmp,
+                        OutputWorkspace=wksp_tmp,
+                        Params=qparams)
+                    SaveNexusProcessed(
+                        InputWorkspace=wksp_tmp,
+                        Filename=cache_f_fn,
+                        Title=f"{run}_cached_no_abs",
+                        WorkspaceIndexList=range(
+                            mtd[wksp_tmp].getNumberHistograms()))
+
+                # Accumulate individual files
+                if run_i == 0:
+                    CloneWorkspace(InputWorkspace=wksp_tmp,
+                                   OutputWorkspace=ws_name)
+                else:
+                    Plus(LHSWorkspace=ws_name,
+                         RHSWorkspace=wksp_tmp,
+                         OutputWorkspace=ws_name)
+
             SaveNexusProcessed(ws_name, cache_sf_fn, Title="cache_summed")
     else:
         for run_i, run in enumerate(run_list):
@@ -154,15 +194,15 @@ def load(ws_name, input_files, group_wksp,
                      RHSWorkspace=wksp_tmp,
                      OutputWorkspace=ws_name)
 
-    if not group_wksp is None and absorption_wksp != '':
-        RebinToWorkspace(
-            WorkspaceToRebin=absorption_wksp,
-            WorkspaceToMatch=ws_name,
-            OutputWorkspace=absorption_wksp)
-        Divide(LHSWorkspace=mtd[ws_name],
-               RHSWorkspace=absorption_wksp,
-               OutputWorkspace=ws_name,
-               AllowDifferentNumberSpectra=True)
+        if absorption_wksp != '':
+            RebinToWorkspace(
+                WorkspaceToRebin=absorption_wksp,
+                WorkspaceToMatch=ws_name,
+                OutputWorkspace=absorption_wksp)
+            Divide(LHSWorkspace=mtd[ws_name],
+                   RHSWorkspace=absorption_wksp,
+                   OutputWorkspace=ws_name,
+                   AllowDifferentNumberSpectra=True)
 
     if not group_wksp is None:
         spec_map = dict()
