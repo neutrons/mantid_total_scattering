@@ -29,7 +29,7 @@ class TestSave(unittest.TestCase):
         sample_file_path = os.path.join(
             TEST_DATA_DIR,
             'POLARIS00097947-min.nxs')
-        wksp = load(ws_name, sample_file_path, **align_and_focus_args)
+        wksp = load(ws_name, sample_file_path, None, **align_and_focus_args)
 
         self.wksp = mtd[wksp]
         self.out_nxs = '%s.nxs' % ws_name
