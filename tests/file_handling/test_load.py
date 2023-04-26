@@ -79,9 +79,11 @@ class TestLoad(unittest.TestCase):
                     'Height': 4.0}
         formula = 'Si'
         mass_density = 2.328
+        group_wksp = None
         actual = load(
             ws_name=ws_name,
             input_files=self.si_polaris_file_path,
+            group_wksp=group_wksp,
             geometry=geometry,
             chemical_formula=formula,
             mass_density=mass_density,
