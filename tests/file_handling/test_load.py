@@ -64,6 +64,7 @@ class TestLoad(unittest.TestCase):
         actual = load(
             ws_name,
             self.si_polaris_file_path,
+            None,
             **self.polaris_align_and_focus_args)
         actual = mtd[actual]
         self.assertEqual(actual.name(), ws_name)
@@ -102,7 +103,7 @@ class TestLoad(unittest.TestCase):
         formula = 'Si'
         mass_density = 2.328
 
-        a_sample, a_container = create_absorption_wksp(
+        a_sample, a_container, _ = create_absorption_wksp(
             self.si_polaris_file_path, "SampleOnly",
             geometry=geometry,
             material={"ChemicalFormula": formula,
@@ -113,6 +114,7 @@ class TestLoad(unittest.TestCase):
         actual = load(
             ws_name=ws_name,
             input_files=self.si_polaris_file_path,
+            group_wksp=None,
             geometry=geometry,
             chemical_formula=formula,
             mass_density=mass_density,
@@ -126,7 +128,7 @@ class TestLoad(unittest.TestCase):
     def test_load_sampleonly(self):
         ws_name = 'test-sample'
 
-        a_sample, a_container = create_absorption_wksp(
+        a_sample, a_container, _ = create_absorption_wksp(
             self.lab6_nomad_file_path,
             "SampleOnly",
             geometry=self.type_test_geometry,
@@ -139,6 +141,7 @@ class TestLoad(unittest.TestCase):
         actual = load(
             ws_name=ws_name,
             input_files=self.lab6_nomad_file_path,
+            group_wksp=None,
             geometry=self.type_test_geometry,
             chemical_formula=self.type_test_material['ChemicalFormula'],
             mass_density=self.type_test_material['SampleMassDensity'],
@@ -160,7 +163,7 @@ class TestLoad(unittest.TestCase):
     def test_load_samplecontainer(self):
         ws_name = 'test-sample'
 
-        a_sample, a_container = create_absorption_wksp(
+        a_sample, a_container, _ = create_absorption_wksp(
             self.lab6_nomad_file_path,
             "SampleAndContainer",
             geometry=self.type_test_geometry,
@@ -173,6 +176,7 @@ class TestLoad(unittest.TestCase):
         actual = load(
             ws_name=ws_name,
             input_files=self.lab6_nomad_file_path,
+            group_wksp=None,
             geometry=self.type_test_geometry,
             chemical_formula=self.type_test_material['ChemicalFormula'],
             mass_density=self.type_test_material['SampleMassDensity'],
@@ -194,7 +198,7 @@ class TestLoad(unittest.TestCase):
     def test_load_fullpaalmanpings(self):
         ws_name = 'test-sample'
 
-        a_sample, a_container = create_absorption_wksp(
+        a_sample, a_container, _ = create_absorption_wksp(
             self.lab6_nomad_file_path,
             "FullPaalmanPings",
             geometry=self.type_test_geometry,
@@ -206,6 +210,7 @@ class TestLoad(unittest.TestCase):
         actual = load(
             ws_name=ws_name,
             input_files=self.lab6_nomad_file_path,
+            group_wksp=None,
             geometry=self.type_test_geometry,
             chemical_formula=self.type_test_material['ChemicalFormula'],
             mass_density=self.type_test_material['SampleMassDensity'],

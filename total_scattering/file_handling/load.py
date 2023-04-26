@@ -74,14 +74,15 @@ def load(ws_name, input_files, group_wksp,
         hash_str = hash_obj.hexdigest()
         short_hash_str = base64.urlsafe_b64encode(hash_str.encode()).decode()[:12]
         cache_sf_bn = f"{instr_name}_mts_summed_{short_hash_str}.nxs"
-        cache_sf_fn = os.path.join("/" + facility,
-                                   instr_name,
-                                   ipts,
-                                   "shared",
-                                   "autoreduce",
-                                   cache_sf_bn)
+        if ipts is not None:
+            cache_sf_fn = os.path.join("/" + facility,
+                                       instr_name,
+                                       ipts,
+                                       "shared",
+                                       "autoreduce",
+                                       cache_sf_bn)
 
-        if os.path.isfile(cache_sf_fn):
+        if ipts is not None and os.path.isfile(cache_sf_fn):
             LoadNexus(Filename=cache_sf_fn, OutputWorkspace=ws_name)
         else:
             for run_i, run in enumerate(run_list):
@@ -89,13 +90,14 @@ def load(ws_name, input_files, group_wksp,
                     cache_f_exist = False
                 else:
                     cache_f_bn = f"{instr_name}_{run}_mts_reduced_no_subg.nxs"
-                    cache_f_fn = os.path.join("/" + facility,
-                                              instr_name,
-                                              ipts,
-                                              "shared",
-                                              "autoreduce",
-                                              cache_f_bn)
-                    if os.path.isfile(cache_f_fn):
+                    if ipts is not None:
+                        cache_f_fn = os.path.join("/" + facility,
+                                                  instr_name,
+                                                  ipts,
+                                                  "shared",
+                                                  "autoreduce",
+                                                  cache_f_bn)
+                    if ipts is not None and os.path.isfile(cache_f_fn):
                         cache_f_exist = True
                     else:
                         cache_f_exist = False
@@ -118,12 +120,13 @@ def load(ws_name, input_files, group_wksp,
                         InputWorkspace=wksp_tmp,
                         OutputWorkspace=wksp_tmp,
                         Params=qparams)
-                    SaveNexusProcessed(
-                        InputWorkspace=wksp_tmp,
-                        Filename=cache_f_fn,
-                        Title=f"{run}_cached_no_abs",
-                        WorkspaceIndexList=range(
-                            mtd[wksp_tmp].getNumberHistograms()))
+                    if ipts is not None:
+                        SaveNexusProcessed(
+                            InputWorkspace=wksp_tmp,
+                            Filename=cache_f_fn,
+                            Title=f"{run}_cached_no_abs",
+                            WorkspaceIndexList=range(
+                                mtd[wksp_tmp].getNumberHistograms()))
 
                 # Accumulate individual files
                 if run_i == 0:
@@ -134,7 +137,8 @@ def load(ws_name, input_files, group_wksp,
                          RHSWorkspace=wksp_tmp,
                          OutputWorkspace=ws_name)
 
-            SaveNexusProcessed(ws_name, cache_sf_fn, Title="cache_summed")
+            if ipts is not None:
+                SaveNexusProcessed(ws_name, cache_sf_fn, Title="cache_summed")
     else:
         for run_i, run in enumerate(run_list):
             if run == "-1":
