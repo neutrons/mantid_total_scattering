@@ -13,14 +13,14 @@ build:
 
 requirements:
   build:
-    - mantid=6
+    - mantid[nightly]
     - python
     - setuptools
     - matplotlib
     - scikit-learn
 
   run:
-    - mantid=6
+    - mantid[nightly]
     - python
     - matplotlib
     - scikit-learn
