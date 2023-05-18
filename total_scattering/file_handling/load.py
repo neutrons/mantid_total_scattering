@@ -41,7 +41,8 @@ def load(ws_name, input_files, group_wksp,
          facility=None, instr_name=None, ipts=None, group_num=None,
          geometry=None, chemical_formula=None, mass_density=None,
          absorption_wksp='', out_group_dict=None,
-         qparams='0.01,0.001,40.0',
+         qparams='0.01,0.001,40.0', auto_red=False,
+         group_all_file=None,
          **align_and_focus_args):
     '''Routine for loading workspace'''
 
@@ -58,6 +59,15 @@ def load(ws_name, input_files, group_wksp,
         else:
             run_list.append(item.split("_")[1])
 
+    if ipts is not None:
+        cache_dir = os.path.join("/" + facility,
+                                 instr_name,
+                                 ipts,
+                                 "shared",
+                                 "autoreduce",
+                                 "cache")
+        os.makedirs(cache_dir, exist_ok=True)
+
     if group_wksp is None:
         # Given the current implementation mechanism, if the input
         # `group_wksp` is None, that means there was no absorption
@@ -73,29 +83,39 @@ def load(ws_name, input_files, group_wksp,
         hash_obj = hashlib.sha256(str(run_list).encode())
         hash_str = hash_obj.hexdigest()
         short_hash_str = base64.urlsafe_b64encode(hash_str.encode()).decode()[:12]
-        cache_sf_bn = f"{instr_name}_mts_summed_{short_hash_str}.nxs"
+        if auto_red:
+            cache_sf_bn = f"{instr_name}_mts_summed_{short_hash_str}_sgb.nxs"
+        else:
+            cache_sf_bn = f"{instr_name}_mts_summed_{short_hash_str}.nxs"
         if ipts is not None:
             cache_sf_fn = os.path.join("/" + facility,
                                        instr_name,
                                        ipts,
                                        "shared",
                                        "autoreduce",
+                                       "cache",
                                        cache_sf_bn)
 
         if ipts is not None and os.path.isfile(cache_sf_fn):
             LoadNexus(Filename=cache_sf_fn, OutputWorkspace=ws_name)
         else:
+            if auto_red:
+                align_and_focus_args["GroupFilename"] = group_all_file
             for run_i, run in enumerate(run_list):
                 if run == "-1":
                     cache_f_exist = False
                 else:
-                    cache_f_bn = f"{instr_name}_{run}_mts_reduced_no_subg.nxs"
+                    if auto_red:
+                        cache_f_bn = f"{instr_name}_{run}_mts_no_subg_sgb.nxs"
+                    else:
+                        cache_f_bn = f"{instr_name}_{run}_mts_no_subg.nxs"
                     if ipts is not None:
                         cache_f_fn = os.path.join("/" + facility,
                                                   instr_name,
                                                   ipts,
                                                   "shared",
                                                   "autoreduce",
+                                                  "cache",
                                                   cache_f_bn)
                     if ipts is not None and os.path.isfile(cache_f_fn):
                         cache_f_exist = True
@@ -144,12 +164,13 @@ def load(ws_name, input_files, group_wksp,
             if run == "-1":
                 cache_f_exist = False
             else:
-                cache_f_bn = f"{instr_name}_{run}_mts_reduced.nxs"
+                cache_f_bn = f"{instr_name}_{run}_mts_subg.nxs"
                 cache_f_fn = os.path.join("/" + facility,
                                           instr_name,
                                           ipts,
                                           "shared",
                                           "autoreduce",
+                                          "cache",
                                           cache_f_bn)
                 if os.path.isfile(cache_f_fn):
                     cache_f_exist = True
@@ -205,24 +226,28 @@ def load(ws_name, input_files, group_wksp,
                    OutputWorkspace=ws_name,
                    AllowDifferentNumberSpectra=True)
 
-    if group_wksp is not None:
-        spec_map = dict()
-        for i in range(mtd[ws_name].getNumberHistograms()):
-            spec_id = mtd[ws_name].getSpectrum(i).getSpectrumNo()
-            spec_map[spec_id] = i
-        g_pattern = ""
+        if auto_red:
+            min_min = 0
+            max_max = mtd[ws_name].getNumberHistograms() - 1
+            g_pattern = f"{min_min}-{max_max}"
+        else:
+            spec_map = dict()
+            for i in range(mtd[ws_name].getNumberHistograms()):
+                spec_id = mtd[ws_name].getSpectrum(i).getSpectrumNo()
+                spec_map[spec_id] = i
+            g_pattern = ""
 
-        for _, item in out_group_dict.items():
-            min_tmp = item[0]
-            max_tmp = item[1]
-            list_tmp = [num for num in spec_map.keys() if num >= min_tmp]
-            min_min = spec_map[min(list_tmp)]
-            list_tmp = [num for num in spec_map.keys() if num <= max_tmp]
-            max_max = spec_map[max(list_tmp)]
+            for _, item in out_group_dict.items():
+                min_tmp = item[0]
+                max_tmp = item[1]
+                list_tmp = [num for num in spec_map.keys() if num >= min_tmp]
+                min_min = spec_map[min(list_tmp)]
+                list_tmp = [num for num in spec_map.keys() if num <= max_tmp]
+                max_max = spec_map[max(list_tmp)]
 
-            g_pattern += f"{min_min}-{max_max},"
+                g_pattern += f"{min_min}-{max_max},"
 
-        g_pattern = g_pattern[:-1]
+            g_pattern = g_pattern[:-1]
 
         ConvertUnits(
             InputWorkspace=ws_name,

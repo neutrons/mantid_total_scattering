@@ -7,7 +7,7 @@ from mantid.simpleapi import \
 
 
 def save_banks(InputWorkspace, Filename, Title, OutputDir,
-               Binning=None, GroupingWorkspace=None):
+               Binning=None, GroupingWorkspace=None, autored=False):
     """
     Saves input workspace to processed NeXus file in specified
     output directory with optional rebinning and grouping
@@ -28,6 +28,8 @@ def save_banks(InputWorkspace, Filename, Title, OutputDir,
     :param GroupingWorkspace: A workspace with grouping
                               information for the output spectra
     :type GroupWorkspace: GroupWorkspace
+    :param autored: Specify whether this is an autoreduction run
+    :type autored: logical
     """
 
     # Make a local clone
@@ -56,7 +58,10 @@ def save_banks(InputWorkspace, Filename, Title, OutputDir,
                                         PreserveEvents=False)
 
     # Save out wksp to file
-    filename = os.path.join(os.path.abspath(OutputDir), Filename)
+    filename = os.path.join(os.path.abspath(OutputDir),
+                            "SofQ",
+                            Filename)
+
     SaveNexusProcessed(
         InputWorkspace=tmp_wksp,
         Filename=filename,

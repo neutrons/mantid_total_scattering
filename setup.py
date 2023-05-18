@@ -18,8 +18,12 @@ def read_requirements_from_file(filepath):
     :param filepath: Path to the file to read
     :return: A list of strings containing the requirements
     '''
-    with open(filepath, 'rU') as req_file:
-        return req_file.readlines()
+    with open(filepath, 'r') as req_file:
+        lines = req_file.readlines()
+        lines_return = [
+            line.strip() for line in lines if "https://" not in line
+        ]
+        return lines_return
 
 
 setup_args = dict(
@@ -43,6 +47,11 @@ authors = [
     'Donnie Earnest',
 ]
 
+# Dependence link list
+dependency_links = [
+    "https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl"
+]
+
 # Main setup
 setup(
     name='mantid_total_scattering',
@@ -60,10 +69,11 @@ setup(
     setup_requires=[],
     install_requires=setup_args['install_requires'],
     tests_require=setup_args['install_requires'] + setup_args['tests_require'],
+    dependency_links=dependency_links,
     test_suite='tests',
     entry_points={
-      'console_scripts': [
-          "mantidtotalscattering = total_scattering.cli:main"
-      ]
+        'console_scripts': [
+            "mantidtotalscattering = total_scattering.cli:main"
+        ]
     },
 )
