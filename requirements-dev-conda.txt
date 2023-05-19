@@ -1,8 +1,0 @@
-bandit
-flake8
-pytest
-pytest-cov
-tox
-tox-conda
-matplotlib
-scikit-learn

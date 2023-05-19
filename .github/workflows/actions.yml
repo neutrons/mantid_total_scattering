@@ -31,9 +31,8 @@ jobs:
         shell: bash -l {0}
         run: |
           conda install mantid
-          conda install --file requirements-conda.txt --file requirements-dev-conda.txt
+          conda install --file requirements.txt --file requirements-dev.txt
           pip install tox-gh-actions==2.12.0
-          pip install https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl
 
       - name: Lint with Tox
         if: ${{ matrix.python-version == env.PYTHON_MAIN_VERSION }}

@@ -47,10 +47,10 @@ authors = [
     'Donnie Earnest',
 ]
 
-# Dependence link list
-dependency_links = [
-    "https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl"
-]
+# # Dependence link list
+# dependency_links = [
+#     "https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl"
+# ]
 
 # Main setup
 setup(
@@ -69,7 +69,6 @@ setup(
     setup_requires=[],
     install_requires=setup_args['install_requires'],
     tests_require=setup_args['install_requires'] + setup_args['tests_require'],
-    dependency_links=dependency_links,
     test_suite='tests',
     entry_points={
         'console_scripts': [
