@@ -1219,7 +1219,6 @@ def TotalScatteringReduction(config: dict = None):
             auto_red=auto_red,
             group_all_file=group_all_file,
             **alignAndFocusArgs)
-        SaveNexus(InputWorkspace=van_bg, Filename="/SNS/users/y8z/Temp/van_bkg.nxs")
 
         vanadium_bg_title = "vanadium_background"
         if debug_mode:
