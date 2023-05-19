@@ -50,7 +50,7 @@ from total_scattering.file_handling.load import load, create_absorption_wksp
 from total_scattering.file_handling.save import save_banks
 from total_scattering.inelastic.placzek import FitIncidentSpectrum
 from total_scattering.reduction.normalizations import (
-    Material, calculate_and_apply_fitted_levels, to_absolute_scale, to_f_of_q)
+    Material, calculate_and_apply_fitted_levels, to_absolute_scale)
 import total_scattering.params as params
 
 
