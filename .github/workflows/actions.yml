@@ -43,6 +43,7 @@ jobs:
 
       - name: Test with Tox
         shell: bash -l {0}
+        run: sudo apt-get install libglu1-mesa
         run: tox
 
       - name: Coverage - create and upload report
