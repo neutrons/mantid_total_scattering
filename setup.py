@@ -38,19 +38,19 @@ setup_args = dict(
 
 # Author list
 authors = [
+    'Yuanpeng Zhang',
     'Marshall McDonnell',
     'Peter Peterson',
-    'Yuanpeng Zhang',
     'Coleman Kendrick',
     'Jenna DeLozier',
     'Elliot Oram',
     'Donnie Earnest',
 ]
 
-# # Dependence link list
-# dependency_links = [
-#     "https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl"
-# ]
+# Dependence link list
+dependency_links = [
+    "https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl"
+]
 
 # Main setup
 setup(
@@ -66,6 +66,7 @@ setup(
     license='GPL License (version 3)',
     packages=find_packages(),
     include_package_data=True,
+    dependency_links=dependency_links,
     setup_requires=[],
     install_requires=setup_args['install_requires'],
     tests_require=setup_args['install_requires'] + setup_args['tests_require'],
