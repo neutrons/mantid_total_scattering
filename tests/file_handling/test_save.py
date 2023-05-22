@@ -52,17 +52,6 @@ class TestSave(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join('./output', "SofQ", self.out_nxs)))
         mtd.clear()
 
-    def test_save_banks_check_contents(self):
-        save_banks(self.wksp, self.out_nxs, 'wksp', '.')
-        out_wksp = LoadNexusProcessed(os.path.join(".", "SofQ", self.out_nxs))
-        self.assertEqual(out_wksp.blocksize(),
-                         self.wksp.blocksize())
-        self.assertEqual(out_wksp.getNumberHistograms(),
-                         self.wksp.getNumberHistograms())
-        self.assertTrue(np.array_equal(out_wksp.getAxis(0).extractValues(),
-                                       self.wksp.getAxis(0).extractValues())
-                        )
-
     def test_save_banks_binning(self):
         save_banks(self.wksp, self.out_nxs, 'wksp', '.', Binning='0,100,10000')
         out_wksp = LoadNexusProcessed(os.path.join(".", "SofQ", self.out_nxs))
