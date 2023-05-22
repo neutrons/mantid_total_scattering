@@ -4,6 +4,7 @@ import unittest
 from total_scattering.file_handling.load import load
 from total_scattering.file_handling.save import save_banks, save_file
 from tests import EXAMPLE_DIR, TEST_DATA_DIR
+from mantid.simpleapi import mtd
 
 
 class TestSave(unittest.TestCase):

@@ -2,7 +2,7 @@ import json
 
 config_loc = {
     "SNS": {
-        "NOM": "/SNS/NOM/shared/autoreduce/configs/mts_abs_pre_calc.json"
+        "NOM": "/SNS/NOM/shared/autoreduce/configs/auto_config.json"
     }
 }
 
