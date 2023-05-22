@@ -6,4 +6,3 @@ tox
 tox-conda
 matplotlib
 scikit-learn
-https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl

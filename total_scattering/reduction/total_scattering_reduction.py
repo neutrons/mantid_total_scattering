@@ -50,7 +50,7 @@ from total_scattering.file_handling.load import load, create_absorption_wksp
 from total_scattering.file_handling.save import save_banks
 from total_scattering.inelastic.placzek import FitIncidentSpectrum
 from total_scattering.reduction.normalizations import (
-    Material, calculate_and_apply_fitted_levels, to_absolute_scale, to_f_of_q)
+    Material, calculate_and_apply_fitted_levels, to_absolute_scale)
 import total_scattering.params as params
 
 
@@ -111,6 +111,8 @@ def get_each_spectra_xmin_xmax(wksp):
 
 
 def expand_ints(s):
+    if type(s) == list:
+        return s
     spans = (el.partition('-')[::2] for el in s.split(','))
     ranges = (range(int(s), int(e) + 1 if e else int(s) + 1)
               for s, e in spans)
@@ -453,6 +455,8 @@ def TotalScatteringReduction(config: dict = None):
     if config is None:
         raise RuntimeError('Argument config cannot be None')
 
+    auto_red = config.get('AutoRed', False)
+
     facility = config['Facility']
     title = config['Title']
     instr = config['Instrument']
@@ -508,7 +512,7 @@ def TotalScatteringReduction(config: dict = None):
     abs_cache_fn_v = van_mat_dict["ChemicalFormula"].replace(" ", "_").replace(".", "p")
     tmp_fn = "_md_" + "{0:7.5F}".format(van_mat_dict['SampleMassDensity']).replace(".", "p")
     abs_cache_fn_v += tmp_fn
-    abs_cache_fn_v += ("_pf_" + "{0:3.1F}".format(van_packing_fraction).replace(".", "p"))
+    abs_cache_fn_v += ("_pf_" + "{0:5.3F}".format(van_packing_fraction).replace(".", "p"))
     abs_cache_fn_v += ("_sp_" + van_geo_dict['Shape'])
     abs_cache_fn_v += ("_r_" + "{0:6.4F}".format(van_geo_dict['Radius']).replace(".", "p"))
     abs_cache_fn_v += ("_h_" + "{0:3.1F}".format(van_geo_dict['Height']).replace(".", "p"))
@@ -625,8 +629,18 @@ def TotalScatteringReduction(config: dict = None):
     if 'Background' in van:
         van_bg_scans = van['Background']['Runs']
         van_bg_scans = expand_ints(van_bg_scans)
+        van_bg_scans_bak = expand_ints(van_bg_scans)
         van_bg_scans = ','.join([facility_file_format %
                                  (instr, num) for num in van_bg_scans])
+
+    sample['Runs'] = compress_ints(sample['Runs'])
+    sample['Background']["Runs"] = compress_ints(sample['Background']["Runs"])
+    if "Background" in sample['Background']:
+        list_tmp = sample['Background']['Background']['Runs']
+        sample['Background']['Background']['Runs'] = compress_ints(list_tmp)
+    van['Runs'] = compress_ints(van['Runs'])
+    if 'Background' in van:
+        van['Background']['Runs'] = compress_ints(van_bg_scans_bak)
 
     # Override Nexus file basename with Filenames if present
     if "Filenames" in sample:
@@ -654,11 +668,11 @@ def TotalScatteringReduction(config: dict = None):
     # Output nexus filename
     nexus_filename = title + '.nxs'
     try:
-        os.remove(os.path.join(OutputDir, nexus_filename))
+        os.remove(os.path.join(OutputDir, "SofQ", nexus_filename))
         msg = "Old NeXusfile found. Will delete it."
         msg1 = "Old NeXus file: {}"
         log.notice(msg)
-        log.notice(msg1.format(os.path.join(OutputDir, nexus_filename)))
+        log.notice(msg1.format(os.path.join(OutputDir, "SofQ", nexus_filename)))
     except OSError:
         msg = "Old NeXus file not found. Moving forward."
         log.notice(msg)
@@ -694,7 +708,7 @@ def TotalScatteringReduction(config: dict = None):
     abs_cache_fn = sam_mat_dict["ChemicalFormula"].replace(" ", "_").replace(".", "p")
     tmp_fn = "_md_" + "{0:7.5F}".format(sam_mat_dict['SampleMassDensity']).replace(".", "p")
     abs_cache_fn += tmp_fn
-    abs_cache_fn += ("_pf_" + "{0:3.1F}".format(sam_packing_fraction).replace(".", "p"))
+    abs_cache_fn += ("_pf_" + "{0:5.3F}".format(sam_packing_fraction).replace(".", "p"))
     abs_cache_fn += ("_sp_" + sam_geo_dict['Shape'])
     abs_cache_fn += ("_r_" + "{0:6.4F}".format(sam_geo_dict['Radius']).replace(".", "p"))
     abs_cache_fn += ("_h_" + "{0:3.1F}".format(sam_geo_dict['Height']).replace(".", "p"))
@@ -707,6 +721,7 @@ def TotalScatteringReduction(config: dict = None):
     else:
         abs_cache_fn += "_None"
 
+    group_all_file = gen_config.config_params.get("GroupingAllFile", None)
     num_regen_groups = gen_config.config_params.get("ReGenerateGrouping", 0)
     num_regen_groups = int(num_regen_groups)
     group_wksp_out = None
@@ -806,7 +821,7 @@ def TotalScatteringReduction(config: dict = None):
                         else:
                             if num_spec_abs < 1E4:
                                 err_msg = "Group file exists, but absorption "
-                                err_msg += "cache is not focused. Such an "
+                                err_msg += "cache is not focused. Such an inconsistence"
                                 err_msg += "prevents us from moving on."
                                 raise RuntimeError(err_msg)
                             else:
@@ -990,6 +1005,8 @@ def TotalScatteringReduction(config: dict = None):
         absorption_wksp=sam_abs_ws,
         out_group_dict=sg_dict,
         qparams=qparams,
+        auto_red=auto_red,
+        group_all_file=group_all_file,
         **alignAndFocusArgs)
     sample_title = "sample_and_container"
     if debug_mode:
@@ -998,7 +1015,8 @@ def TotalScatteringReduction(config: dict = None):
                    Title=sample_title,
                    OutputDir=OutputDir,
                    GroupingWorkspace=grp_wksp,
-                   Binning=binning)
+                   Binning=binning,
+                   autored=auto_red)
 
     sam_molecular_mass = mtd[sam_wksp].sample(
     ).getMaterial().relativeMolecularMass()
@@ -1023,6 +1041,8 @@ def TotalScatteringReduction(config: dict = None):
         absorption_wksp=con_abs_ws,
         out_group_dict=sg_dict,
         qparams=qparams,
+        auto_red=auto_red,
+        group_all_file=group_all_file,
         **alignAndFocusArgs)
     if debug_mode:
         save_banks(
@@ -1031,7 +1051,8 @@ def TotalScatteringReduction(config: dict = None):
             Title=container,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
     # -------------------------------- #
     # Load Sample Container Background #
@@ -1068,6 +1089,8 @@ def TotalScatteringReduction(config: dict = None):
                 absorption_wksp=sam_abs_ws,
                 out_group_dict=sg_dict,
                 qparams=qparams,
+                auto_red=auto_red,
+                group_all_file=group_all_file,
                 **alignAndFocusArgs)
             tmp = load(
                 'container_background_tmp',
@@ -1080,6 +1103,8 @@ def TotalScatteringReduction(config: dict = None):
                 absorption_wksp=con_abs_ws,
                 out_group_dict=sg_dict,
                 qparams=qparams,
+                auto_red=auto_red,
+                group_all_file=group_all_file,
                 **alignAndFocusArgs)
             Minus(
                 LHSWorkspace=container_bg,
@@ -1097,6 +1122,8 @@ def TotalScatteringReduction(config: dict = None):
                 absorption_wksp=sam_abs_ws,
                 out_group_dict=sg_dict,
                 qparams=qparams,
+                auto_red=auto_red,
+                group_all_file=group_all_file,
                 **alignAndFocusArgs)
         if debug_mode:
             save_banks(
@@ -1105,7 +1132,8 @@ def TotalScatteringReduction(config: dict = None):
                 Title=container_bg,
                 OutputDir=OutputDir,
                 GroupingWorkspace=grp_wksp,
-                Binning=binning)
+                Binning=binning,
+                autored=auto_red)
 
     # Load Vanadium
     print("#-----------------------------------#")
@@ -1125,6 +1153,8 @@ def TotalScatteringReduction(config: dict = None):
         absorption_wksp=van_abs_corr_ws,
         out_group_dict=sg_dict,
         qparams=qparams,
+        auto_red=auto_red,
+        group_all_file=group_all_file,
         **alignAndFocusArgs)
 
     vanadium_title = "vanadium_and_background"
@@ -1135,7 +1165,8 @@ def TotalScatteringReduction(config: dict = None):
             Title=vanadium_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
     van_material = mtd[van_wksp].sample().getMaterial()
     van_molecular_mass = van_material.relativeMolecularMass()
@@ -1185,6 +1216,8 @@ def TotalScatteringReduction(config: dict = None):
             absorption_wksp=van_abs_corr_ws,
             out_group_dict=sg_dict,
             qparams=qparams,
+            auto_red=auto_red,
+            group_all_file=group_all_file,
             **alignAndFocusArgs)
 
         vanadium_bg_title = "vanadium_background"
@@ -1195,7 +1228,8 @@ def TotalScatteringReduction(config: dict = None):
                 Title=vanadium_bg_title,
                 OutputDir=OutputDir,
                 GroupingWorkspace=grp_wksp,
-                Binning=binning)
+                Binning=binning,
+                autored=auto_red)
 
     # Load Instrument Characterizations
     if characterizations:
@@ -1291,21 +1325,24 @@ def TotalScatteringReduction(config: dict = None):
             Title=container_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
         save_banks(
             InputWorkspace=van_wksp,
             Filename=nexus_filename,
             Title=vanadium_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
         save_banks(
             InputWorkspace=sam_wksp,
             Filename=nexus_filename,
             Title=sample_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
     #################################################################
     # STEP 2.0: Prepare vanadium as normalization calibration
@@ -1371,14 +1408,16 @@ def TotalScatteringReduction(config: dict = None):
             Title=vanadium_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
         save_banks(
             InputWorkspace=van_corrected,
             Filename=nexus_filename,
             Title=vanadium_title + "_with_peaks",
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
     # Smooth Vanadium (strip peaks plus smooth)
     ConvertUnits(
@@ -1411,7 +1450,8 @@ def TotalScatteringReduction(config: dict = None):
             Title=vanadium_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
     ConvertUnits(
         InputWorkspace=van_corrected,
@@ -1441,7 +1481,8 @@ def TotalScatteringReduction(config: dict = None):
             Title=vanadium_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
     # Inelastic correction
     if van_inelastic_corr['Type'] == "Placzek":
@@ -1542,7 +1583,8 @@ def TotalScatteringReduction(config: dict = None):
                 Title="vanadium_placzek",
                 OutputDir=OutputDir,
                 GroupingWorkspace=grp_wksp,
-                Binning=binning)
+                Binning=binning,
+                autored=auto_red)
 
     SetUncertainties(
         InputWorkspace=van_corrected,
@@ -1554,27 +1596,6 @@ def TotalScatteringReduction(config: dict = None):
     #           convert to Q (momentum transfer)
     #           For sample, container, sample raw, vanadium background
     #################################################################
-    if debug_mode:
-        wksp_list = [sam_wksp, sam_raw, van_corrected]
-    else:
-        wksp_list = [sam_wksp, van_corrected]
-
-    for name in wksp_list:
-        if not debug_mode and name is not van_corrected:
-            if mtd[name].getDimension(0).getUnits() != "Angstrom^-1":
-                ConvertUnits(
-                    InputWorkspace=name,
-                    OutputWorkspace=name,
-                    Target='MomentumTransfer',
-                    EMode='Elastic',
-                    ConvertFromPointData=False)
-
-        Rebin(
-            InputWorkspace=name,
-            OutputWorkspace=name,
-            Params=binning,
-            PreserveEvents=True)
-
     # Save (sample - back) / van_corrected
     Divide(
         LHSWorkspace=sam_wksp,
@@ -1589,13 +1610,14 @@ def TotalScatteringReduction(config: dict = None):
             Title=sample_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
         # Save the sample / normalized (i.e., no background subtraction)
         Divide(
-           LHSWorkspace=sam_raw,
-           RHSWorkspace=van_corrected,
-           OutputWorkspace=sam_raw)
+            LHSWorkspace=sam_raw,
+            RHSWorkspace=van_corrected,
+            OutputWorkspace=sam_raw)
 
         save_banks(
             InputWorkspace=sam_raw,
@@ -1603,7 +1625,8 @@ def TotalScatteringReduction(config: dict = None):
             Title="sample_normalized",
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
     # Output an initial I(Q) for sample
     if debug_mode:
@@ -1624,7 +1647,8 @@ def TotalScatteringReduction(config: dict = None):
             Title="IQ_banks",
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
         wksp_list = [container, container_raw, van_corrected]
 
@@ -1661,13 +1685,14 @@ def TotalScatteringReduction(config: dict = None):
             Title=container_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
         # Save the container / normalized (ie no background subtraction)
         Divide(
-           LHSWorkspace=container_raw,
-           RHSWorkspace=van_corrected,
-           OutputWorkspace=container_raw)
+            LHSWorkspace=container_raw,
+            RHSWorkspace=van_corrected,
+            OutputWorkspace=container_raw)
 
         save_banks(
             InputWorkspace=container_raw,
@@ -1675,7 +1700,8 @@ def TotalScatteringReduction(config: dict = None):
             Title="container_normalized",
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
         # Save the container_background / normalized
         if container_bg is not None:
@@ -1691,7 +1717,8 @@ def TotalScatteringReduction(config: dict = None):
                 Title=container_bg_title,
                 OutputDir=OutputDir,
                 GroupingWorkspace=grp_wksp,
-                Binning=binning)
+                Binning=binning,
+                autored=auto_red)
 
         # Save the vanadium_background / normalized
         if van_bg is not None:
@@ -1707,7 +1734,8 @@ def TotalScatteringReduction(config: dict = None):
                 Title=vanadium_bg_title,
                 OutputDir=OutputDir,
                 GroupingWorkspace=grp_wksp,
-                Binning=binning)
+                Binning=binning,
+                autored=auto_red)
 
     #################################################################
     # STEP 3 & 4: Subtract multiple scattering and apply absorption correction
@@ -1767,7 +1795,8 @@ def TotalScatteringReduction(config: dict = None):
                 Title=sample_title,
                 OutputDir=OutputDir,
                 GroupingWorkspace=grp_wksp,
-                Binning=binning)
+                Binning=binning,
+                autored=auto_red)
     else:
         RenameWorkspace(InputWorkspace=sam_wksp,
                         OutputWorkspace=sam_corrected)
@@ -1791,7 +1820,8 @@ def TotalScatteringReduction(config: dict = None):
             Title=sample_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
     #################################################################
     # STEP 6: Divide by total scattering length squared = total scattering
@@ -1815,7 +1845,8 @@ def TotalScatteringReduction(config: dict = None):
             Title=sample_title,
             OutputDir=OutputDir,
             GroupingWorkspace=grp_wksp,
-            Binning=binning)
+            Binning=binning,
+            autored=auto_red)
 
     #################################################################
     # STEP 7: Inelastic correction
@@ -1918,7 +1949,8 @@ def TotalScatteringReduction(config: dict = None):
                 Title="sample_placzek",
                 OutputDir=OutputDir,
                 GroupingWorkspace=grp_wksp,
-                Binning=binning)
+                Binning=binning,
+                autored=auto_red)
 
         Minus(
             LHSWorkspace=sam_corrected,
@@ -1933,7 +1965,8 @@ def TotalScatteringReduction(config: dict = None):
                 Title=sample_title,
                 OutputDir=OutputDir,
                 GroupingWorkspace=grp_wksp,
-                Binning=binning)
+                Binning=binning,
+                autored=auto_red)
 
     # TODO Since we already went from Event -> 2D workspace, can't use this
     # anymore
@@ -1961,27 +1994,34 @@ def TotalScatteringReduction(config: dict = None):
 
     sam_corrected_norm = sam_corrected + '_norm'
     to_absolute_scale(sam_corrected, sam_corrected_norm)
+    sam_corrected_norm_bragg = sam_corrected + '_norm_bragg'
+    CloneWorkspace(InputWorkspace=sam_corrected_norm,
+                   OutputWorkspace=sam_corrected_norm_bragg)
+    bank_limit = gen_config.config_params.get("QMaxByBank",
+                                              "35,25,40,40,40,20")
+
+    if not auto_red:
+        qmax_limit = [float(item) for item in bank_limit.split(",")]
+        qmin_limit = [0. for _ in range(len(qmax_limit))]
+        CropWorkspaceRagged(InputWorkspace=sam_corrected_norm,
+                            OutputWorkspace=sam_corrected_norm,
+                            Xmin=qmin_limit,
+                            Xmax=qmax_limit)
+
     save_banks(
         InputWorkspace=sam_corrected_norm,
         Filename=nexus_filename,
         Title="SQ_banks_normalized",
         OutputDir=OutputDir,
         GroupingWorkspace=grp_wksp,
-        Binning=binning)
-
-    fq_banks = 'FQ_banks'
-    to_f_of_q(sam_corrected_norm, fq_banks)
-    save_banks(
-        InputWorkspace=fq_banks,
-        Filename=nexus_filename,
-        Title="FQ_banks",
-        OutputDir=OutputDir,
-        GroupingWorkspace=grp_wksp,
-        Binning=binning)
+        Binning=binning,
+        autored=auto_red)
 
     # Print log information
     material = Material(sam_corrected)
-    log_file_out = open(os.path.join(os.path.abspath(OutputDir),
+    log_dir = os.path.join(os.path.abspath(OutputDir), "Logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_file_out = open(os.path.join(log_dir,
                                      f'{title}.log'),
                         "w")
     sep_line = "==============================="
@@ -2032,53 +2072,68 @@ def TotalScatteringReduction(config: dict = None):
     #   STEP 8.1 Output Bragg Diffraction
     #            convert to TOF and save to GSAS
     #################################################################
+    if auto_red:
+        return mtd[sam_corrected_norm]
+
+    tmin_limit = gen_config.config_params.get("TMinBragg",
+                                              "0.7,0.7,0.9,1.5,1.6,1.1")
+    tmax_limit = gen_config.config_params.get("TMaxBragg",
+                                              "17,18.5,19,18.5,16.9,17")
+    tmin_limit = [float(item) * 1000. for item in tmin_limit.split(",")]
+    tmax_limit = [float(item) * 1000. for item in tmax_limit.split(",")]
+
     ConvertUnits(
-        InputWorkspace=sam_corrected,
-        OutputWorkspace=sam_corrected,
+        InputWorkspace=sam_corrected_norm_bragg,
+        OutputWorkspace=sam_corrected_norm_bragg,
         Target="TOF",
         EMode="Elastic")
 
     ConvertToHistogram(
-        InputWorkspace=sam_corrected,
-        OutputWorkspace=sam_corrected)
+        InputWorkspace=sam_corrected_norm_bragg,
+        OutputWorkspace=sam_corrected_norm_bragg)
 
-    xmin, xmax = get_each_spectra_xmin_xmax(mtd[sam_corrected])
-
-    CropWorkspaceRagged(
-        InputWorkspace=sam_corrected,
-        OutputWorkspace=sam_corrected,
-        Xmin=xmin,
-        Xmax=xmax)
+    xmin, xmax = get_each_spectra_xmin_xmax(mtd[sam_corrected_norm_bragg])
 
     xmin_rebin = min(xmin)
     if "TMin" in alignAndFocusArgs.keys():
         tmin = alignAndFocusArgs["TMin"]
-        info_part1 = f"[Info] 'TMin = {tmin}' found in the input config file."
-        info_part2 = " Will use it for Bragg output."
-        print(info_part1 + info_part2)
-        xmin_rebin = tmin
+        info = f"[Info] 'TMin = {tmin}' found in the input config file."
+        print(info)
+        xmin_rebin = max(tmin, xmin_rebin)
     xmax_rebin = max(xmax)
+    if "TMax" in alignAndFocusArgs.keys():
+        tmax = alignAndFocusArgs["TMax"]
+        info = f"[Info] 'TMax = {tmax}' found in the input config file."
+        print(info)
+        xmax_rebin = min(xmax_rebin, tmax)
+
     # Note: For the moment, bin size for Bragg output is hard coded.
     # May need to make it user input if necessary.
     tof_binning = "{xmin},-0.0008,{xmax}".format(xmin=xmin_rebin,
                                                  xmax=xmax_rebin)
 
     Rebin(
-        InputWorkspace=sam_corrected,
-        OutputWorkspace=sam_corrected,
+        InputWorkspace=sam_corrected_norm_bragg,
+        OutputWorkspace=sam_corrected_norm_bragg,
         Params=tof_binning)
 
+    CropWorkspaceRagged(
+        InputWorkspace=sam_corrected_norm_bragg,
+        OutputWorkspace=sam_corrected_norm_bragg,
+        Xmin=tmin_limit,
+        Xmax=tmax_limit)
+
     SaveGSS(
-        InputWorkspace=sam_corrected,
+        InputWorkspace=sam_corrected_norm_bragg,
         Filename=os.path.join(os.path.abspath(OutputDir), 'GSAS', title+".gsa"),
         SplitFiles=False,
         Append=False,
-        MultiplyByBinWidth=True,
+        MultiplyByBinWidth=False,
         Format="SLOG",
         ExtendedHeader=True)
 
     SaveFocusedXYE(
-        InputWorkspace=sam_corrected,
+        InputWorkspace=sam_corrected_norm_bragg,
         Filename=os.path.join(os.path.abspath(OutputDir),
                               'Topas',
                               title+".xye"))
@@ -2086,4 +2141,4 @@ def TotalScatteringReduction(config: dict = None):
     if final_message:
         log.warning(final_message)
 
-    return mtd[sam_corrected]
+    return mtd[sam_corrected_norm_bragg]

@@ -17,6 +17,22 @@ Structure factor S(Q) -> Pair Distribution Function G(r)
 -----------------------------------------------------------
 ![alt text](https://raw.githubusercontent.com/neutrons/mantid_total_scattering/main/images/sofq_to_gofr.png)
 
+Running `mantidtotalscattering` will generate the total scattering data in
+reciprocal space saved as NeXus file, if one is using the multiple bank mode.
+Another alternative mode is the single bank mode which will merge spectra from
+all detectors into a single pattern. The single bank mode will be taken in the
+auto reduction implementation since otherwise manual efforts are needed to merge
+the different banks data. When using the single bank mode, no Bragg data will be
+saved. With the multiple bank mode, both the total scattering data and the Bragg
+diffraction data will be saved. For the Bragg data output, there are two
+available formats -- the GSS format and the XYE format. The GSS data file could
+be loaded into the ADDIE interface (see the link above) for visualization. Here,
+it is noteworthy that if one is loading in the GSS data in Mantid, one has to
+rebin the loaded in workspace first (since the output GSS data is ragged, i.e.,
+different banks are not sharing the common x-axis, for the purpose of removing
+the non-sense data in each bank), followed by running the Mantid algorithm
+`ConvertToPointData`.
+
 Installation
 ===========================================================
 
@@ -211,6 +227,13 @@ this, follow the steps below,
 5. python setup.py develop
 
 where `MANTID_REPO_DIR` refers to the full path of the `mantid` repo directory.
+
+> N.B. With the third way of setup, one could then execute `python
+SCRIPT_NAME.py` to run `mantidtotalscattering` reduction. The script can be with
+the contents as shared above. Meanwhile, one can also execute `mantidpython SCRIPT_NAME.py` if on ORNL analysis cluster.
+One interesting observation is if using the former way (i.e., run `python
+SCRIPT_NAME.py`), the `SavePlot1D` algorithm cannot take the `OutputType` as
+being `plotly-all`, whereas using the latter command will be able to do that.
 
 Tests
 ===========================================================
