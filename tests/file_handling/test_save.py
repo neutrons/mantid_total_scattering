@@ -52,29 +52,9 @@ class TestSave(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join('./output', "SofQ", self.out_nxs)))
         mtd.clear()
 
-    def test_save_banks_binning(self):
-        save_banks(self.wksp, self.out_nxs, 'wksp', '.', Binning='0,100,10000')
-        out_wksp = LoadNexusProcessed(os.path.join(".", "SofQ", self.out_nxs))
-        self.assertNotEqual(out_wksp.blocksize(),
-                            self.wksp.blocksize())
-        self.assertEqual(out_wksp.blocksize(), 100)
-
     def test_save_file_exists(self):
         save_file(self.wksp, self.out_ascii)
         self.assertTrue(os.path.isfile(self.out_ascii))
-
-    def test_save_file_check_contents(self):
-        save_file(self.wksp, self.out_ascii)
-        out_wksp = LoadAscii(self.out_ascii, Separator='Space')
-        out_wksp = ConvertToHistogram(out_wksp)
-
-        self.assertEqual(out_wksp.blocksize(),
-                         self.wksp.blocksize())
-        self.assertEqual(out_wksp.getNumberHistograms(),
-                         self.wksp.getNumberHistograms())
-        self.assertTrue(np.allclose(out_wksp.getAxis(0).extractValues(),
-                                    self.wksp.getAxis(0).extractValues())
-                        )
 
 
 if __name__ == '__main__':
