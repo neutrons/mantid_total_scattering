@@ -65,7 +65,7 @@ class TestSave(unittest.TestCase):
 
     def test_save_banks_binning(self):
         save_banks(self.wksp, self.out_nxs, 'wksp', '.', Binning='0,100,10000')
-        out_wksp = LoadNexusProcessed(self.out_nxs)
+        out_wksp = LoadNexusProcessed(os.path.join(".", "SofQ", self.out_nxs))
         self.assertNotEqual(out_wksp.blocksize(),
                             self.wksp.blocksize())
         self.assertEqual(out_wksp.blocksize(), 100)
