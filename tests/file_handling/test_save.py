@@ -44,17 +44,17 @@ class TestSave(unittest.TestCase):
 
     def test_save_banks_exists(self):
         save_banks(self.wksp, self.out_nxs, 'wksp', '.')
-        self.assertTrue(os.path.isfile(self.out_nxs))
+        self.assertTrue(os.path.isfile(os.path.join(".", "SofQ", self.out_nxs)))
         mtd.clear()
 
     def test_save_banks_relative_path(self):
         save_banks(self.wksp, self.out_nxs, 'wksp', './output')
-        self.assertTrue(os.path.isfile(os.path.join('./output', self.out_nxs)))
+        self.assertTrue(os.path.isfile(os.path.join('./output', "SofQ", self.out_nxs)))
         mtd.clear()
 
     def test_save_banks_check_contents(self):
         save_banks(self.wksp, self.out_nxs, 'wksp', '.')
-        out_wksp = LoadNexusProcessed(self.out_nxs)
+        out_wksp = LoadNexusProcessed(os.path.join(".", "SofQ", self.out_nxs))
         self.assertEqual(out_wksp.blocksize(),
                          self.wksp.blocksize())
         self.assertEqual(out_wksp.getNumberHistograms(),
