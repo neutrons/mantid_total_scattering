@@ -20,9 +20,12 @@ def read_requirements_from_file(filepath):
     '''
     with open(filepath, 'r') as req_file:
         lines = req_file.readlines()
-        lines_return = [
-            line.strip() for line in lines if "https://" not in line
-        ]
+        lines_return = list()
+        for line in lines:
+            if "https://" in line:
+                lines_return.append(f"pyoncat @ {line}")
+            else:
+                lines_return.append(line)
         return lines_return
 
 
@@ -47,11 +50,6 @@ authors = [
     'Donnie Earnest',
 ]
 
-# Dependence link list
-dependency_links = [
-    "https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl"
-]
-
 # Main setup
 setup(
     name='mantid_total_scattering',
@@ -66,7 +64,6 @@ setup(
     license='GPL License (version 3)',
     packages=find_packages(),
     include_package_data=True,
-    dependency_links=dependency_links,
     setup_requires=[],
     install_requires=setup_args['install_requires'],
     tests_require=setup_args['install_requires'] + setup_args['tests_require'],
