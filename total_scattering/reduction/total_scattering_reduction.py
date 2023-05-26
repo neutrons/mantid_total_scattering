@@ -52,6 +52,10 @@ from total_scattering.inelastic.placzek import FitIncidentSpectrum
 from total_scattering.reduction.normalizations import (
     Material, calculate_and_apply_fitted_levels, to_absolute_scale)
 import total_scattering.params as params
+from total_scattering import __version__ as mts_version
+import mantid
+
+mantid_version = mantid.__version__
 
 
 # Utilities
@@ -2035,6 +2039,9 @@ def TotalScatteringReduction(config: dict = None):
                         "w")
     sep_line = "==============================="
     sep_line += "=================================\n"
+    log_file_out.write(sep_line)
+    log_file_out.write(f"MantidTotalScatteringVersion: {mts_version}\n")
+    log_file_out.write(f"MantidVersion: {mantid_version}\n")
     log_file_out.write(sep_line)
     log_file_out.write("{0:32s}{1:<20.10F}\n".format('<b>^2:',
                                                      material.bcoh_avg_sqrd))
