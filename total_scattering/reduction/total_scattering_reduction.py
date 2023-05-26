@@ -429,14 +429,23 @@ def chem_form_normalizer(chem_form_in):
             ele_tmp = item
             coeff_tmp = 1.
         else:
-            pos = 0
-            for char in item:
-                if char.isdigit() or char == ".":
-                    break
-                else:
-                    pos += 1
+            if "(" in item:
+                pos = item.index(")") + 1
+            else:
+                pos = 0
+                for char in item:
+                    if char.isdigit() or char == ".":
+                        break
+                    else:
+                        pos += 1
             ele_tmp = item[:pos]
-            coeff_tmp = float(item[pos:])
+            if not any(char.isdigit() for char in ele_tmp):
+                ele_tmp = ele_tmp.replace("(", "")
+                ele_tmp = ele_tmp.replace(")", "")
+            if len(item[pos:]):
+                coeff_tmp = float(item[pos:])
+            else:
+                coeff_tmp = 1.
         list_out[ele_tmp] = coeff_tmp
         coeff_all += coeff_tmp
 
