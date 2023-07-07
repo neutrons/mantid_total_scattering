@@ -381,7 +381,7 @@ def autogrouping(config):
             "DBSCAN".format(method[0]))
 
     labels = model.labels_
-    unique_labels = np.unique(labels)
+    unique_labels, ul_counts = np.unique(labels, return_counts=True)
     skip_grouping = False  # flag to skip generate grouping file
 
     print("Labels: {}".format(labels))
@@ -426,14 +426,6 @@ def autogrouping(config):
                        marker='X', s=200, alpha=0.75,
                        edgecolors='red', c=np.unique(labels))
 
-    # Export mask to file
-    if new_mask is not None:
-        print("Saving new mask to '{}'".format(output_mask))
-        # new mask is the union of original + newly masked items
-        if mask is not None:  # check in case no masking file was given
-            new_mask = np.union1d(mask, new_mask)
-        np.savetxt(output_mask, new_mask, fmt='%10i')
-
     # Export grouping based on clustering result. Use the input
     # workspace as the donor
     if not skip_grouping:
@@ -444,17 +436,55 @@ def autogrouping(config):
                                 OutputWorkspace="grouping")
         grouping = mtd["grouping"]
         num_monitors = int(np.sum(wksp.detectorInfo().detectorIDs() < 0))
-        for i in range(len(labels)):
+
+        # Label all identified group with only a single member as noise and
+        # mark them as being masked.
+        labels_dup = [item for item in labels]
+        count_dict = dict()
+        for ii, item in enumerate(unique_labels):
+            count_dict[item] = ul_counts[ii]
+        removed_group = list()
+        for ii in range(len(labels_dup)):
+            if count_dict[labels_dup[ii]] == 1:
+                removed_group.append(labels_dup[ii])
+                labels_dup[ii] = -1
+        for ii in range(len(labels_dup)):
+            num_removed = 0
+            for jj in range(labels_dup[ii]):
+                if jj in removed_group:
+                    num_removed += 1
+            labels_dup[ii] -= num_removed
+
+        noise_mask = list()
+        for i in range(len(labels_dup)):
             det_id = wksp.getDetector(int(wsindex[i])).getID()
             det_id = wksp.detectorInfo().indexOf(det_id) - num_monitors
-            # Skip if label is -1 (DBSCAN labels these as noise)
-            if labels[i] == -1:
+            # If the label is -1, the corresponding pixel should be
+            # regarded as noise, and thus should be masked.
+            if labels_dup[i] == -1:
+                noise_mask.append(det_id)
                 continue
+
             # Shift by 1 since group 0 is unused
             grouping.setY(det_id, [int(labels[i] + 1)])
 
         SaveDetectorsGrouping(InputWorkspace=grouping,
                               OutputFile=output_file)
+
+    # Add noise mask to the final mask list
+    if len(noise_mask) > 0:
+        if new_mask is None:
+            new_mask = np.asarray(noise_mask)
+        else:
+            new_mask = np.union1d(noise_mask, new_mask)
+
+    # Export mask to file
+    if new_mask is not None:
+        print("Saving new mask to '{}'".format(output_mask))
+        # new mask is the union of original + newly masked items
+        if mask is not None:  # check in case no masking file was given
+            new_mask = np.union1d(mask, new_mask)
+        np.savetxt(output_mask, new_mask, fmt='%10i')
 
     if plots:
         # block only if we have plotted something
