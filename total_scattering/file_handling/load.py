@@ -83,10 +83,13 @@ def load(ws_name, input_files, group_wksp,
         hash_obj = hashlib.sha256(str(run_list).encode())
         hash_str = hash_obj.hexdigest()
         short_hash_str = base64.urlsafe_b64encode(hash_str.encode()).decode()[:12]
+
+        cache_sf_bn = f"{instr_name}_mts_summed_"
         if auto_red:
-            cache_sf_bn = f"{instr_name}_mts_summed_{short_hash_str}_sgb.nxs"
+            cache_sf_bn += f"{short_hash_str}_sgb"
         else:
-            cache_sf_bn = f"{instr_name}_mts_summed_{short_hash_str}.nxs"
+            cache_sf_bn += f"{short_hash_str}"
+        cache_sf_bn += f"_{ws_name}.nxs"
         if ipts is not None:
             cache_sf_fn = os.path.join("/" + facility,
                                        instr_name,
@@ -105,10 +108,11 @@ def load(ws_name, input_files, group_wksp,
                 if run == "-1":
                     cache_f_exist = False
                 else:
+                    cache_f_bn = f"{instr_name}_{run}"
                     if auto_red:
-                        cache_f_bn = f"{instr_name}_{run}_mts_no_subg_sgb.nxs"
+                        cache_f_bn += f"_mts_no_subg_sgb_{ws_name}.nxs"
                     else:
-                        cache_f_bn = f"{instr_name}_{run}_mts_no_subg.nxs"
+                        cache_f_bn += f"_mts_no_subg_{ws_name}.nxs"
                     if ipts is not None:
                         cache_f_fn = os.path.join("/" + facility,
                                                   instr_name,
@@ -136,10 +140,6 @@ def load(ws_name, input_files, group_wksp,
                         OutputWorkspace=wksp_tmp,
                         Target="MomentumTransfer",
                         EMode="Elastic")
-                    Rebin(
-                        InputWorkspace=wksp_tmp,
-                        OutputWorkspace=wksp_tmp,
-                        Params=qparams)
                     if ipts is not None:
                         SaveNexusProcessed(
                             InputWorkspace=wksp_tmp,
@@ -164,7 +164,8 @@ def load(ws_name, input_files, group_wksp,
             if run == "-1":
                 cache_f_exist = False
             else:
-                cache_f_bn = f"{instr_name}_{run}_mts_subg.nxs"
+                cache_f_bn = f"{instr_name}_{run}_mts_subg"
+                cache_f_bn += f"_{ws_name}.nxs"
                 cache_f_fn = os.path.join("/" + facility,
                                           instr_name,
                                           ipts,
@@ -266,6 +267,12 @@ def load(ws_name, input_files, group_wksp,
         InputWorkspace=ws_name,
         OutputWorkspace=ws_name,
         RecalculatePCharge=True)
+
+    if group_wksp is None:
+        Rebin(
+            InputWorkspace=ws_name,
+            OutputWorkspace=ws_name,
+            Params=qparams)
 
     if geometry and chemical_formula and mass_density:
         set_sample(ws_name, geometry, chemical_formula, mass_density)
