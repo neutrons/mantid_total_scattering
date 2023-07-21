@@ -578,11 +578,11 @@ def TotalScatteringReduction(config: dict = None):
         van_ps_hb = van_ps.get("HighBackground", True)
         van_ps_pp_tol = van_ps.get("PeakPositionTolerance", 0.01)
     else:
-        van_ps_fwhm = 7
+        van_ps_fwhm = 10
         van_ps_tol = 4
         van_ps_bkg_type = "Quadratic"
         van_ps_hb = True
-        van_ps_pp_tol = 0.01
+        van_ps_pp_tol = 0.02
 
     # Create Nexus file basenames
     sample['Runs'] = expand_ints(sample['Runs'])
