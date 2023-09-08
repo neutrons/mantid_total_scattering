@@ -445,8 +445,9 @@ def autogrouping(config):
             count_dict[item] = ul_counts[ii]
         removed_group = list()
         for ii in range(len(labels_dup)):
-            if count_dict[labels_dup[ii]] == 1:
-                removed_group.append(labels_dup[ii])
+            if count_dict[labels_dup[ii]] < 20:
+                if labels_dup[ii] not in removed_group:
+                    removed_group.append(labels_dup[ii])
                 labels_dup[ii] = -1
         for ii in range(len(labels_dup)):
             num_removed = 0
