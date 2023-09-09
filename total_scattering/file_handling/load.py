@@ -43,6 +43,7 @@ def load(ws_name, input_files, group_wksp,
          absorption_wksp='', out_group_dict=None,
          qparams='0.01,0.001,40.0', auto_red=False,
          group_all_file=None,
+         sam_files=None,
          **align_and_focus_args):
     '''Routine for loading workspace'''
 
@@ -89,7 +90,7 @@ def load(ws_name, input_files, group_wksp,
             cache_sf_bn += f"{short_hash_str}_sgb"
         else:
             cache_sf_bn += f"{short_hash_str}"
-        cache_sf_bn += f"_{ws_name}.nxs"
+        cache_sf_bn += f"_{ws_name}_{sam_files.split(',')[0]}.nxs"
         if ipts is not None:
             cache_sf_fn = os.path.join("/" + facility,
                                        instr_name,
@@ -110,9 +111,11 @@ def load(ws_name, input_files, group_wksp,
                 else:
                     cache_f_bn = f"{instr_name}_{run}"
                     if auto_red:
-                        cache_f_bn += f"_mts_no_subg_sgb_{ws_name}.nxs"
+                        cache_f_bn += f"_mts_no_subg_sgb_{ws_name}"
+                        cache_f_bn += f"_{sam_files.split(',')[0]}.nxs"
                     else:
-                        cache_f_bn += f"_mts_no_subg_{ws_name}.nxs"
+                        cache_f_bn += f"_mts_no_subg_{ws_name}"
+                        cache_f_bn += f"_{sam_files.split(',')[0]}.nxs"
                     if ipts is not None:
                         cache_f_fn = os.path.join("/" + facility,
                                                   instr_name,
@@ -165,7 +168,8 @@ def load(ws_name, input_files, group_wksp,
                 cache_f_exist = False
             else:
                 cache_f_bn = f"{instr_name}_{run}_mts_subg"
-                cache_f_bn += f"_{ws_name}.nxs"
+                cache_f_bn += f"_{ws_name}"
+                cache_f_bn += f"_{sam_files.split(',')[0]}.nxs"
                 cache_f_fn = os.path.join("/" + facility,
                                           instr_name,
                                           ipts,

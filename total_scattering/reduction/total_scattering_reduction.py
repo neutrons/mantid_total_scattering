@@ -984,7 +984,8 @@ def TotalScatteringReduction(config: dict = None):
                     WorkspaceName=grp_wksp.replace('_group', ''),
                     MakeGroupingWorkspace=True,
                     MakeCalWorkspace=False,
-                    MakeMaskWorkspace=False)
+                    MakeMaskWorkspace=False,
+                    TofMin=alignAndFocusArgs['TMin'])
         load_grouping = True
 
     # Setup the 6 bank method if no grouping specified
@@ -993,6 +994,11 @@ def TotalScatteringReduction(config: dict = None):
                                 GroupDetectorsBy='Group',
                                 OutputWorkspace=grp_wksp)
         alignAndFocusArgs['GroupingWorkspace'] = grp_wksp
+
+    if auto_red:
+        CreateGroupingWorkspace(InstrumentName=instr,
+                                GroupDetectorsBy='All',
+                                OutputWorkspace=grp_wksp)
 
     #################################################################
     # Load, calibrate and diffraction focus
@@ -1020,6 +1026,7 @@ def TotalScatteringReduction(config: dict = None):
         qparams=qparams,
         auto_red=auto_red,
         group_all_file=group_all_file,
+        sam_files=sam_scans,
         **alignAndFocusArgs)
     sample_title = "sample_and_container"
     if debug_mode:
@@ -1056,6 +1063,7 @@ def TotalScatteringReduction(config: dict = None):
         qparams=qparams,
         auto_red=auto_red,
         group_all_file=group_all_file,
+        sam_files=sam_scans,
         **alignAndFocusArgs)
     if debug_mode:
         save_banks(
@@ -1104,6 +1112,7 @@ def TotalScatteringReduction(config: dict = None):
                 qparams=qparams,
                 auto_red=auto_red,
                 group_all_file=group_all_file,
+                sam_files=sam_scans,
                 **alignAndFocusArgs)
             tmp = load(
                 'container_background_tmp',
@@ -1118,6 +1127,7 @@ def TotalScatteringReduction(config: dict = None):
                 qparams=qparams,
                 auto_red=auto_red,
                 group_all_file=group_all_file,
+                sam_files=sam_scans,
                 **alignAndFocusArgs)
             Minus(
                 LHSWorkspace=container_bg,
@@ -1137,6 +1147,7 @@ def TotalScatteringReduction(config: dict = None):
                 qparams=qparams,
                 auto_red=auto_red,
                 group_all_file=group_all_file,
+                sam_files=sam_scans,
                 **alignAndFocusArgs)
         if debug_mode:
             save_banks(
@@ -1168,6 +1179,7 @@ def TotalScatteringReduction(config: dict = None):
         qparams=qparams,
         auto_red=auto_red,
         group_all_file=group_all_file,
+        sam_files=sam_scans,
         **alignAndFocusArgs)
 
     vanadium_title = "vanadium_and_background"
@@ -1231,6 +1243,7 @@ def TotalScatteringReduction(config: dict = None):
             qparams=qparams,
             auto_red=auto_red,
             group_all_file=group_all_file,
+            sam_files=sam_scans,
             **alignAndFocusArgs)
 
         vanadium_bg_title = "vanadium_background"

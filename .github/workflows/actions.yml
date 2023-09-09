@@ -1,7 +1,7 @@
 name: mantid_total_scattering_ci
 
 env:
-  PYTHON_MAIN_VERSION: 3.8
+  PYTHON_MAIN_VERSION: 3.10
 
 on:
   workflow_dispatch:
@@ -17,10 +17,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.8"]
+        python-version: ["3.10"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
@@ -30,7 +30,7 @@ jobs:
       - name: Conda install deps
         shell: bash -l {0}
         run: |
-          conda install mantid
+          conda install mantidworkbench
           conda install --file requirements-conda.txt --file requirements-dev-conda.txt
           pip install tox-gh-actions==2.12.0
           pip install https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl
