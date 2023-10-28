@@ -69,6 +69,22 @@ def load(ws_name, input_files, group_wksp,
                                  "cache")
         os.makedirs(cache_dir, exist_ok=True)
 
+    # For autoreduction, we want to fill the low-q part with the asymptotic
+    # value according to the paper by D. Keen,
+    # J. Appl. Cryst. (2001). 34, 172-177
+    # to guarantee a robust Fourier transform automatically. In such a
+    # situation, we have to change the binning parameter to extend to the
+    # very low-q region and later on (at the end of the main program) we will
+    # fill the low-q part (below the original Qmin as specified in the `qparams`
+    # parameter) with the asymptotic value. Here, the temporary Qmin value is
+    # set to the provided Q-space interval.
+    if auto_red:
+        qminmin = qparams.split(",")[1]
+        qmaxmax = qparams.split(",")[2]
+        qparams_use = f"{qminmin},{qminmin},{qmaxmax}"
+    else:
+        qparams_use = qparams
+
     if group_wksp is None:
         # Given the current implementation mechanism, if the input
         # `group_wksp` is None, that means there was no absorption
@@ -262,7 +278,7 @@ def load(ws_name, input_files, group_wksp,
         Rebin(
             InputWorkspace=ws_name,
             OutputWorkspace=ws_name,
-            Params=qparams)
+            Params=qparams_use)
         GroupDetectors(InputWorkspace=ws_name,
                        OutputWorkspace=ws_name,
                        GroupingPattern=g_pattern)
@@ -276,7 +292,7 @@ def load(ws_name, input_files, group_wksp,
         Rebin(
             InputWorkspace=ws_name,
             OutputWorkspace=ws_name,
-            Params=qparams)
+            Params=qparams_use)
 
     if geometry and chemical_formula and mass_density:
         set_sample(ws_name, geometry, chemical_formula, mass_density)

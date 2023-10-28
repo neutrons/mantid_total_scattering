@@ -745,17 +745,21 @@ def TotalScatteringReduction(config: dict = None):
     group_file = os.path.join(gen_config_dir, "abs_grouping.xml")
     group_det_file = os.path.join(gen_config_dir, "abs_grouping_ref_dets.txt")
     sg_index_f = os.path.join(gen_config_dir, "group_index.txt")
-    sg_dict = dict()
-    with open(sg_index_f, "r") as f_handle:
-        line_tmp = f_handle.readline()
-        while line_tmp:
+    if facility == "SNS" and instr == "PG3":
+        sg_dict = None
+        auto_red = True
+    else:
+        sg_dict = dict()
+        with open(sg_index_f, "r") as f_handle:
             line_tmp = f_handle.readline()
-            if line_tmp:
-                line_tmp = line_tmp.strip()
-                key_tmp = line_tmp.split()[0]
-                start_tmp = int(line_tmp.split()[1])
-                stop_tmp = int(line_tmp.split()[2])
-                sg_dict[key_tmp] = [start_tmp, stop_tmp]
+            while line_tmp:
+                line_tmp = f_handle.readline()
+                if line_tmp:
+                    line_tmp = line_tmp.strip()
+                    key_tmp = line_tmp.split()[0]
+                    start_tmp = int(line_tmp.split()[1])
+                    stop_tmp = int(line_tmp.split()[2])
+                    sg_dict[key_tmp] = [start_tmp, stop_tmp]
 
     if sam_abs_corr:
         if sam_abs_corr["Type"] in new_abs_methods:
@@ -933,7 +937,14 @@ def TotalScatteringReduction(config: dict = None):
     alignAndFocusArgs['CalFilename'] = config['Calibration']['Filename']
     # alignAndFocusArgs['GroupFilename'] don't use
     # alignAndFocusArgs['Params'] = "0.,0.02,40."
-    alignAndFocusArgs['ResampleX'] = -6000
+    if facility == "SNS" and instr == "PG3":
+        resample_x = gen_config.config_params.get("ResampleX", -8000)
+    elif facility == "SNS" and instr == "NOM":
+        resample_x = gen_config.config_params.get("ResampleX", -6000)
+    else:
+        # Need to expand this if statement to involve other instruments
+        resample_x = gen_config.config_params.get("ResampleX", -6000)
+    alignAndFocusArgs['ResampleX'] = resample_x
     alignAndFocusArgs['Dspacing'] = False
     alignAndFocusArgs['PreserveEvents'] = False
     alignAndFocusArgs['MaxChunkSize'] = 0
@@ -2026,6 +2037,9 @@ def TotalScatteringReduction(config: dict = None):
     bank_limit = gen_config.config_params.get("QMaxByBank",
                                               "35,25,40,40,40,20")
 
+    # Grab the material to be used in multiple spots below.
+    material = Material(sam_corrected)
+
     if not auto_red:
         qmax_limit = [float(item) for item in bank_limit.split(",")]
         qmin_limit = [0. for _ in range(len(qmax_limit))]
@@ -2033,6 +2047,19 @@ def TotalScatteringReduction(config: dict = None):
                             OutputWorkspace=sam_corrected_norm,
                             Xmin=qmin_limit,
                             Xmax=qmax_limit)
+    else:
+        qmin_limit = float(qparams.split(",")[0])
+        x_data = mtd[sam_corrected_norm].readX(0)
+        y_data = mtd[sam_corrected_norm].readY(0)
+        y_new = list()
+        b_sqrd_avg = material.btot_sqrd_avg
+        b_avg_sqrd = material.bcoh_avg_sqrd
+        for i in range(len(x_data) - 1):
+            if x_data[i] <= qmin_limit:
+                y_new.append(-1. * b_sqrd_avg / b_avg_sqrd)
+            else:
+                y_new.append(y_data[i])
+        mtd[sam_corrected_norm].setY(0, y_new)
 
     save_banks(
         InputWorkspace=sam_corrected_norm,
@@ -2044,7 +2071,6 @@ def TotalScatteringReduction(config: dict = None):
         autored=auto_red)
 
     # Print log information
-    material = Material(sam_corrected)
     log_dir = os.path.join(os.path.abspath(OutputDir), "Logs")
     os.makedirs(log_dir, exist_ok=True)
     log_file_out = open(os.path.join(log_dir,
