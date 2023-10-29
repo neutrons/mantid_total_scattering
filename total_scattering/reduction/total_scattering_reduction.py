@@ -2023,9 +2023,13 @@ def TotalScatteringReduction(config: dict = None):
     #   4. save to F(Q)
     #################################################################
     if self_scattering_level_correction:
-        offset, slope = \
-            calculate_and_apply_fitted_levels(sam_corrected,
-                                              self_scattering_level_correction)
+        try:
+            offset, slope = calculate_and_apply_fitted_levels(
+                sam_corrected,
+                self_scattering_level_correction)
+        except RuntimeError as e:
+            print(f"[Error] {e}")
+            offset = None
     else:
         offset = None
 
