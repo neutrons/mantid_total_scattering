@@ -372,18 +372,51 @@ def abs_grouping(sam_abs_ws,
                  group_out_file,
                  group_ref_det_out_file,
                  subgroup_index_file):
+
+    '''The routine for clustering absorption spectra. The clustering
+    will be performed for each of the physical banks separately as this will
+    make the implementation at the data reduction stage relatively more
+    straightforward in terms of cooperating with the grouped absorption spectra
+    scenario.
+
+    :param sam_abs_ws: sample abs workspace containing spectra for all pixels
+    :type sam_abs_ws: str
+    :param con_abs_ws: container abs workspace containing spectra for all pixels
+    :type con_abs_ws: str
+    :param num_clusters: number of clusters in total
+    :type num_clusters: int
+    :param group_out_file: output for the generated group per abs similarity
+    :type group_out_file: str
+    :param group_ref_det_out_file: reference spectrum for each generated group
+    :type group_ref_det_out_file: str
+    :param subgroup_index_file: file for the belonging of abs group to banks
+    :type subgroup_index_file: str
+    '''
+
+    # Rebin the spectra in prep for the clustering
+    if isinstance(sam_abs_ws, str):
+        xmin = (int(mtd[sam_abs_ws].readX(0)[0] / 0.05) + 1.) * 0.05
+    else:
+        xmin = (int(sam_abs_ws.readX(0)[0] / 0.05) + 1.) * 0.05
     Rebin(InputWorkspace=sam_abs_ws,
           OutputWorkspace="abs_pbp",
-          Params="0.1,0.05,3.0")
-
+          Params="{0:4.2F},0.05,3.0".format(xmin))
+    
+    # Figure out the number of spectra and monitors
     num_spectra = mtd['abs_pbp'].getNumberHistograms()
     num_monitors = int(np.sum(mtd['abs_pbp'].detectorInfo().detectorIDs() < 0))
+    
+    (cw_out) = CreateGroupingWorkspace(InputWorkspace="abs_pbp",
+                                       GroupDetectorsBy="Group")
+    output_group = cw_out[0]
+    spectra_count = cw_out[1]
+    group_count = cw_out[2]
 
-    output_group, spectra_count, group_count = CreateGroupingWorkspace(
-        InputWorkspace="abs_pbp",
-        GroupDetectorsBy="Group")
+    # Figure out the number of sub groups in each physical bank to meet the
+    # overall number of groups to identify. Then we will save the index of the
+    # sub groups and their belongings to the physical banks into a file for
+    # later use at the reduction stage.
     sub_num_clusters = int(num_clusters / group_count)
-
     with open(subgroup_index_file, "w") as f:
         f.write("# Start & Stop index of subgroups\n")
         for i in range(group_count):
@@ -393,64 +426,92 @@ def abs_grouping(sam_abs_ws,
                                                         start_index,
                                                         stop_index))
 
+    # Clustering the absorption spectra using the KMEANS algorithm
     print("[Info] Clustering the absorption spectra for all detectors...")
     all_spectra_id = dict()
     all_spectra_all = list()
     labels = list()
     for j in range(group_count):
         all_spectra = list()
-        for i in range(num_monitors, num_spectra):
+        for i in range(num_spectra):
+            # Here we only pick up those spectra belonging to a certain physical
+            # bank in the loop.
             if output_group.readY(i) == float(j + 1):
                 y_tmp = mtd['abs_pbp'].readY(i)
                 all_spectra.append(y_tmp)
+                # Save the correspondence between the spectra index and the
+                # detector ID which will be used later for creating the grouping
+                # workspace.
                 all_spectra_id[i] = mtd['abs_pbp'].getDetector(i).getID()
         all_spectra_all.extend(all_spectra)
 
         X = np.array(all_spectra)
-        clustering = KMeans(n_clusters=sub_num_clusters, n_init=10).fit(X)
-
+        clustering = KMeans(n_clusters=sub_num_clusters, n_init='auto').fit(X)
+    
+        # For each physical bank, the identified clustering label will be
+        # starting from 0. We need to connect continuously the labelling of the
+        # subgroups belonging to each of the physical banks one after another.
         labels_tmp = [x + j * sub_num_clusters for x in clustering.labels_]
         labels.extend(labels_tmp)
-        print(f"[Info] Done with the clustering of absorption spectra for bank-{j + 1}.")
+        msg_tmp = "[Info] Done with the clustering of absorption "
+        msg_tmp += f"spectra for bank-{j + 1}."
+        print(msg_tmp)
 
     n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
     n_noise_ = list(labels).count(-1)
-
+    
+    # Save the identified group based on the absorption spectra similarity to
+    # grouping file.
     CreateGroupingWorkspace(InputWorkspace="abs_pbp",
                             OutputWorkspace="grouping")
     grouping = mtd["grouping"]
     for i, label in enumerate(labels):
         if label == -1:
             continue
-        det_id = all_spectra_id[i + num_monitors]
+
+        # Given the detector ID, figure out the spectra index
+        # It should be noticed that the index of a certain detector ID in the
+        # returned list from `detectorInfo()` method takes the monitors into
+        # account, but `setY()` method takes the spectrum index as input which
+        # does not take into account of the monitors. So, we need the following
+        # operations to remove number of monitors from the obtained spectra
+        # index.
+        det_id = all_spectra_id[i]
         det_id = mtd['abs_pbp'].detectorInfo().indexOf(det_id) - num_monitors
         grouping.setY(det_id, [int(label + 1)])
-
+    
     SaveDetectorsGrouping(InputWorkspace=grouping,
                           OutputFile=group_out_file)
+
+    # Group the absorption spectra within each of the identified groups
+    # following the average scheme and save the averaged absorption spectra to
+    # an external file.
     GroupDetectors(InputWorkspace=sam_abs_ws,
                    OutputWorkspace="sam_abs_grouped", Behaviour="Average",
                    CopyGroupingFromWorkspace=grouping)
     sam_abs_grouped = mtd['sam_abs_grouped']
     if con_abs_ws != "":
         GroupDetectors(InputWorkspace=con_abs_ws,
-                       OutputWorkspace="con_abs_grouped", Behaviour="Average",
+                       OutputWorkspace="con_abs_grouped",
+                       Behaviour="Average",
                        CopyGroupingFromWorkspace=grouping)
         con_abs_grouped = mtd['con_abs_grouped']
     else:
         con_abs_grouped = ""
 
+    # Here we want to check the similarity of the spectra within each of the
+    # identified group and see how different they are.
     print("[Info] Check the similarity of absorption spectra within groups.")
     ref_id = list()
     for i in range(group_count * sub_num_clusters):
-        ref_id.append(list(labels).index(i) + 2)
+        ref_id.append(list(labels).index(i))
     with open(group_ref_det_out_file, "w") as f:
         for i, item in enumerate(ref_id):
             if i == len(ref_id) - 1:
-                f.write("{0:d}".format(item))
+                f.write("{0:d}".format(all_spectra_id[item]))
             else:
-                f.write("{0:d}\n".format(item))
-
+                f.write("{0:d}\n".format(all_spectra_id[item]))
+    
     perct_max_tmp = list()
     for i, group in enumerate(labels):
         perct_tmp = list()
@@ -460,10 +521,10 @@ def abs_grouping(sam_abs_ws,
             perct_tmp.append(top / bottom * 100.)
         perct_max_tmp.append(max(perct_tmp))
     perct_max = max(perct_max_tmp)
-
+    
     print(f"[Info] # of clusters: {n_clusters_}")
     print(f"[Info] # of noise: {n_noise_}")
-    print("[Info] Maximum percentage difference: {0:3.1F}".format(perct_max))
+    print("[Info] Maximum percentage difference: {0:6.4F}%".format(perct_max))
 
     return sam_abs_grouped, con_abs_grouped, grouping
 
