@@ -65,7 +65,7 @@ jobs:
         run: |
           conda install -y anaconda-client conda-build conda-verify
           cd conda.recipe/mantid-total-scattering
-          conda build --output-folder . .
+          conda build --output-folder . -c neutrons -c oncat .
           CONDA_LABEL="main"
           if [ "${IS_RC}" = "true" ]; then CONDA_LABEL="rc"; fi
           anaconda upload --label $CONDA_LABEL linux-64/*.tar.bz2

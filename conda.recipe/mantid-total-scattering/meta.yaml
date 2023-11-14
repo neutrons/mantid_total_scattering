@@ -22,6 +22,8 @@ requirements:
   run:
     - {{ pin_compatible("mantidworkbench", max_pin="x.x") }}
     - python
+    - pystog
+    - pyoncat
     - matplotlib
     - scikit-learn
 
