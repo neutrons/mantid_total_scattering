@@ -658,10 +658,22 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
 
     # 2. calculate the absorption workspace (first order absorption) without
     #    calling to cache
-    abs_s, abs_c = absorptioncorrutils.calc_absorption_corr_using_wksp(
+    if "CacheDir" in align_and_focus_args:
+        if "BL11A:CS:ITEMS:HeightInContainer" not in mtd[donor_ws].run():
+            h_val = geometry["Height"]
+            mtd[donor_ws].run()["BL11A:CS:ITEMS:HeightInContainer"] = h_val
+        abs_s, abs_c = absorptioncorrutils.calc_absorption_corr_using_wksp(
             donor_ws,
             abs_method,
-            element_size=elementsize)
+            element_size=elementsize,
+            cache_dirs=align_and_focus_args["CacheDir"]
+        )
+    else:
+        abs_s, abs_c = absorptioncorrutils.calc_absorption_corr_using_wksp(
+            donor_ws,
+            abs_method,
+            element_size=elementsize
+        )
 
     if not (group_wksp_in is None or re_gen_group):
         if abs_s != "":
