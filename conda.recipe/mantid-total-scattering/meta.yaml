@@ -13,7 +13,7 @@ build:
 
 requirements:
   build:
-    - {{ pin_compatible("mantid", min_pin="6.8") }}
+    - {{ pin_compatible("mantidworkbench", min_pin="6.8") }}
     - python
     - setuptools
     - matplotlib
