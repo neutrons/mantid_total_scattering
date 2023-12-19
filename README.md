@@ -15,7 +15,7 @@ This is the future backend for the [ADDIE project](https://github.com/neutrons/a
 
 Structure factor S(Q) -> Pair Distribution Function G(r)
 -----------------------------------------------------------
-![alt text](https://raw.githubusercontent.com/neutrons/mantid_total_scattering/main/images/sofq_to_gofr.png)
+![alt text](https://raw.githubusercontent.com/neutrons/mantid_total_scattering/next/images/sofq_to_gofr.png)
 
 Running `mantidtotalscattering` will generate the total scattering data in
 reciprocal space saved as NeXus file, if one is using the multiple bank mode.
