@@ -49,16 +49,34 @@ def load(ws_name, input_files, group_wksp,
 
     # Figure out the list of run number
     run_list = list()
+    potential_cache_bn = list()
     for item in input_files.split(","):
         if "/" in item or "\\" in item:
             file_n = os.path.basename(item)
             reg_test = re.search('.*_[0-9]+\\.nxs\\.h5', file_n)
             if reg_test is None:
                 run_list.append("-1")
+                hash_obj = hashlib.sha256(file_n.encode())
+                hash_str = hash_obj.hexdigest()
+                vt = hash_str.encode()
+                s_hash_str = base64.urlsafe_b64encode(vt).decode()[:12]
+                potential_cache_bn.append(s_hash_str)
             else:
                 run_list.append(reg_test.group(0).split(".")[0].split("_")[1])
+                potential_cache_bn.append(None)
         else:
             run_list.append(item.split("_")[1])
+            potential_cache_bn.append(None)
+
+    str_tmp = sam_files.split(',')[0]
+    if "/" in str_tmp or "\\" in str_tmp:
+        sfile_n = os.path.basename(sam_files.split(',')[0])
+        hash_obj = hashlib.sha256(sfile_n.encode())
+        hash_str = hash_obj.hexdigest()
+        vt = hash_str.encode()
+        sf_cfn_part = base64.urlsafe_b64encode(vt).decode()[:12]
+    else:
+        sf_cfn_part = str_tmp
 
     if ipts is not None:
         cache_dir = os.path.join("/" + facility,
@@ -123,27 +141,29 @@ def load(ws_name, input_files, group_wksp,
                 align_and_focus_args["GroupFilename"] = group_all_file
             for run_i, run in enumerate(run_list):
                 if run == "-1":
-                    cache_f_exist = False
+                    cache_f_bn = potential_cache_bn[run_i]
                 else:
                     cache_f_bn = f"{instr_name}_{run}"
-                    if auto_red:
-                        cache_f_bn += f"_mts_no_subg_sgb_{ws_name}"
-                        cache_f_bn += f"_{sam_files.split(',')[0]}.nxs"
-                    else:
-                        cache_f_bn += f"_mts_no_subg_{ws_name}"
-                        cache_f_bn += f"_{sam_files.split(',')[0]}.nxs"
-                    if ipts is not None:
-                        cache_f_fn = os.path.join("/" + facility,
-                                                  instr_name,
-                                                  ipts,
-                                                  "shared",
-                                                  "autoreduce",
-                                                  "cache",
-                                                  cache_f_bn)
-                    if ipts is not None and os.path.isfile(cache_f_fn):
-                        cache_f_exist = True
-                    else:
-                        cache_f_exist = False
+
+                if auto_red:
+                    cache_f_bn += f"_mts_no_subg_sgb_{ws_name}"
+                    cache_f_bn += f"_{sf_cfn_part}.nxs"
+                else:
+                    cache_f_bn += f"_mts_no_subg_{ws_name}"
+                    cache_f_bn += f"_{sf_cfn_part}.nxs"
+
+                if ipts is not None:
+                    cache_f_fn = os.path.join("/" + facility,
+                                              instr_name,
+                                              ipts,
+                                              "shared",
+                                              "autoreduce",
+                                              "cache",
+                                              cache_f_bn)
+                if ipts is not None and os.path.isfile(cache_f_fn):
+                    cache_f_exist = True
+                else:
+                    cache_f_exist = False
 
                 if cache_f_exist:
                     wksp_tmp = LoadNexus(Filename=cache_f_fn)
@@ -181,22 +201,23 @@ def load(ws_name, input_files, group_wksp,
     else:
         for run_i, run in enumerate(run_list):
             if run == "-1":
-                cache_f_exist = False
+                cache_f_bn = potential_cache_bn[run_i]
             else:
                 cache_f_bn = f"{instr_name}_{run}_mts_subg"
-                cache_f_bn += f"_{ws_name}"
-                cache_f_bn += f"_{sam_files.split(',')[0]}.nxs"
-                cache_f_fn = os.path.join("/" + facility,
-                                          instr_name,
-                                          ipts,
-                                          "shared",
-                                          "autoreduce",
-                                          "cache",
-                                          cache_f_bn)
-                if os.path.isfile(cache_f_fn):
-                    cache_f_exist = True
-                else:
-                    cache_f_exist = False
+
+            cache_f_bn += f"_{ws_name}"
+            cache_f_bn += f"_{sf_cfn_part}.nxs"
+            cache_f_fn = os.path.join("/" + facility,
+                                      instr_name,
+                                      ipts,
+                                      "shared",
+                                      "autoreduce",
+                                      "cache",
+                                      cache_f_bn)
+            if os.path.isfile(cache_f_fn):
+                cache_f_exist = True
+            else:
+                cache_f_exist = False
 
             # `group_num == 0` means no regeneration of grouping
             # was ever initialized and only in such cases will we
