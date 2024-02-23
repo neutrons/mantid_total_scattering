@@ -61,7 +61,7 @@ jobs:
         run: |
           conda install -y anaconda-client conda-build conda-verify
           cd conda.recipe/mantid-total-scattering
-          conda build --output-folder . -c neutrons -c oncat .
+          conda mambabuild --output-folder . -c neutrons -c oncat .
 
       - name: Deploy full package to Anaconda
         shell: bash -l {0}
