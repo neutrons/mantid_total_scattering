@@ -58,7 +58,6 @@ jobs:
       - name: Build conda package
         shell: bash -l {0}
         run: |
-          conda install -y anaconda-client conda-build boa conda-verify
           cd conda.recipe/mantid-total-scattering
           conda mambabuild --output-folder . -c neutrons -c oncat .
 
@@ -91,7 +90,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [linux]
     # only trigger deploys from protected branches and tags
-    if: ${{ github.ref_protected || github.ref_type == 'tag' }}
+    # if: ${{ github.ref_protected || github.ref_type == 'tag' }}
     if: false
     steps:
       - name: Determine Environment
