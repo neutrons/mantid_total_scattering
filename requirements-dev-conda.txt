@@ -1,4 +1,9 @@
+anaconda-client
 bandit
+boa
+libmamba
+conda-build
+conda-verify
 flake8
 pytest
 pytest-cov
