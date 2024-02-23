@@ -59,7 +59,7 @@ jobs:
       - name: Build conda package
         shell: bash -l {0}
         run: |
-          conda install -y anaconda-client conda-build conda-verify
+          conda install -y anaconda-client conda-build boa conda-verify
           cd conda.recipe/mantid-total-scattering
           conda mambabuild --output-folder . -c neutrons -c oncat .
 
