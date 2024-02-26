@@ -70,6 +70,7 @@ jobs:
         run: |
           CONDA_LABEL="main"
           if [ "${IS_RC}" = "true" ]; then CONDA_LABEL="rc"; fi
+          cd conda.recipe/mantid-total-scattering
           anaconda upload --label $CONDA_LABEL linux-64/*.tar.bz2
 
       - name: Deploy python wrapper to Anaconda
