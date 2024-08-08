@@ -13,14 +13,14 @@ build:
 
 requirements:
   build:
-    - mantidworkbench=6.8
+    - mantidworkbench=6.8.0
     - python
     - setuptools
     - matplotlib
     - scikit-learn
 
   run:
-    - mantidworkbench=6.8
+    - mantidworkbench=6.8.0
     - python
     - pystog
     - pyoncat
