@@ -13,14 +13,14 @@ build:
 
 requirements:
   build:
-    - mantidworkbench=6.8.0
+    - {{ pin_compatible("mantidworkbench", min_pin="6.8") }}
     - python
     - setuptools
     - matplotlib
     - scikit-learn
 
   run:
-    - mantidworkbench=6.8.0
+    - {{ pin_compatible("mantidworkbench", min_pin="6.8") }}
     - python
     - pystog
     - pyoncat
