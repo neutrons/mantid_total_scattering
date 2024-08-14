@@ -2147,10 +2147,6 @@ def TotalScatteringReduction(config: dict = None):
         Target="TOF",
         EMode="Elastic")
 
-    ConvertToHistogram(
-        InputWorkspace=sam_corrected_norm_bragg,
-        OutputWorkspace=sam_corrected_norm_bragg)
-
     xmin, xmax = get_each_spectra_xmin_xmax(mtd[sam_corrected_norm_bragg])
 
     xmin_rebin = min(xmin)
@@ -2187,7 +2183,7 @@ def TotalScatteringReduction(config: dict = None):
         Filename=os.path.join(os.path.abspath(OutputDir), 'GSAS', title+".gsa"),
         SplitFiles=False,
         Append=False,
-        MultiplyByBinWidth=False,
+        MultiplyByBinWidth=True,
         Format="SLOG",
         ExtendedHeader=True)
 
