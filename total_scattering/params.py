@@ -3,7 +3,8 @@ import json
 config_loc = {
     "SNS": {
         "NOM": "/SNS/NOM/shared/autoreduce/configs/auto_config.json",
-        "PG3": "/SNS/PG3/shared/autoreduce/configs/auto_config.json"
+        "PG3": "/SNS/PG3/shared/autoreduce/configs/auto_config.json",
+        "CORELLI": "/SNS/NOM/shared/config/CORELLI/auto_config_corelli.json"
     }
 }
 
