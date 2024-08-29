@@ -658,10 +658,15 @@ def TotalScatteringReduction(config: dict = None):
     # Override Nexus file basename with Filenames if present
     if "Filenames" in sample:
         sam_scans = ','.join(sample["Filenames"])
+        # Grab the IPTS
+        base_n = os.path.basename(sam_scans.split(",")[0])
+        ipts = GetIPTS(Instrument=instr,
+                       RunNumber=base_n.split("_")[1])
+    else:
+        # Grab the IPTS
+        ipts = GetIPTS(Instrument=instr,
+                       RunNumber=sam_scans.split(",")[0].split("_")[1])
 
-    # Grab the IPTS
-    ipts = GetIPTS(Instrument=instr,
-                   RunNumber=sam_scans.split(",")[0].split("_")[1])
     if ipts[-1] == "/":
         ipts = ipts[:-1]
     ipts = os.path.basename(ipts)
