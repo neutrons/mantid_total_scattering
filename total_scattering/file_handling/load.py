@@ -44,6 +44,7 @@ def load(ws_name, input_files, group_wksp,
          qparams='0.01,0.001,40.0', auto_red=False,
          group_all_file=None,
          sam_files=None,
+         re_cache=False,
          **align_and_focus_args):
     '''Routine for loading workspace'''
 

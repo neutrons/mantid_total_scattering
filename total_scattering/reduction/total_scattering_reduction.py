@@ -561,6 +561,12 @@ def TotalScatteringReduction(config: dict = None):
     grouping = merging.get('Grouping', None)
     cache_dir = config.get("CacheDir", None)
     OutputDir = config.get("OutputDir", os.path.abspath('.'))
+    manual_grouping = grouping
+    if manual_grouping:
+        # If manual grouping is used, we want to force the absorption
+        # correction to be performed pixel by pixel explicitly without
+        # any grouping.
+        num_regen_groups = 0
 
     debug_mode = config.get("DebugMode", False)
     if debug_mode:
@@ -568,6 +574,15 @@ def TotalScatteringReduction(config: dict = None):
         print("[Info] Reduction time is supposed to increase significantly.")
     else:
         print("[Info] Debug mode disabled. Only final workspace will be saved.")
+
+    re_cache = config.get("ReCaching", False)
+    if re_cache:
+        info_msg_tmp = "[Info] ReCaching initialized. "
+        info_msg_tmp += "All existing cache will be ignored."
+        print(info_msg_tmp)
+        info_msg_tmp = "[Info] After processing, "
+        info_msg_tmp += "all existing cache will be overwritten."
+        print(info_msg_tmp)
 
     # Vanadium peak stripping parameters
     van_ps = config.get("StripVanPeaksParams", None)
@@ -792,8 +807,8 @@ def TotalScatteringReduction(config: dict = None):
             so = sam_abs_corr["Type"] == "SampleOnly"
             redo_cond_2 = f_s_exists and (not f_c_exists) and (not so)
 
-            if num_regen_groups > 0 or redo_cond_1 or redo_cond_2:
-                if os.path.isfile(group_file):
+            if num_regen_groups > 0 or redo_cond_1 or redo_cond_2 or re_cache:
+                if os.path.isfile(group_file) and not manual_grouping:
                     group_wksp = LoadDetectorsGroupingFile(InputFile=group_file)
                 else:
                     group_wksp = None
@@ -829,7 +844,7 @@ def TotalScatteringReduction(config: dict = None):
                 log.notice(msg)
                 sam_abs_ws = LoadNexus(Filename=central_cache_f_s)
                 num_spec_abs = sam_abs_ws.getNumberHistograms()
-                if os.path.isfile(group_file):
+                if os.path.isfile(group_file) and not manual_grouping:
                     if os.path.isfile(sg_index_f):
                         with open(sg_index_f, "r") as f:
                             lines = f.readlines()
@@ -903,7 +918,7 @@ def TotalScatteringReduction(config: dict = None):
                 group_wksp_out_van = group_wksp_out
                 abs_cache_fn_v += "_g.nxs"
             else:
-                if os.path.isfile(group_file):
+                if os.path.isfile(group_file) and not manual_grouping:
                     group_wksp_out_van = LoadDetectorsGroupingFile(
                         InputFile=group_file)
                     abs_cache_fn_v += "_g.nxs"
@@ -912,7 +927,7 @@ def TotalScatteringReduction(config: dict = None):
             central_cache_dir = gen_config.config_params["CacheDir"]
             central_cache_f_v = os.path.join(central_cache_dir,
                                              abs_cache_fn_v)
-            if not os.path.exists(central_cache_f_v):
+            if not os.path.exists(central_cache_f_v) or re_cache:
                 van_abs_corr_ws, van_con_ws, _ = create_absorption_wksp(
                     van_scans,
                     van_abs_corr["Type"],
@@ -1043,6 +1058,7 @@ def TotalScatteringReduction(config: dict = None):
         auto_red=auto_red,
         group_all_file=group_all_file,
         sam_files=sam_scans,
+        re_cache=re_cache,
         **alignAndFocusArgs)
     sample_title = "sample_and_container"
     if debug_mode:
@@ -1080,6 +1096,7 @@ def TotalScatteringReduction(config: dict = None):
         auto_red=auto_red,
         group_all_file=group_all_file,
         sam_files=sam_scans,
+        re_cache=re_cache,
         **alignAndFocusArgs)
     if debug_mode:
         save_banks(
@@ -1129,6 +1146,7 @@ def TotalScatteringReduction(config: dict = None):
                 auto_red=auto_red,
                 group_all_file=group_all_file,
                 sam_files=sam_scans,
+                re_cache=re_cache,
                 **alignAndFocusArgs)
             tmp = load(
                 'container_background_tmp',
@@ -1144,6 +1162,7 @@ def TotalScatteringReduction(config: dict = None):
                 auto_red=auto_red,
                 group_all_file=group_all_file,
                 sam_files=sam_scans,
+                re_cache=re_cache,
                 **alignAndFocusArgs)
             Minus(
                 LHSWorkspace=container_bg,
@@ -1164,6 +1183,7 @@ def TotalScatteringReduction(config: dict = None):
                 auto_red=auto_red,
                 group_all_file=group_all_file,
                 sam_files=sam_scans,
+                re_cache=re_cache,
                 **alignAndFocusArgs)
         if debug_mode:
             save_banks(
@@ -1196,6 +1216,7 @@ def TotalScatteringReduction(config: dict = None):
         auto_red=auto_red,
         group_all_file=group_all_file,
         sam_files=sam_scans,
+        re_cache=re_cache,
         **alignAndFocusArgs)
 
     vanadium_title = "vanadium_and_background"
@@ -1260,6 +1281,7 @@ def TotalScatteringReduction(config: dict = None):
             auto_red=auto_red,
             group_all_file=group_all_file,
             sam_files=sam_scans,
+            re_cache=re_cache,
             **alignAndFocusArgs)
 
         vanadium_bg_title = "vanadium_background"
