@@ -1865,6 +1865,105 @@ def TotalScatteringReduction(config: dict = None):
         RenameWorkspace(InputWorkspace=sam_wksp,
                         OutputWorkspace=sam_corrected)
 
+
+    def out_bragg(form, out_wksp):
+        """Internal for Bragg pattern output. For the moment, we decided to
+        output both the normalized and unnormalized version of the Bragg
+        pattern and thus we need to call this part twice.
+
+        Params:
+            form (str): `norm` for normalized version and `unnorm` for the
+                unnormalized version.
+            out_wksp (str): Name of the Mantid workspace to output.
+        """
+        tmin_limit = gen_config.config_params.get("TMinBragg",
+                                                  "0.7,0.7,0.9,1.5,1.6,1.1")
+        tmax_limit = gen_config.config_params.get("TMaxBragg",
+                                                  "17,18.5,19,18.5,16.9,17")
+        tmin_limit = [float(item) * 1000. for item in tmin_limit.split(",")]
+        tmax_limit = [float(item) * 1000. for item in tmax_limit.split(",")]
+    
+        ConvertUnits(
+            InputWorkspace=out_wksp,
+            OutputWorkspace=out_wksp,
+            Target="TOF",
+            EMode="Elastic")
+    
+        xmin, xmax = get_each_spectra_xmin_xmax(mtd[out_wksp])
+    
+        xmin_rebin = min(xmin)
+        if "TMin" in alignAndFocusArgs.keys():
+            tmin = alignAndFocusArgs["TMin"]
+            info = f"[Info] 'TMin = {tmin}' found in the input config file."
+            print(info)
+            xmin_rebin = max(tmin, xmin_rebin)
+        xmax_rebin = max(xmax)
+        if "TMax" in alignAndFocusArgs.keys():
+            tmax = alignAndFocusArgs["TMax"]
+            info = f"[Info] 'TMax = {tmax}' found in the input config file."
+            print(info)
+            xmax_rebin = min(xmax_rebin, tmax)
+    
+        # Note: For the moment, bin size for Bragg output is hard coded.
+        # May need to make it user input if necessary.
+        tof_binning = "{xmin},-0.0008,{xmax}".format(
+            xmin=xmin_rebin,
+            xmax=xmax_rebin
+        )
+
+        Rebin(
+            InputWorkspace=out_wksp,
+            OutputWorkspace=out_wksp,
+            Params=tof_binning
+        )
+    
+        CropWorkspaceRagged(
+            InputWorkspace=out_wksp,
+            OutputWorkspace=out_wksp,
+            Xmin=tmin_limit,
+            Xmax=tmax_limit
+        )
+
+        if form == "norm":
+            gsas_folder = "GSAS"
+            topas_folder = "Topas"
+        else:
+            gsas_folder = "GSAS_unnorm"
+            topas_folder = "Topas_unnorm"
+
+        SaveGSS(
+            InputWorkspace=out_wksp,
+            Filename=os.path.join(
+                os.path.abspath(OutputDir),
+                gsas_folder,
+                title + ".gsa"
+            ),
+            SplitFiles=False,
+            Append=False,
+            MultiplyByBinWidth=True,
+            Format="SLOG",
+            ExtendedHeader=True
+        )
+    
+        SaveFocusedXYE(
+            InputWorkspace=out_wksp,
+            Filename=os.path.join(
+                os.path.abspath(OutputDir),
+                topas_folder,
+                title + ".xye"
+            )
+        )
+
+
+
+    #################################################################
+    # STEP 5.-1: Output the unnormalized version of the Bragg data
+    # For this, we don't need to worry about the Placzek correction,
+    # which will actually be performed later in STEP-7.
+    #################################################################
+    if not auto_red:
+        out_bragg("unnorm", sam_corrected)
+
     #################################################################
     # STEP 5: Divide by number of atoms in sample
     #################################################################
@@ -2161,64 +2260,7 @@ def TotalScatteringReduction(config: dict = None):
     if auto_red:
         return mtd[sam_corrected_norm]
 
-    tmin_limit = gen_config.config_params.get("TMinBragg",
-                                              "0.7,0.7,0.9,1.5,1.6,1.1")
-    tmax_limit = gen_config.config_params.get("TMaxBragg",
-                                              "17,18.5,19,18.5,16.9,17")
-    tmin_limit = [float(item) * 1000. for item in tmin_limit.split(",")]
-    tmax_limit = [float(item) * 1000. for item in tmax_limit.split(",")]
-
-    ConvertUnits(
-        InputWorkspace=sam_corrected_norm_bragg,
-        OutputWorkspace=sam_corrected_norm_bragg,
-        Target="TOF",
-        EMode="Elastic")
-
-    xmin, xmax = get_each_spectra_xmin_xmax(mtd[sam_corrected_norm_bragg])
-
-    xmin_rebin = min(xmin)
-    if "TMin" in alignAndFocusArgs.keys():
-        tmin = alignAndFocusArgs["TMin"]
-        info = f"[Info] 'TMin = {tmin}' found in the input config file."
-        print(info)
-        xmin_rebin = max(tmin, xmin_rebin)
-    xmax_rebin = max(xmax)
-    if "TMax" in alignAndFocusArgs.keys():
-        tmax = alignAndFocusArgs["TMax"]
-        info = f"[Info] 'TMax = {tmax}' found in the input config file."
-        print(info)
-        xmax_rebin = min(xmax_rebin, tmax)
-
-    # Note: For the moment, bin size for Bragg output is hard coded.
-    # May need to make it user input if necessary.
-    tof_binning = "{xmin},-0.0008,{xmax}".format(xmin=xmin_rebin,
-                                                 xmax=xmax_rebin)
-
-    Rebin(
-        InputWorkspace=sam_corrected_norm_bragg,
-        OutputWorkspace=sam_corrected_norm_bragg,
-        Params=tof_binning)
-
-    CropWorkspaceRagged(
-        InputWorkspace=sam_corrected_norm_bragg,
-        OutputWorkspace=sam_corrected_norm_bragg,
-        Xmin=tmin_limit,
-        Xmax=tmax_limit)
-
-    SaveGSS(
-        InputWorkspace=sam_corrected_norm_bragg,
-        Filename=os.path.join(os.path.abspath(OutputDir), 'GSAS', title+".gsa"),
-        SplitFiles=False,
-        Append=False,
-        MultiplyByBinWidth=True,
-        Format="SLOG",
-        ExtendedHeader=True)
-
-    SaveFocusedXYE(
-        InputWorkspace=sam_corrected_norm_bragg,
-        Filename=os.path.join(os.path.abspath(OutputDir),
-                              'Topas',
-                              title+".xye"))
+    out_bragg("norm", sam_corrected_norm_bragg)
 
     if final_message:
         log.warning(final_message)
