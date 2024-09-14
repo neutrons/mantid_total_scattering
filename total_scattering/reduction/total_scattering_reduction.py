@@ -1059,6 +1059,7 @@ def TotalScatteringReduction(config: dict = None):
         group_all_file=group_all_file,
         sam_files=sam_scans,
         re_cache=re_cache,
+        cache_dir=cache_dir,
         **alignAndFocusArgs)
     sample_title = "sample_and_container"
     if debug_mode:
@@ -1097,6 +1098,7 @@ def TotalScatteringReduction(config: dict = None):
         group_all_file=group_all_file,
         sam_files=sam_scans,
         re_cache=re_cache,
+        cache_dir=cache_dir,
         **alignAndFocusArgs)
     if debug_mode:
         save_banks(
@@ -1147,6 +1149,7 @@ def TotalScatteringReduction(config: dict = None):
                 group_all_file=group_all_file,
                 sam_files=sam_scans,
                 re_cache=re_cache,
+                cache_dir=cache_dir,
                 **alignAndFocusArgs)
             tmp = load(
                 'container_background_tmp',
@@ -1163,6 +1166,7 @@ def TotalScatteringReduction(config: dict = None):
                 group_all_file=group_all_file,
                 sam_files=sam_scans,
                 re_cache=re_cache,
+                cache_dir=cache_dir,
                 **alignAndFocusArgs)
             Minus(
                 LHSWorkspace=container_bg,
@@ -1184,6 +1188,7 @@ def TotalScatteringReduction(config: dict = None):
                 group_all_file=group_all_file,
                 sam_files=sam_scans,
                 re_cache=re_cache,
+                cache_dir=cache_dir,
                 **alignAndFocusArgs)
         if debug_mode:
             save_banks(
@@ -1217,6 +1222,7 @@ def TotalScatteringReduction(config: dict = None):
         group_all_file=group_all_file,
         sam_files=sam_scans,
         re_cache=re_cache,
+        cache_dir=cache_dir,
         **alignAndFocusArgs)
 
     vanadium_title = "vanadium_and_background"
@@ -1282,6 +1288,7 @@ def TotalScatteringReduction(config: dict = None):
             group_all_file=group_all_file,
             sam_files=sam_scans,
             re_cache=re_cache,
+            cache_dir=cache_dir,
             **alignAndFocusArgs)
 
         vanadium_bg_title = "vanadium_background"

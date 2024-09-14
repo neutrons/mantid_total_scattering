@@ -45,6 +45,7 @@ def load(ws_name, input_files, group_wksp,
          group_all_file=None,
          sam_files=None,
          re_cache=False,
+         cache_dir=None,
          **align_and_focus_args):
     '''Routine for loading workspace'''
 
@@ -80,12 +81,15 @@ def load(ws_name, input_files, group_wksp,
         sf_cfn_part = str_tmp
 
     if ipts is not None:
-        cache_dir = os.path.join("/" + facility,
-                                 instr_name,
-                                 ipts,
-                                 "shared",
-                                 "autoreduce",
-                                 "cache")
+        if cache_dir is None:
+            cache_dir = os.path.join("/" + facility,
+                                     instr_name,
+                                     ipts,
+                                     "shared",
+                                     "autoreduce",
+                                     "cache")
+        else:
+            cache_dir = os.path.abspath(cache_dir)
         os.makedirs(cache_dir, exist_ok=True)
 
     # For autoreduction, we want to fill the low-q part with the asymptotic
@@ -127,13 +131,10 @@ def load(ws_name, input_files, group_wksp,
             cache_sf_bn += f"{short_hash_str}"
         cache_sf_bn += f"_{ws_name}_{sam_files.split(',')[0]}.nxs"
         if ipts is not None:
-            cache_sf_fn = os.path.join("/" + facility,
-                                       instr_name,
-                                       ipts,
-                                       "shared",
-                                       "autoreduce",
-                                       "cache",
-                                       cache_sf_bn)
+            cache_sf_fn = os.path.join(
+                cache_dir,
+                cache_sf_bn
+            )
 
         if ipts is not None and os.path.isfile(cache_sf_fn):
             LoadNexus(Filename=cache_sf_fn, OutputWorkspace=ws_name)
@@ -154,13 +155,10 @@ def load(ws_name, input_files, group_wksp,
                     cache_f_bn += f"_{sf_cfn_part}.nxs"
 
                 if ipts is not None:
-                    cache_f_fn = os.path.join("/" + facility,
-                                              instr_name,
-                                              ipts,
-                                              "shared",
-                                              "autoreduce",
-                                              "cache",
-                                              cache_f_bn)
+                    cache_f_fn = os.path.join(
+                        cache_dir,
+                        cache_f_bn
+                    )
                 if ipts is not None and os.path.isfile(cache_f_fn):
                     cache_f_exist = True
                 else:
@@ -208,13 +206,11 @@ def load(ws_name, input_files, group_wksp,
 
             cache_f_bn += f"_{ws_name}"
             cache_f_bn += f"_{sf_cfn_part}.nxs"
-            cache_f_fn = os.path.join("/" + facility,
-                                      instr_name,
-                                      ipts,
-                                      "shared",
-                                      "autoreduce",
-                                      "cache",
-                                      cache_f_bn)
+            if ipts is not None:
+                cache_f_fn = os.path.join(
+                    cache_dir,
+                    cache_f_bn
+                )
             if os.path.isfile(cache_f_fn):
                 cache_f_exist = True
             else:
