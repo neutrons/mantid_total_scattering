@@ -79,10 +79,14 @@ def calculate_and_apply_fitted_levels(
         ws_index = key - 1
 
         start_index = input_workspace.yIndexOfX(value[0], ws_index) + 1
-        end_index = input_workspace.yIndexOfX(value[1], ws_index) + 1
-        # Extract the bank between the fit regions
-        bank_x = input_workspace.readX(ws_index)[start_index:end_index]
-        bank_y = input_workspace.readY(ws_index)[start_index:end_index]
+        try:
+            end_index = input_workspace.yIndexOfX(value[1], ws_index) + 1
+            # Extract the bank between the fit regions
+            bank_x = input_workspace.readX(ws_index)[start_index:end_index]
+            bank_y = input_workspace.readY(ws_index)[start_index:end_index]
+        except IndexError:
+            bank_x = input_workspace.readX(ws_index)[start_index:]
+            bank_y = input_workspace.readY(ws_index)[start_index:]
 
         tmp_wks = CreateWorkspace(bank_x, bank_y)
         Fit("name=UserFunction, Formula=a+b*x, a=1, b=0",

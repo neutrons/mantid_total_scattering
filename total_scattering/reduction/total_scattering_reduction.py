@@ -18,6 +18,7 @@ from mantid.simpleapi import \
     ConvertUnits, \
     CreateEmptyTableWorkspace, \
     CreateGroupingWorkspace, \
+    CropWorkspace, \
     CropWorkspaceRagged, \
     Divide, \
     FFTSmooth, \
@@ -1669,6 +1670,12 @@ def TotalScatteringReduction(config: dict = None):
     #           For sample, container, sample raw, vanadium background
     #################################################################
     # Save (sample - back) / van_corrected
+    CropWorkspace(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        XMin=0.05
+    )
+
     RebinToWorkspace(
         WorkspaceToRebin=van_corrected,
         WorkspaceToMatch=sam_wksp,
