@@ -2,9 +2,13 @@ import logging
 from mantid import mtd
 from mantid.simpleapi import \
     AlignAndFocusPowderFromFiles, \
+    ApplyDiffCal, \
     ConvertUnits, \
+    DiffractionFocussing, \
     Divide, \
     Load, \
+    LoadDiffCal, \
+    MaskDetectors, \
     MultipleScatteringCorrection, \
     NormaliseByCurrent, \
     PDDetermineCharacterizations, \
@@ -41,7 +45,9 @@ def load(ws_name, input_files, group_wksp,
          facility=None, instr_name=None, ipts=None, group_num=None,
          geometry=None, chemical_formula=None, mass_density=None,
          absorption_wksp='', out_group_dict=None,
-         qparams='0.01,0.001,40.0', auto_red=False,
+         qparams='0.01,0.001,40.0',
+         wlparams='0.06,0.0001,2.98',
+         auto_red=False,
          group_all_file=None,
          sam_files=None,
          re_cache=False,
@@ -112,11 +118,8 @@ def load(ws_name, input_files, group_wksp,
         # Given the current implementation mechanism, if the input
         # `group_wksp` is None, that means there was no absorption
         # calculation involved in the preparation stage (i.e., before
-        # calling current load method). In such a situation, we go
-        # ahead to perform the align and focus in the old way by
-        # calling the `AlignAndFocusPowderFromFiles` algorithm,
-        # followed by saving the summed file to cache. For sure,
-        # if such a cache file already exists, we load it in.
+        # calling current load method). In such a situation, we can
+        # safely cache the summed processing.
 
         # Figure out a unique name for the summed cache file
         # The codes here were originating from GPT3.5-turbo API
@@ -168,23 +171,33 @@ def load(ws_name, input_files, group_wksp,
                     wksp_tmp = LoadNexus(Filename=cache_f_fn)
                 else:
                     wksp_tmp = "wksp_tmp"
-                    AlignAndFocusPowderFromFiles(
-                        OutputWorkspace=wksp_tmp,
-                        Filename=input_files.split(",")[run_i],
-                        AbsorptionWorkspace=absorption_wksp,
-                        **align_and_focus_args)
+
+                    tmin_tmp = align_and_focus_args["TMin"]
+                    tmax_tmp = align_and_focus_args["TMax"]
+                    params = f"{tmin_tmp}, -0.0008, {tmax_tmp}"
+                    align_focus_mts(
+                        wksp_tmp,
+                        instr_name,
+                        input_files.split(",")[run_i],
+                        align_and_focus_args["CalFilename"],
+                        params,
+                        pres_events=align_and_focus_args["PreserveEvents"]
+                    )
                     ConvertUnits(
                         InputWorkspace=wksp_tmp,
                         OutputWorkspace=wksp_tmp,
                         Target="MomentumTransfer",
-                        EMode="Elastic")
+                        EMode="Elastic"
+                    )
                     if ipts is not None:
                         SaveNexusProcessed(
-                            InputWorkspace=wksp_tmp,
+                            InputWorkspace="wksp_tmp_wrb",
                             Filename=cache_f_fn,
                             Title=f"{run}_cached_no_abs",
                             WorkspaceIndexList=range(
-                                mtd[wksp_tmp].getNumberHistograms()))
+                                mtd[wksp_tmp].getNumberHistograms()
+                            )
+                        )
 
                 # Accumulate individual files
                 if run_i == 0:
@@ -220,27 +233,33 @@ def load(ws_name, input_files, group_wksp,
             # was ever initialized and only in such cases will we
             # move ahead to load in the existing cache file.
             if cache_f_exist and group_num == 0:
-                wksp_tmp = LoadNexus(Filename=cache_f_fn)
+                wksp_tmp = "wksp_tmp_wrb"
+                LoadNexus(OutputWorkspace=wksp_tmp, Filename=cache_f_fn)
             else:
                 wksp_tmp = "wksp_tmp"
-                AlignAndFocusPowderFromFiles(
-                    OutputWorkspace=wksp_tmp,
-                    Filename=input_files.split(",")[run_i],
-                    GroupingWorkspace=group_wksp,
-                    **align_and_focus_args)
+
                 tmin_tmp = align_and_focus_args["TMin"]
                 tmax_tmp = align_and_focus_args["TMax"]
                 params = f"{tmin_tmp}, -0.0008, {tmax_tmp}"
-                Rebin(InputWorkspace=wksp_tmp,
-                      OutputWorkspace=wksp_tmp,
-                      Params=params)
+                align_focus_mts(
+                    wksp_tmp,
+                    instr_name,
+                    input_files.split(",")[run_i],
+                    align_and_focus_args["CalFilename"],
+                    params,
+                    group_wksp_in=group_wksp,
+                    pres_events=align_and_focus_args["PreserveEvents"]
+                )
                 ConvertUnits(
                     InputWorkspace=wksp_tmp,
                     OutputWorkspace=wksp_tmp,
                     Target="Wavelength",
                     EMode="Elastic")
+                Rebin(InputWorkspace=wksp_tmp,
+                      OutputWorkspace="wksp_tmp_wrb",
+                      Params=wlparams)
                 SaveNexusProcessed(
-                    InputWorkspace=wksp_tmp,
+                    InputWorkspace="wksp_tmp_wrb",
                     Filename=cache_f_fn,
                     Title=f"{run}_cached",
                     WorkspaceIndexList=range(
@@ -248,20 +267,19 @@ def load(ws_name, input_files, group_wksp,
 
             # Accumulate individual files
             if run_i == 0:
-                CloneWorkspace(InputWorkspace=wksp_tmp,
+                CloneWorkspace(InputWorkspace="wksp_tmp_wrb",
                                OutputWorkspace=ws_name)
             else:
                 Plus(LHSWorkspace=ws_name,
-                     RHSWorkspace=wksp_tmp,
+                     RHSWorkspace="wksp_tmp_wrb",
                      OutputWorkspace=ws_name)
 
         if absorption_wksp != '':
-            RebinToWorkspace(
-                WorkspaceToRebin=absorption_wksp,
-                WorkspaceToMatch=ws_name,
-                OutputWorkspace=absorption_wksp)
+            Rebin(InputWorkspace=absorption_wksp,
+                  OutputWorkspace="absorption_wksp_rb",
+                  Params=wlparams)
             Divide(LHSWorkspace=mtd[ws_name],
-                   RHSWorkspace=absorption_wksp,
+                   RHSWorkspace="absorption_wksp_rb",
                    OutputWorkspace=ws_name,
                    AllowDifferentNumberSpectra=True)
 
@@ -310,12 +328,72 @@ def load(ws_name, input_files, group_wksp,
         Rebin(
             InputWorkspace=ws_name,
             OutputWorkspace=ws_name,
-            Params=qparams_use)
+            Params=qparams_use
+        )
 
     if geometry and chemical_formula and mass_density:
         set_sample(ws_name, geometry, chemical_formula, mass_density)
 
     return ws_name
+
+
+def align_focus_mts(out_wksp,
+                    instr_name,
+                    file_name,
+                    cal_file_name,
+                    tof_bin_params,
+                    group_wksp_in=None,
+                    pres_events=True):
+    """The MantidTotalScattering internal version of the align and focus
+    algorithm. Simple enough but does the job just as what it should do.
+    """
+    wksp_proc = Load(file_name)
+
+    LoadDiffCal(
+        InstrumentName=instr_name,
+        Filename=cal_file_name,
+        WorkspaceName="calib_wksp"
+    )
+
+    ApplyDiffCal(
+        InstrumentWorkspace="wksp_proc",
+        CalibrationWorkspace="calib_wksp_cal"
+    )
+
+    MaskDetectors(
+        Workspace="wksp_proc",
+        MaskedWorkspace="calib_wksp_mask"
+    )
+
+    Rebin(
+        InputWorkspace="wksp_proc",
+        OutputWorkspace="wksp_proc_rebin",
+        Params=tof_bin_params,
+        PreserveEvents=pres_events
+    )
+
+    ConvertUnits(
+        InputWorkspace="wksp_proc_rebin",
+        OutputWorkspace="wksp_proc_rebin_q",
+        Target="MomentumTransfer"
+    )
+
+    if group_wksp_in is None:
+        group_wksp_in = "calib_wksp_group"
+
+    DiffractionFocussing(
+        InputWorkspace="wksp_proc_rebin_q",
+        OutputWorkspace="wksp_proc_focus",
+        GroupingWorkspace=group_wksp_in
+    )
+
+    ConvertUnits(
+        InputWorkspace="wksp_proc_focus",
+        OutputWorkspace=out_wksp,
+        Target="TOF"
+    )
+
+    return
 
 
 def set_sample(ws_name, geometry=None, chemical_formula=None,
