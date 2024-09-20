@@ -4,6 +4,7 @@ from __future__ import (absolute_import, division, print_function)
 import os
 import itertools
 import numpy as np
+import math
 from scipy.constants import Avogadro
 
 from mantid import mtd
@@ -17,6 +18,7 @@ from mantid.simpleapi import \
     ConvertUnits, \
     CreateEmptyTableWorkspace, \
     CreateGroupingWorkspace, \
+    CropWorkspace, \
     CropWorkspaceRagged, \
     Divide, \
     FFTSmooth, \
@@ -1668,6 +1670,18 @@ def TotalScatteringReduction(config: dict = None):
     #           For sample, container, sample raw, vanadium background
     #################################################################
     # Save (sample - back) / van_corrected
+    CropWorkspace(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        XMin=0.05
+    )
+
+    RebinToWorkspace(
+        WorkspaceToRebin=van_corrected,
+        WorkspaceToMatch=sam_wksp,
+        OutputWorkspace=van_corrected
+    )
+
     Divide(
         LHSWorkspace=sam_wksp,
         RHSWorkspace=van_corrected,
@@ -2189,11 +2203,16 @@ def TotalScatteringReduction(config: dict = None):
         x_data = mtd[sam_corrected_norm].readX(0)
         y_data = mtd[sam_corrected_norm].readY(0)
         y_new = list()
-        b_sqrd_avg = material.btot_sqrd_avg
-        b_avg_sqrd = material.bcoh_avg_sqrd
+        closest_index = min(
+            range(len(x_data)),
+            key=lambda i: abs(x_data[i] - qmin_limit)
+        )
+        # b_sqrd_avg = material.btot_sqrd_avg
+        # b_avg_sqrd = material.bcoh_avg_sqrd
         for i in range(len(x_data) - 1):
-            if x_data[i] <= qmin_limit:
-                y_new.append(-1. * b_sqrd_avg / b_avg_sqrd)
+            if x_data[i] <= qmin_limit or math.isnan(y_data[i]):
+                # y_new.append(-1. * b_sqrd_avg / b_avg_sqrd)
+                y_new.append(y_data[closest_index])
             else:
                 y_new.append(y_data[i])
         mtd[sam_corrected_norm].setY(0, y_new)
