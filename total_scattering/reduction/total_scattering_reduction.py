@@ -1387,14 +1387,15 @@ def TotalScatteringReduction(config: dict = None):
             WorkspaceToRebin=container,
             WorkspaceToMatch=sam_wksp,
             OutputWorkspace=container)
-        RebinToWorkspace(
-            WorkspaceToRebin=container_bg,
-            WorkspaceToMatch=sam_wksp,
-            OutputWorkspace=container_bg)
-        Minus(
-            LHSWorkspace=container,
-            RHSWorkspace=container_bg,
-            OutputWorkspace=container)
+        if container_bg is not None:
+            RebinToWorkspace(
+                WorkspaceToRebin=container_bg,
+                WorkspaceToMatch=sam_wksp,
+                OutputWorkspace=container_bg)
+            Minus(
+                LHSWorkspace=container,
+                RHSWorkspace=container_bg,
+                OutputWorkspace=container)
         save_banks(
             InputWorkspace=container,
             Filename=nexus_filename,
@@ -1695,9 +1696,11 @@ def TotalScatteringReduction(config: dict = None):
         RHSWorkspace=van_corrected,
         OutputWorkspace=sam_wksp)
 
+    threshold = 1.E3
     for i in range(mtd[sam_wksp].getNumberHistograms()):
         orig_y_tmp = mtd[sam_wksp].readY(i)
         new_y = np.nan_to_num(orig_y_tmp, nan=0)
+        new_y[np.abs(new_y) > threshold] = 0.
         mtd[sam_wksp].setY(i, new_y)
 
     sample_title += "_normalized"
