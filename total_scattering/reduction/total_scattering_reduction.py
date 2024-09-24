@@ -10,17 +10,20 @@ from scipy.constants import Avogadro
 from mantid import mtd
 from mantid.kernel import Logger
 from mantid.simpleapi import \
+    ApplyDiffCal, \
     CarpenterSampleCorrection, \
     CloneWorkspace, \
     CompressEvents, \
     ConvertToDistribution, \
     ConvertToHistogram,\
     ConvertUnits, \
+    CreateDetectorTable, \
     CreateEmptyTableWorkspace, \
     CreateGroupingWorkspace, \
     CropWorkspace, \
     CropWorkspaceRagged, \
     Divide, \
+    EditInstrumentGeometry, \
     FFTSmooth, \
     GenerateEventsFilter, \
     GroupWorkspaces, \
@@ -46,7 +49,8 @@ from mantid.simpleapi import \
     GetIPTS, \
     SaveNexus, \
     LoadNexus, \
-    RenameWorkspace
+    RenameWorkspace, \
+    SaveNexusProcessed
 
 from total_scattering.file_handling.load import load, create_absorption_wksp
 from total_scattering.file_handling.save import save_banks
@@ -595,11 +599,11 @@ def TotalScatteringReduction(config: dict = None):
         van_ps_hb = van_ps.get("HighBackground", True)
         van_ps_pp_tol = van_ps.get("PeakPositionTolerance", 0.01)
     else:
-        van_ps_fwhm = 10
+        van_ps_fwhm = 7
         van_ps_tol = 4
         van_ps_bkg_type = "Quadratic"
         van_ps_hb = True
-        van_ps_pp_tol = 0.02
+        van_ps_pp_tol = 0.01
 
     # Create Nexus file basenames
     sample['Runs'] = expand_ints(sample['Runs'])
@@ -1499,6 +1503,18 @@ def TotalScatteringReduction(config: dict = None):
         Target='dSpacing',
         EMode='Elastic')
 
+    for i in range(mtd[van_corrected].getNumberHistograms()):
+        orig_y_tmp = mtd[van_corrected].readY(i)
+        new_y = np.nan_to_num(orig_y_tmp, nan=0)
+        mtd[van_corrected].setY(i, new_y)
+
+    SaveNexusProcessed(
+        InputWorkspace=van_corrected,
+        Filename="/SNS/users/y8z/Temp/vanadium.nxs",
+        Title="checking",
+        WorkspaceIndexList=range(
+            mtd[van_corrected].getNumberHistograms()))
+
     # After StripVanadiumPeaks, the workspace goes from EventWorkspace ->
     # Workspace2D
     StripVanadiumPeaks(
@@ -1686,6 +1702,11 @@ def TotalScatteringReduction(config: dict = None):
         LHSWorkspace=sam_wksp,
         RHSWorkspace=van_corrected,
         OutputWorkspace=sam_wksp)
+
+    for i in range(mtd[sam_wksp].getNumberHistograms()):
+        orig_y_tmp = mtd[sam_wksp].readY(i)
+        new_y = np.nan_to_num(orig_y_tmp, nan=0)
+        mtd[sam_wksp].setY(i, new_y)
 
     sample_title += "_normalized"
     if debug_mode:
@@ -1903,15 +1924,59 @@ def TotalScatteringReduction(config: dict = None):
                                                   "17,18.5,19,18.5,16.9,17")
         tmin_limit = [float(item) * 1000. for item in tmin_limit.split(",")]
         tmax_limit = [float(item) * 1000. for item in tmax_limit.split(",")]
-    
-        ConvertUnits(
+
+        CloneWorkspace(
             InputWorkspace=out_wksp,
-            OutputWorkspace=out_wksp,
+            OutputWorkspace="bo_dummy"
+        )
+
+        CreateDetectorTable(
+            InputWorkspace=out_wksp,
+            DetectorTableWorkspace="calib_table_init"
+        )
+
+        l2_dummy = [1 for _ in range(mtd["bo_dummy"].getNumberHistograms())]
+        po_dummy = [0 for _ in range(mtd["bo_dummy"].getNumberHistograms())]
+        di_dummy = [i for i in range(mtd["bo_dummy"].getNumberHistograms())]
+
+        EditInstrumentGeometry(
+            Workspace="bo_dummy",
+            L2=l2_dummy,
+            Polar=po_dummy,
+            DetectorIDs=di_dummy,
+            InstrumentName="Dummy"
+        )
+
+        calib_table_tmp = CreateEmptyTableWorkspace()
+        calib_table_tmp.setTitle("Dummy Calibration Table")
+        calib_table_tmp.addColumn("int", "detid")
+        calib_table_tmp.addColumn("float", "difc")
+        calib_table_tmp.addColumn("float", "difa")
+        calib_table_tmp.addColumn("float", "tzero")
+
+        for i in range(mtd["bo_dummy"].getNumberHistograms()):
+            calib_table_tmp.addRow(
+                [
+                    i,
+                    mtd["calib_table_init"].row(i)["DIFC"],
+                    0.,
+                    0.
+                ]
+            )
+
+        ApplyDiffCal(
+            InstrumentWorkspace="bo_dummy",
+            CalibrationWorkspace="calib_table_tmp"
+        )
+
+        ConvertUnits(
+            InputWorkspace="bo_dummy",
+            OutputWorkspace="bo_dummy",
             Target="TOF",
             EMode="Elastic")
-    
-        xmin, xmax = get_each_spectra_xmin_xmax(mtd[out_wksp])
-    
+
+        xmin, xmax = get_each_spectra_xmin_xmax(mtd["bo_dummy"])
+
         xmin_rebin = min(xmin)
         if "TMin" in alignAndFocusArgs.keys():
             tmin = alignAndFocusArgs["TMin"]
@@ -1924,7 +1989,7 @@ def TotalScatteringReduction(config: dict = None):
             info = f"[Info] 'TMax = {tmax}' found in the input config file."
             print(info)
             xmax_rebin = min(xmax_rebin, tmax)
-    
+
         # Note: For the moment, bin size for Bragg output is hard coded.
         # May need to make it user input if necessary.
         tof_binning = "{xmin},-0.0008,{xmax}".format(
@@ -1933,14 +1998,14 @@ def TotalScatteringReduction(config: dict = None):
         )
 
         Rebin(
-            InputWorkspace=out_wksp,
-            OutputWorkspace=out_wksp,
+            InputWorkspace="bo_dummy",
+            OutputWorkspace="bo_dummy",
             Params=tof_binning
         )
-    
+
         CropWorkspaceRagged(
-            InputWorkspace=out_wksp,
-            OutputWorkspace=out_wksp,
+            InputWorkspace="bo_dummy",
+            OutputWorkspace="bo_dummy",
             Xmin=tmin_limit,
             Xmax=tmax_limit
         )
@@ -1953,7 +2018,7 @@ def TotalScatteringReduction(config: dict = None):
             topas_folder = "Topas_unnorm"
 
         SaveGSS(
-            InputWorkspace=out_wksp,
+            InputWorkspace="bo_dummy",
             Filename=os.path.join(
                 os.path.abspath(OutputDir),
                 gsas_folder,
@@ -1965,16 +2030,15 @@ def TotalScatteringReduction(config: dict = None):
             Format="SLOG",
             ExtendedHeader=True
         )
-    
+
         SaveFocusedXYE(
-            InputWorkspace=out_wksp,
+            InputWorkspace="bo_dummy",
             Filename=os.path.join(
                 os.path.abspath(OutputDir),
                 topas_folder,
                 title + ".xye"
             )
         )
-
 
 
     #################################################################

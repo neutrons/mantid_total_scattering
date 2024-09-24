@@ -167,6 +167,11 @@ def load(ws_name, input_files, group_wksp,
                 else:
                     cache_f_exist = False
 
+                # TODO:
+                # 1. if no absorption -> load in cache if exists. else need to
+                # skip
+                # 2. rebin and var names
+                # 3. abs corr if exists
                 if cache_f_exist:
                     wksp_tmp = LoadNexus(Filename=cache_f_fn)
                 else:
@@ -183,15 +188,9 @@ def load(ws_name, input_files, group_wksp,
                         params,
                         pres_events=align_and_focus_args["PreserveEvents"]
                     )
-                    ConvertUnits(
-                        InputWorkspace=wksp_tmp,
-                        OutputWorkspace=wksp_tmp,
-                        Target="MomentumTransfer",
-                        EMode="Elastic"
-                    )
                     if ipts is not None:
                         SaveNexusProcessed(
-                            InputWorkspace="wksp_tmp_wrb",
+                            InputWorkspace=wksp_tmp,
                             Filename=cache_f_fn,
                             Title=f"{run}_cached_no_abs",
                             WorkspaceIndexList=range(
@@ -233,7 +232,7 @@ def load(ws_name, input_files, group_wksp,
             # was ever initialized and only in such cases will we
             # move ahead to load in the existing cache file.
             if cache_f_exist and group_num == 0:
-                wksp_tmp = "wksp_tmp_wrb"
+                wksp_tmp = "wksp_tmp_qrb"
                 LoadNexus(OutputWorkspace=wksp_tmp, Filename=cache_f_fn)
             else:
                 wksp_tmp = "wksp_tmp"
@@ -250,16 +249,12 @@ def load(ws_name, input_files, group_wksp,
                     group_wksp_in=group_wksp,
                     pres_events=align_and_focus_args["PreserveEvents"]
                 )
-                ConvertUnits(
-                    InputWorkspace=wksp_tmp,
-                    OutputWorkspace=wksp_tmp,
-                    Target="Wavelength",
-                    EMode="Elastic")
                 Rebin(InputWorkspace=wksp_tmp,
-                      OutputWorkspace="wksp_tmp_wrb",
-                      Params=wlparams)
+                      OutputWorkspace="wksp_tmp_qrb",
+                      Params=qparams_use,
+                      PreserveEvents=align_and_focus_args["PreserveEvents"])
                 SaveNexusProcessed(
-                    InputWorkspace="wksp_tmp_wrb",
+                    InputWorkspace="wksp_tmp_qrb",
                     Filename=cache_f_fn,
                     Title=f"{run}_cached",
                     WorkspaceIndexList=range(
@@ -267,17 +262,23 @@ def load(ws_name, input_files, group_wksp,
 
             # Accumulate individual files
             if run_i == 0:
-                CloneWorkspace(InputWorkspace="wksp_tmp_wrb",
+                CloneWorkspace(InputWorkspace="wksp_tmp_qrb",
                                OutputWorkspace=ws_name)
             else:
                 Plus(LHSWorkspace=ws_name,
-                     RHSWorkspace="wksp_tmp_wrb",
+                     RHSWorkspace="wksp_tmp_qrb",
                      OutputWorkspace=ws_name)
 
         if absorption_wksp != '':
+            ConvertUnits(
+                InputWorkspace=absorption_wksp,
+                OutputWorkspace=absorption_wksp,
+                Target="MomentumTransfer",
+                EMode="Elastic")
             Rebin(InputWorkspace=absorption_wksp,
                   OutputWorkspace="absorption_wksp_rb",
-                  Params=wlparams)
+                  Params=qparams_use,
+                  PreserveEvents=align_and_focus_args["PreserveEvents"])
             Divide(LHSWorkspace=mtd[ws_name],
                    RHSWorkspace="absorption_wksp_rb",
                    OutputWorkspace=ws_name,
@@ -306,15 +307,6 @@ def load(ws_name, input_files, group_wksp,
 
             g_pattern = g_pattern[:-1]
 
-        ConvertUnits(
-            InputWorkspace=ws_name,
-            OutputWorkspace=ws_name,
-            Target="MomentumTransfer",
-            EMode="Elastic")
-        Rebin(
-            InputWorkspace=ws_name,
-            OutputWorkspace=ws_name,
-            Params=qparams_use)
         GroupDetectors(InputWorkspace=ws_name,
                        OutputWorkspace=ws_name,
                        GroupingPattern=g_pattern)
@@ -328,7 +320,8 @@ def load(ws_name, input_files, group_wksp,
         Rebin(
             InputWorkspace=ws_name,
             OutputWorkspace=ws_name,
-            Params=qparams_use
+            Params=qparams_use,
+            PreserveEvents=align_and_focus_args["PreserveEvents"]
         )
 
     if geometry and chemical_formula and mass_density:
@@ -369,20 +362,20 @@ def align_focus_mts(out_wksp,
         InputWorkspace="wksp_proc",
         OutputWorkspace="wksp_proc_rebin",
         Params=tof_bin_params,
-        PreserveEvents=pres_events
+        PreserveEvents=True
     )
 
     ConvertUnits(
         InputWorkspace="wksp_proc_rebin",
-        OutputWorkspace="wksp_proc_rebin_q",
-        Target="MomentumTransfer"
+        OutputWorkspace="wksp_proc_rebin_d",
+        Target="dSpacing"
     )
 
     if group_wksp_in is None:
         group_wksp_in = "calib_wksp_group"
 
     DiffractionFocussing(
-        InputWorkspace="wksp_proc_rebin_q",
+        InputWorkspace="wksp_proc_rebin_d",
         OutputWorkspace="wksp_proc_focus",
         GroupingWorkspace=group_wksp_in
     )
@@ -390,7 +383,7 @@ def align_focus_mts(out_wksp,
     ConvertUnits(
         InputWorkspace="wksp_proc_focus",
         OutputWorkspace=out_wksp,
-        Target="TOF"
+        Target="MomentumTransfer"
     )
 
     return
