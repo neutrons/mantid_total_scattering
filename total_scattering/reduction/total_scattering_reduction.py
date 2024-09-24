@@ -49,8 +49,7 @@ from mantid.simpleapi import \
     GetIPTS, \
     SaveNexus, \
     LoadNexus, \
-    RenameWorkspace, \
-    SaveNexusProcessed
+    RenameWorkspace
 
 from total_scattering.file_handling.load import load, create_absorption_wksp
 from total_scattering.file_handling.save import save_banks
@@ -1507,13 +1506,6 @@ def TotalScatteringReduction(config: dict = None):
         orig_y_tmp = mtd[van_corrected].readY(i)
         new_y = np.nan_to_num(orig_y_tmp, nan=0)
         mtd[van_corrected].setY(i, new_y)
-
-    SaveNexusProcessed(
-        InputWorkspace=van_corrected,
-        Filename="/SNS/users/y8z/Temp/vanadium.nxs",
-        Title="checking",
-        WorkspaceIndexList=range(
-            mtd[van_corrected].getNumberHistograms()))
 
     # After StripVanadiumPeaks, the workspace goes from EventWorkspace ->
     # Workspace2D
