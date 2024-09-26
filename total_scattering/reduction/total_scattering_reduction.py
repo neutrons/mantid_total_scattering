@@ -1930,9 +1930,12 @@ def TotalScatteringReduction(config: dict = None):
             DetectorTableWorkspace="calib_table_init"
         )
 
-        l2_dummy = [1 for _ in range(mtd["bo_dummy"].getNumberHistograms())]
-        po_dummy = [0 for _ in range(mtd["bo_dummy"].getNumberHistograms())]
-        di_dummy = [i for i in range(mtd["bo_dummy"].getNumberHistograms())]
+        num_hist = mtd["bo_dummy"].getNumberHistograms()
+        l2_dummy = [1 for _ in range(num_hist)]
+        po_dummy = [
+            mtd["calib_table_init"].row(i)["Theta"] for i in range(num_hist)
+        ]
+        di_dummy = [i for i in range(num_hist)]
 
         EditInstrumentGeometry(
             Workspace="bo_dummy",

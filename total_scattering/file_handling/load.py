@@ -345,7 +345,8 @@ def align_focus_mts(out_wksp,
     LoadDiffCal(
         InstrumentName=instr_name,
         Filename=cal_file_name,
-        WorkspaceName="calib_wksp"
+        WorkspaceName="calib_wksp",
+        TofMin=float(tof_bin_params.split(",")[0])
     )
 
     ApplyDiffCal(
