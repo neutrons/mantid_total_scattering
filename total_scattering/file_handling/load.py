@@ -168,13 +168,12 @@ def load(ws_name, input_files, group_wksp,
                 else:
                     cache_f_exist = False
 
-                # TODO:
-                # 1. if no absorption -> load in cache if exists. else need to
-                # skip
-                # 2. rebin and var names
-                # 3. abs corr if exists
                 if cache_f_exist:
-                    wksp_tmp = LoadNexus(Filename=cache_f_fn)
+                    wksp_tmp = "wksp_tmp_qrb"
+                    wksp_tmp = LoadNexus(
+                        OutputWorkspace=wksp_tmp,
+                        Filename=cache_f_fn
+                    )
                 else:
                     wksp_tmp = "wksp_tmp"
 
@@ -189,9 +188,15 @@ def load(ws_name, input_files, group_wksp,
                         params,
                         pres_events=align_and_focus_args["PreserveEvents"]
                     )
+                    Rebin(
+                        InputWorkspace=wksp_tmp,
+                        OutputWorkspace="wksp_tmp_qrb",
+                        Params=qparams_use,
+                        PreserveEvents=align_and_focus_args["PreserveEvents"]
+                    )
                     if ipts is not None:
                         SaveNexusProcessed(
-                            InputWorkspace=wksp_tmp,
+                            InputWorkspace="wksp_tmp_qrb",
                             Filename=cache_f_fn,
                             Title=f"{run}_cached_no_abs",
                             WorkspaceIndexList=range(
@@ -201,12 +206,13 @@ def load(ws_name, input_files, group_wksp,
 
                 # Accumulate individual files
                 if run_i == 0:
-                    CloneWorkspace(InputWorkspace=wksp_tmp,
+                    CloneWorkspace(InputWorkspace="wksp_tmp_qrb",
                                    OutputWorkspace=ws_name)
                 else:
-                    Plus(LHSWorkspace=ws_name,
+                    Plus(LHSWorkspace="wksp_tmp_qrb",
                          RHSWorkspace=wksp_tmp,
                          OutputWorkspace=ws_name)
+                    DeleteWorkspace(Workspace="wksp_tmp_qrb")
 
             if ipts is not None:
                 SaveNexusProcessed(ws_name, cache_sf_fn, Title="cache_summed")
