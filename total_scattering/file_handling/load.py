@@ -4,6 +4,7 @@ from mantid.simpleapi import \
     AlignAndFocusPowderFromFiles, \
     ApplyDiffCal, \
     ConvertUnits, \
+    DeleteWorkspace, \
     DiffractionFocussing, \
     Divide, \
     Load, \
@@ -268,6 +269,7 @@ def load(ws_name, input_files, group_wksp,
                 Plus(LHSWorkspace=ws_name,
                      RHSWorkspace="wksp_tmp_qrb",
                      OutputWorkspace=ws_name)
+                DeleteWorkspace(Workspace="wksp_tmp_qrb")
 
         if absorption_wksp != '':
             ConvertUnits(

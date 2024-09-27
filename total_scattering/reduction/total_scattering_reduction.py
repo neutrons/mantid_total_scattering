@@ -564,7 +564,7 @@ def TotalScatteringReduction(config: dict = None):
 
     # Grouping
     grouping = merging.get('Grouping', None)
-    cache_dir = config.get("CacheDir", None)
+    cache_dir = config.get("CacheDirMTS", None)
     OutputDir = config.get("OutputDir", os.path.abspath('.'))
     manual_grouping = grouping
     if manual_grouping:
@@ -976,8 +976,7 @@ def TotalScatteringReduction(config: dict = None):
     pe_tmp = gen_config.config_params["PreserveEvents"]
     alignAndFocusArgs['PreserveEvents'] = pe_tmp
     qparams = gen_config.config_params["QParamsProcessing"]
-    if cache_dir is not None:
-        alignAndFocusArgs['CacheDir'] = os.path.abspath(cache_dir)
+
     # add resonance filter related properties
     # NOTE:
     #    the default behaivor is no filtering if not specified.
