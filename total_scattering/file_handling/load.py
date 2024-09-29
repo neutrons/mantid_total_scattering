@@ -8,6 +8,7 @@ from mantid.simpleapi import \
     DiffractionFocussing, \
     Divide, \
     Load, \
+    LoadDetectorsGroupingFile, \
     LoadDiffCal, \
     MaskDetectors, \
     MultipleScatteringCorrection, \
@@ -116,11 +117,12 @@ def load(ws_name, input_files, group_wksp,
         qparams_use = qparams
 
     if group_wksp is None:
-        # Given the current implementation mechanism, if the input
-        # `group_wksp` is None, that means there was no absorption
-        # calculation involved in the preparation stage (i.e., before
-        # calling current load method). In such a situation, we can
-        # safely cache the summed processing.
+        # Given the current implementation mechanism, there are two cases when
+        # the input `group_wksp` will be `None`,
+        #   - no absorption calculation was ever initiated
+        #       > In this case, we can cache and load the sum
+        #   - manual grouping of detectors was specified
+        #       > In this case, no sense for the summed caching
 
         # Figure out a unique name for the summed cache file
         # The codes here were originating from GPT3.5-turbo API
@@ -140,11 +142,26 @@ def load(ws_name, input_files, group_wksp,
                 cache_sf_bn
             )
 
-        if ipts is not None and os.path.isfile(cache_sf_fn):
+        cond_1 = ipts is not None
+        cond_2 = os.path.isfile(cache_sf_fn)
+        cond_3 = absorption_wksp == ''
+        if cond_1 and cond_2 and cond_3:
             LoadNexus(Filename=cache_sf_fn, OutputWorkspace=ws_name)
         else:
             if auto_red:
                 align_and_focus_args["GroupFilename"] = group_all_file
+
+            if "GroupFilename" in align_and_focus_args:
+                proc_group = "proc_group"
+                LoadDetectorsGroupingFile(
+                    InputFile=align_and_focus_args["GroupFilename"],
+                    OutputWorkspace="proc_group"
+                )
+            else:
+                proc_group = None
+
+            out_group = align_and_focus_args["GroupingWorkspace"]
+
             for run_i, run in enumerate(run_list):
                 if run == "-1":
                     cache_f_bn = potential_cache_bn[run_i]
@@ -168,7 +185,7 @@ def load(ws_name, input_files, group_wksp,
                 else:
                     cache_f_exist = False
 
-                if cache_f_exist:
+                if cache_f_exist and absorption_wksp == '':
                     wksp_tmp = "wksp_tmp_qrb"
                     wksp_tmp = LoadNexus(
                         OutputWorkspace=wksp_tmp,
@@ -180,12 +197,19 @@ def load(ws_name, input_files, group_wksp,
                     tmin_tmp = align_and_focus_args["TMin"]
                     tmax_tmp = align_and_focus_args["TMax"]
                     params = f"{tmin_tmp}, -0.0008, {tmax_tmp}"
+
+                    if absorption_wksp == '':
+                        proc_group_in = proc_group
+                    else:
+                        proc_group_in = None
+
                     align_focus_mts(
                         wksp_tmp,
                         instr_name,
                         input_files.split(",")[run_i],
                         align_and_focus_args["CalFilename"],
                         params,
+                        group_wksp_in=proc_group_in,
                         pres_events=align_and_focus_args["PreserveEvents"]
                     )
                     Rebin(
@@ -207,14 +231,41 @@ def load(ws_name, input_files, group_wksp,
                 # Accumulate individual files
                 if run_i == 0:
                     CloneWorkspace(InputWorkspace="wksp_tmp_qrb",
-                                   OutputWorkspace=ws_name)
+                                   OutputWorkspace=ws_name + "_tmp")
                 else:
                     Plus(LHSWorkspace="wksp_tmp_qrb",
                          RHSWorkspace=wksp_tmp,
-                         OutputWorkspace=ws_name)
+                         OutputWorkspace=ws_name + "_tmp")
                     DeleteWorkspace(Workspace="wksp_tmp_qrb")
 
-            if ipts is not None:
+            if absorption_wksp != '':
+                ConvertUnits(
+                    InputWorkspace=absorption_wksp,
+                    OutputWorkspace=absorption_wksp,
+                    Target="MomentumTransfer",
+                    EMode="Elastic")
+                Rebin(InputWorkspace=absorption_wksp,
+                      OutputWorkspace="absorption_wksp_rb",
+                      Params=qparams_use,
+                      PreserveEvents=align_and_focus_args["PreserveEvents"])
+                Divide(LHSWorkspace=mtd[ws_name + "_tmp"],
+                       RHSWorkspace="absorption_wksp_rb",
+                       OutputWorkspace=ws_name,
+                       AllowDifferentNumberSpectra=True)
+
+                DeleteWorkspace(Workspace=absorption_wksp)
+                DeleteWorkspace(Workspace="absorption_wksp_rb")
+
+            DiffractionFocussing(
+                InputWorkspace=ws_name + "_tmp",
+                OutputWorkspace=ws_name,
+                GroupingWorkspace=out_group
+            )
+
+            DeleteWorkspace(Workspace=wksp_tmp)
+            DeleteWorkspace(Workspace=ws_name + "_tmp")
+
+            if ipts is not None and absorption_wksp == '':
                 SaveNexusProcessed(ws_name, cache_sf_fn, Title="cache_summed")
     else:
         for run_i, run in enumerate(run_list):
@@ -374,26 +425,35 @@ def align_focus_mts(out_wksp,
         PreserveEvents=True
     )
 
+    # When the DIFA term is non zero in the calibration table,
+    # the `ConvertUnits` algorithm cannot convert from TOF to
+    # Q properly. As a workaround, we can convert to d first,
+    # then to Q.
     ConvertUnits(
         InputWorkspace="wksp_proc_rebin",
         OutputWorkspace="wksp_proc_rebin_d",
         Target="dSpacing"
     )
 
-    if group_wksp_in is None:
-        group_wksp_in = "calib_wksp_group"
-
-    DiffractionFocussing(
-        InputWorkspace="wksp_proc_rebin_d",
-        OutputWorkspace="wksp_proc_focus",
-        GroupingWorkspace=group_wksp_in
-    )
+    if group_wksp_in is not None:
+        DiffractionFocussing(
+            InputWorkspace="wksp_proc_rebin_d",
+            OutputWorkspace="wksp_proc_focus",
+            GroupingWorkspace=group_wksp_in
+        )
+        wksp_to_convert = "wksp_proc_focus"
+    else:
+        wksp_to_convert = "wksp_proc_rebin_d"
 
     ConvertUnits(
-        InputWorkspace="wksp_proc_focus",
+        InputWorkspace=wksp_to_convert,
         OutputWorkspace=out_wksp,
         Target="MomentumTransfer"
     )
+
+    DeleteWorkspace(Workspace="wksp_proc")
+    DeleteWorkspace(Workspace="wksp_proc_rebin")
+    DeleteWorkspace(Workspace=wksp_to_convert)
 
     return
 

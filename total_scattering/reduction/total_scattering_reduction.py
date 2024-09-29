@@ -798,8 +798,12 @@ def TotalScatteringReduction(config: dict = None):
                         f"Apply {sam_ms_method} multiple scattering correction"
                         "to sample"
                     )
-            abs_cache_fn_s = abs_cache_fn + "_s_g.nxs"
-            abs_cache_fn_c = abs_cache_fn + "_c_g.nxs"
+            if manual_grouping:
+                abs_cache_fn_s = abs_cache_fn + "_s.nxs"
+                abs_cache_fn_c = abs_cache_fn + "_c.nxs"
+            else:
+                abs_cache_fn_s = abs_cache_fn + "_s_g.nxs"
+                abs_cache_fn_c = abs_cache_fn + "_c_g.nxs"
             central_cache_f_s = os.path.join(gen_config.config_params["CacheDir"],
                                              ipts,
                                              abs_cache_fn_s)
@@ -1011,6 +1015,7 @@ def TotalScatteringReduction(config: dict = None):
                 output_grouping = True
                 LoadDetectorsGroupingFile(InputFile=grouping['Output'],
                                           OutputWorkspace=grp_wksp)
+                alignAndFocusArgs['GroupingWorkspace'] = grp_wksp
     # If no output grouping specified, create it with Calibration Grouping
     load_grouping = False
     if not output_grouping:
@@ -1022,6 +1027,7 @@ def TotalScatteringReduction(config: dict = None):
                     MakeMaskWorkspace=False,
                     TofMin=alignAndFocusArgs['TMin'])
         load_grouping = True
+        alignAndFocusArgs['GroupingWorkspace'] = grp_wksp
 
     # Setup the 6 bank method if no grouping specified
     if not grouping and not (output_grouping or load_grouping):
