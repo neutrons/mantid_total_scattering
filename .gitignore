@@ -216,3 +216,6 @@ conda_build/
 
 # vscode settings
 total_scattering/.vscode
+.linenoteplus
+settings.json
+.vscode/

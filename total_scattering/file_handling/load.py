@@ -1,7 +1,6 @@
 import logging
 from mantid import mtd
 from mantid.simpleapi import \
-    AlignAndFocusPowderFromFiles, \
     ApplyDiffCal, \
     ConvertUnits, \
     DeleteWorkspace, \
@@ -10,6 +9,7 @@ from mantid.simpleapi import \
     Load, \
     LoadDetectorsGroupingFile, \
     LoadDiffCal, \
+    MaskBins, \
     MaskDetectors, \
     MultipleScatteringCorrection, \
     NormaliseByCurrent, \
@@ -18,15 +18,13 @@ from mantid.simpleapi import \
     PropertyManagerDataService, \
     SetSample, \
     Rebin, \
-    RebinToWorkspace, \
     CreateGroupingWorkspace, \
     SaveDetectorsGrouping, \
     GroupDetectors, \
     LoadNexus, \
     SaveNexusProcessed, \
     CloneWorkspace, \
-    Plus, \
-    MaskDetectors
+    Plus
 from mantid.utils import absorptioncorrutils
 from sklearn.cluster import KMeans
 import numpy as np
@@ -209,8 +207,7 @@ def load(ws_name, input_files, group_wksp,
                         input_files.split(",")[run_i],
                         align_and_focus_args["CalFilename"],
                         params,
-                        group_wksp_in=proc_group_in,
-                        pres_events=align_and_focus_args["PreserveEvents"]
+                        group_wksp_in=proc_group_in
                     )
                     Rebin(
                         InputWorkspace=wksp_tmp,
@@ -252,9 +249,6 @@ def load(ws_name, input_files, group_wksp,
                        RHSWorkspace="absorption_wksp_rb",
                        OutputWorkspace=ws_name,
                        AllowDifferentNumberSpectra=True)
-
-                DeleteWorkspace(Workspace=absorption_wksp)
-                DeleteWorkspace(Workspace="absorption_wksp_rb")
 
             DiffractionFocussing(
                 InputWorkspace=ws_name + "_tmp",
@@ -304,8 +298,7 @@ def load(ws_name, input_files, group_wksp,
                     input_files.split(",")[run_i],
                     align_and_focus_args["CalFilename"],
                     params,
-                    group_wksp_in=group_wksp,
-                    pres_events=align_and_focus_args["PreserveEvents"]
+                    group_wksp_in=group_wksp
                 )
                 Rebin(InputWorkspace=wksp_tmp,
                       OutputWorkspace="wksp_tmp_qrb",
@@ -395,11 +388,36 @@ def align_focus_mts(out_wksp,
                     cal_file_name,
                     tof_bin_params,
                     group_wksp_in=None,
-                    pres_events=True):
+                    res_filter_axis=None,
+                    res_filter_min=None,
+                    res_filter_max=None):
     """The MantidTotalScattering internal version of the align and focus
     algorithm. Simple enough but does the job just as what it should do.
     """
     wksp_proc = Load(file_name)
+
+    if res_filter_axis is not None:
+        ConvertUnits(
+            InputWorkspace="wksp_proc",
+            OutputWorkspace="wksp_proc",
+            Target=res_filter_axis
+        )
+
+        for i, xmin in enumerate(res_filter_min):
+            xmax = res_filter_max[i]
+            MaskBins(
+                InputWorkspace=wksp_proc,
+                OutputWorkspace=wksp_proc,
+                Axis=res_filter_axis,
+                Min=xmin,
+                Max=xmax
+            )
+
+        ConvertUnits(
+            InputWorkspace="wksp_proc",
+            OutputWorkspace="wksp_proc",
+            Target="TOF"
+        )
 
     LoadDiffCal(
         InstrumentName=instr_name,

@@ -1908,7 +1908,7 @@ def TotalScatteringReduction(config: dict = None):
                         OutputWorkspace=sam_corrected)
 
 
-    def out_bragg(form, out_wksp):
+    def out_bragg(form, out_wksp, manual_grouping=False):
         """Internal for Bragg pattern output. For the moment, we decided to
         output both the normalized and unnormalized version of the Bragg
         pattern and thus we need to call this part twice.
@@ -2006,12 +2006,13 @@ def TotalScatteringReduction(config: dict = None):
             Params=tof_binning
         )
 
-        CropWorkspaceRagged(
-            InputWorkspace="bo_dummy",
-            OutputWorkspace="bo_dummy",
-            Xmin=tmin_limit,
-            Xmax=tmax_limit
-        )
+        if not manual_grouping:
+            CropWorkspaceRagged(
+                InputWorkspace="bo_dummy",
+                OutputWorkspace="bo_dummy",
+                Xmin=tmin_limit,
+                Xmax=tmax_limit
+            )
 
         if form == "norm":
             gsas_folder = "GSAS"
@@ -2050,7 +2051,7 @@ def TotalScatteringReduction(config: dict = None):
     # which will actually be performed later in STEP-7.
     #################################################################
     if not auto_red:
-        out_bragg("unnorm", sam_corrected)
+        out_bragg("unnorm", sam_corrected, manual_grouping=manual_grouping)
 
     #################################################################
     # STEP 5: Divide by number of atoms in sample
@@ -2353,7 +2354,11 @@ def TotalScatteringReduction(config: dict = None):
     if auto_red:
         return mtd[sam_corrected_norm]
 
-    out_bragg("norm", sam_corrected_norm_bragg)
+    out_bragg(
+        "norm",
+        sam_corrected_norm_bragg,
+        manual_grouping=manual_grouping
+    )
 
     if final_message:
         log.warning(final_message)
