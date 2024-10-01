@@ -3,9 +3,12 @@ from mantid import mtd
 from mantid.simpleapi import \
     ApplyDiffCal, \
     ConvertUnits, \
+    CreateDetectorTable, \
+    CreateEmptyTableWorkspace, \
     DeleteWorkspace, \
     DiffractionFocussing, \
     Divide, \
+    EditInstrumentGeometry, \
     Load, \
     LoadDetectorsGroupingFile, \
     LoadDiffCal, \
@@ -304,12 +307,13 @@ def load(ws_name, input_files, group_wksp,
                       OutputWorkspace="wksp_tmp_qrb",
                       Params=qparams_use,
                       PreserveEvents=align_and_focus_args["PreserveEvents"])
+                DeleteWorkspace(Workspace="wksp_tmp")
                 SaveNexusProcessed(
                     InputWorkspace="wksp_tmp_qrb",
                     Filename=cache_f_fn,
                     Title=f"{run}_cached",
                     WorkspaceIndexList=range(
-                        mtd[wksp_tmp].getNumberHistograms()))
+                        mtd["wksp_tmp_qrb"].getNumberHistograms()))
 
             # Accumulate individual files
             if run_i == 0:
@@ -378,6 +382,48 @@ def load(ws_name, input_files, group_wksp,
 
     if geometry and chemical_formula and mass_density:
         set_sample(ws_name, geometry, chemical_formula, mass_density)
+
+    CreateDetectorTable(
+        InputWorkspace=ws_name,
+        DetectorTableWorkspace="calib_table_init"
+    )
+
+    num_hist = mtd[ws_name].getNumberHistograms()
+    l2_dummy = [1 for _ in range(num_hist)]
+    po_dummy = [
+        mtd["calib_table_init"].row(i)["Theta"] for i in range(num_hist)
+    ]
+    di_dummy = [i for i in range(num_hist)]
+
+    EditInstrumentGeometry(
+        Workspace=ws_name,
+        L2=l2_dummy,
+        Polar=po_dummy,
+        DetectorIDs=di_dummy,
+        InstrumentName="Dummy"
+    )
+
+    calib_table_tmp = CreateEmptyTableWorkspace()
+    calib_table_tmp.setTitle("Dummy Calibration Table")
+    calib_table_tmp.addColumn("int", "detid")
+    calib_table_tmp.addColumn("float", "difc")
+    calib_table_tmp.addColumn("float", "difa")
+    calib_table_tmp.addColumn("float", "tzero")
+
+    for i in range(mtd[ws_name].getNumberHistograms()):
+        calib_table_tmp.addRow(
+            [
+                i,
+                mtd["calib_table_init"].row(i)["DIFC"],
+                0.,
+                0.
+            ]
+        )
+
+    ApplyDiffCal(
+        InstrumentWorkspace=ws_name,
+        CalibrationWorkspace="calib_table_tmp"
+    )
 
     return ws_name
 

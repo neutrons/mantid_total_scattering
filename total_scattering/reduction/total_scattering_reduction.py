@@ -1093,6 +1093,9 @@ def TotalScatteringReduction(config: dict = None):
     print("#-----------------------------------#")
     print("# Sample Container")
     print("#-----------------------------------#")
+    if container_bg is not None:
+        con_abs_ws = sam_abs_ws
+
     container = load(
         'container',
         container_scans,
@@ -1523,6 +1526,12 @@ def TotalScatteringReduction(config: dict = None):
         BackgroundType=van_ps_bkg_type,
         HighBackground=van_ps_hb,
         PeakPositionTolerance=van_ps_pp_tol)
+
+    # ConvertUnits(
+    #     InputWorkspace=van_corrected,
+    #     OutputWorkspace=van_corrected,
+    #     Target='MomentumTransfer',
+    #     EMode='Elastic')
 
     vanadium_title += '_peaks_stripped'
     if debug_mode:
