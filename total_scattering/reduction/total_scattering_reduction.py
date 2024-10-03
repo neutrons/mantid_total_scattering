@@ -50,6 +50,7 @@ from mantid.simpleapi import \
     SaveNexus, \
     LoadNexus, \
     RenameWorkspace
+# from mantid.api import AnalysisDataService as ADS
 
 from total_scattering.file_handling.load import load, create_absorption_wksp
 from total_scattering.file_handling.save import save_banks

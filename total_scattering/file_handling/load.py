@@ -35,6 +35,7 @@ import os
 import re
 import hashlib
 import base64
+# from mantid.api import AnalysisDataService as ADS
 
 _shared_shape_keys = ["Shape", "Height", "Center"]
 required_shape_keys = {
@@ -323,7 +324,7 @@ def load(ws_name, input_files, group_wksp,
                 Plus(LHSWorkspace=ws_name,
                      RHSWorkspace="wksp_tmp_qrb",
                      OutputWorkspace=ws_name)
-                DeleteWorkspace(Workspace="wksp_tmp_qrb")
+            DeleteWorkspace(Workspace="wksp_tmp_qrb")
 
         if absorption_wksp != '':
             ConvertUnits(
@@ -484,7 +485,7 @@ def align_focus_mts(out_wksp,
 
     Rebin(
         InputWorkspace="wksp_proc",
-        OutputWorkspace="wksp_proc_rebin",
+        OutputWorkspace="wksp_proc",
         Params=tof_bin_params,
         PreserveEvents=True
     )
@@ -494,30 +495,25 @@ def align_focus_mts(out_wksp,
     # Q properly. As a workaround, we can convert to d first,
     # then to Q.
     ConvertUnits(
-        InputWorkspace="wksp_proc_rebin",
-        OutputWorkspace="wksp_proc_rebin_d",
+        InputWorkspace="wksp_proc",
+        OutputWorkspace="wksp_proc",
         Target="dSpacing"
     )
 
     if group_wksp_in is not None:
         DiffractionFocussing(
-            InputWorkspace="wksp_proc_rebin_d",
-            OutputWorkspace="wksp_proc_focus",
+            InputWorkspace="wksp_proc",
+            OutputWorkspace="wksp_proc",
             GroupingWorkspace=group_wksp_in
         )
-        wksp_to_convert = "wksp_proc_focus"
-    else:
-        wksp_to_convert = "wksp_proc_rebin_d"
 
     ConvertUnits(
-        InputWorkspace=wksp_to_convert,
+        InputWorkspace="wksp_proc",
         OutputWorkspace=out_wksp,
         Target="MomentumTransfer"
     )
 
     DeleteWorkspace(Workspace="wksp_proc")
-    DeleteWorkspace(Workspace="wksp_proc_rebin")
-    DeleteWorkspace(Workspace=wksp_to_convert)
 
     return
 
