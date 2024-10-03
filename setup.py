@@ -2,6 +2,13 @@ import os
 from setuptools import setup, find_packages
 import versioneer  # https://github.com/warner/python-versioneer
 
+# Redirect stdout and stderr to null
+os.close(1)
+os.close(2)
+os.open(os.devnull, os.O_RDWR)
+os.dup(1)
+os.dup(2)
+
 # Constants
 THIS_DIR = os.path.dirname(__file__)
 
