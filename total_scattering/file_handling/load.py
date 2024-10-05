@@ -21,6 +21,7 @@ from mantid.simpleapi import \
     PropertyManagerDataService, \
     SetSample, \
     Rebin, \
+    RebinToWorkspace, \
     CreateGroupingWorkspace, \
     SaveDetectorsGrouping, \
     GroupDetectors, \
@@ -189,7 +190,7 @@ def load(ws_name, input_files, group_wksp,
 
                 if cache_f_exist and absorption_wksp == '':
                     wksp_tmp = "wksp_tmp_qrb"
-                    wksp_tmp = LoadNexus(
+                    LoadNexus(
                         OutputWorkspace=wksp_tmp,
                         Filename=cache_f_fn
                     )
@@ -234,8 +235,13 @@ def load(ws_name, input_files, group_wksp,
                     CloneWorkspace(InputWorkspace="wksp_tmp_qrb",
                                    OutputWorkspace=ws_name + "_tmp")
                 else:
-                    Plus(LHSWorkspace="wksp_tmp_qrb",
-                         RHSWorkspace=wksp_tmp,
+                    RebinToWorkspace(
+                        WorkspaceToRebin="wksp_tmp_qrb",
+                        WorkspaceToMatch=ws_name + "_tmp",
+                        OutputWorkspace="wksp_tmp_qrb"
+                    )
+                    Plus(LHSWorkspace=ws_name + "_tmp",
+                         RHSWorkspace="wksp_tmp_qrb",
                          OutputWorkspace=ws_name + "_tmp")
                     DeleteWorkspace(Workspace="wksp_tmp_qrb")
 
@@ -321,6 +327,11 @@ def load(ws_name, input_files, group_wksp,
                 CloneWorkspace(InputWorkspace="wksp_tmp_qrb",
                                OutputWorkspace=ws_name)
             else:
+                RebinToWorkspace(
+                    WorkspaceToRebin="wksp_tmp_qrb",
+                    WorkspaceToMatch=ws_name,
+                    OutputWorkspace="wksp_tmp_qrb"
+                )
                 Plus(LHSWorkspace=ws_name,
                      RHSWorkspace="wksp_tmp_qrb",
                      OutputWorkspace=ws_name)
