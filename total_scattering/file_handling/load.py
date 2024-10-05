@@ -347,6 +347,11 @@ def load(ws_name, input_files, group_wksp,
                   OutputWorkspace="absorption_wksp_rb",
                   Params=qparams_use,
                   PreserveEvents=align_and_focus_args["PreserveEvents"])
+            for i in range(mtd["absorption_wksp_rb"].getNumberHistograms()):
+                orig_y_tmp = mtd["absorption_wksp_rb"].readY(i)
+                new_y = np.nan_to_num(orig_y_tmp, nan=0)
+                new_y[np.abs(new_y) < 1.E-5] = 1.
+                mtd["absorption_wksp_rb"].setY(i, new_y)
             Divide(LHSWorkspace=mtd[ws_name],
                    RHSWorkspace="absorption_wksp_rb",
                    OutputWorkspace=ws_name,
