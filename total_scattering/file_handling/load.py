@@ -173,10 +173,18 @@ def load(ws_name, input_files, group_wksp,
 
                 if auto_red:
                     cache_f_bn += f"_mts_no_subg_sgb_{ws_name}"
-                    cache_f_bn += f"_{sf_cfn_part}.nxs"
+                    # With the self-container version of align and
+                    # focus, we don't need to worry about which
+                    # sample run that a certain char run is associated
+                    # with. The reason why we needed to worry about
+                    # this is because of the way of absorption correction
+                    # is applied.
+                    # cache_f_bn += f"_{sf_cfn_part}.nxs"
+                    cache_f_bn += ".nxs"
                 else:
                     cache_f_bn += f"_mts_no_subg_{ws_name}"
-                    cache_f_bn += f"_{sf_cfn_part}.nxs"
+                    # cache_f_bn += f"_{sf_cfn_part}.nxs"
+                    cache_f_bn += ".nxs"
 
                 if ipts is not None:
                     cache_f_fn = os.path.join(
@@ -279,7 +287,7 @@ def load(ws_name, input_files, group_wksp,
                 cache_f_bn = f"{instr_name}_{run}_mts_subg"
 
             cache_f_bn += f"_{ws_name}"
-            cache_f_bn += f"_{sf_cfn_part}.nxs"
+            cache_f_bn += ".nxs"
             if ipts is not None:
                 cache_f_fn = os.path.join(
                     cache_dir,
