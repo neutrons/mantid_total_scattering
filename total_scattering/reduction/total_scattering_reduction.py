@@ -38,6 +38,7 @@ from mantid.simpleapi import \
     RebinToWorkspace, \
     SaveGSS, \
     SaveFocusedXYE, \
+    Scale, \
     SetSample, \
     SetUncertainties, \
     StripVanadiumPeaks, \
@@ -672,6 +673,12 @@ def TotalScatteringReduction(config: dict = None):
     if "Background" in sample['Background']:
         list_tmp = sample['Background']['Background']['Runs']
         sample['Background']['Background']['Runs'] = compress_ints(list_tmp)
+    # Worry about the potential over subtraction of container.
+    if "Scale" in sample['Background']:
+        cont_scale = sample['Background']["Scale"]
+    else:
+        cont_scale = 1.
+
     van['Runs'] = compress_ints(van['Runs'])
     if 'Background' in van:
         van['Background']['Runs'] = compress_ints(van_bg_scans_bak)
@@ -1362,6 +1369,12 @@ def TotalScatteringReduction(config: dict = None):
         WorkspaceToRebin=container,
         WorkspaceToMatch=sam_wksp,
         OutputWorkspace=container)
+    Scale(
+        InputWorkspace=container,
+        OutputWorkspace=container,
+        Factor=cont_scale,
+        Operation="Multiply"
+    )
     Minus(
         LHSWorkspace=sam_wksp,
         RHSWorkspace=container,
