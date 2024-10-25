@@ -119,6 +119,21 @@ def load(ws_name, input_files, group_wksp,
     else:
         qparams_use = qparams
 
+    # Resonance filter inputs reading
+    res_keys = [
+       "ResonanceFilterUnits",
+       "ResonanceFilterLowerLimits",
+       "ResonanceFilterUpperLimits"
+    ]
+    if all(key in align_and_focus_args for key in res_keys):
+        resf_unit = align_and_focus_args["ResonanceFilterUnits"]
+        resf_low = align_and_focus_args["ResonanceFilterLowerLimits"]
+        resf_high = align_and_focus_args["ResonanceFilterUpperLimits"]
+    else:
+        resf_unit = None
+        resf_low = None
+        resf_high = None
+
     if group_wksp is None:
         # Given the current implementation mechanism, there are two cases when
         # the input `group_wksp` will be `None`,
@@ -148,7 +163,7 @@ def load(ws_name, input_files, group_wksp,
         cond_1 = ipts is not None
         cond_2 = os.path.isfile(cache_sf_fn)
         cond_3 = absorption_wksp == ''
-        if cond_1 and cond_2 and cond_3:
+        if cond_1 and cond_2 and cond_3 and not re_cache:
             LoadNexus(Filename=cache_sf_fn, OutputWorkspace=ws_name)
         else:
             if auto_red:
@@ -196,7 +211,7 @@ def load(ws_name, input_files, group_wksp,
                 else:
                     cache_f_exist = False
 
-                if cache_f_exist and absorption_wksp == '':
+                if cache_f_exist and absorption_wksp == '' and not re_cache:
                     wksp_tmp = "wksp_tmp_qrb"
                     LoadNexus(
                         OutputWorkspace=wksp_tmp,
@@ -220,7 +235,10 @@ def load(ws_name, input_files, group_wksp,
                         input_files.split(",")[run_i],
                         align_and_focus_args["CalFilename"],
                         params,
-                        group_wksp_in=proc_group_in
+                        group_wksp_in=proc_group_in,
+                        res_filter_axis=resf_unit,
+                        res_filter_min=resf_low,
+                        res_filter_max=resf_high
                     )
                     Rebin(
                         InputWorkspace=wksp_tmp,
@@ -277,7 +295,7 @@ def load(ws_name, input_files, group_wksp,
             DeleteWorkspace(Workspace=wksp_tmp)
             DeleteWorkspace(Workspace=ws_name + "_tmp")
 
-            if ipts is not None and absorption_wksp == '':
+            if ipts is not None and absorption_wksp == '' and not re_cache:
                 SaveNexusProcessed(ws_name, cache_sf_fn, Title="cache_summed")
     else:
         for run_i, run in enumerate(run_list):
@@ -301,7 +319,7 @@ def load(ws_name, input_files, group_wksp,
             # `group_num == 0` means no regeneration of grouping
             # was ever initialized and only in such cases will we
             # move ahead to load in the existing cache file.
-            if cache_f_exist and group_num == 0:
+            if cache_f_exist and group_num == 0 and not re_cache:
                 wksp_tmp = "wksp_tmp_qrb"
                 LoadNexus(OutputWorkspace=wksp_tmp, Filename=cache_f_fn)
             else:
@@ -316,7 +334,10 @@ def load(ws_name, input_files, group_wksp,
                     input_files.split(",")[run_i],
                     align_and_focus_args["CalFilename"],
                     params,
-                    group_wksp_in=group_wksp
+                    group_wksp_in=group_wksp,
+                    res_filter_axis=resf_unit,
+                    res_filter_min=resf_low,
+                    res_filter_max=resf_high
                 )
                 Rebin(InputWorkspace=wksp_tmp,
                       OutputWorkspace="wksp_tmp_qrb",
