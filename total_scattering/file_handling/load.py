@@ -51,7 +51,6 @@ def load(ws_name, input_files, group_wksp,
          geometry=None, chemical_formula=None, mass_density=None,
          absorption_wksp='', out_group_dict=None,
          qparams='0.01,0.001,40.0',
-         wlparams='0.06,0.0001,2.98',
          auto_red=False,
          group_all_file=None,
          sam_files=None,
@@ -87,9 +86,6 @@ def load(ws_name, input_files, group_wksp,
         hash_obj = hashlib.sha256(sfile_n.encode())
         hash_str = hash_obj.hexdigest()
         vt = hash_str.encode()
-        sf_cfn_part = base64.urlsafe_b64encode(vt).decode()[:12]
-    else:
-        sf_cfn_part = str_tmp
 
     if ipts is not None:
         if cache_dir is None:
@@ -180,6 +176,12 @@ def load(ws_name, input_files, group_wksp,
 
             out_group = align_and_focus_args["GroupingWorkspace"]
 
+            cond2 = absorption_wksp == ''
+            cond3 = not re_cache
+            cond4_1 = "GroupFilename" in align_and_focus_args
+            cond4_2 = not auto_red
+            cond4 = not (cond4_1 and cond4_2)
+
             for run_i, run in enumerate(run_list):
                 if run == "-1":
                     cache_f_bn = potential_cache_bn[run_i]
@@ -187,18 +189,10 @@ def load(ws_name, input_files, group_wksp,
                     cache_f_bn = f"{instr_name}_{run}"
 
                 if auto_red:
-                    cache_f_bn += f"_mts_no_subg_sgb_{ws_name}"
-                    # With the self-container version of align and
-                    # focus, we don't need to worry about which
-                    # sample run that a certain char run is associated
-                    # with. The reason why we needed to worry about
-                    # this is because of the way of absorption correction
-                    # is applied.
-                    # cache_f_bn += f"_{sf_cfn_part}.nxs"
+                    cache_f_bn += f"_mts_no_subg_sgb"
                     cache_f_bn += ".nxs"
                 else:
-                    cache_f_bn += f"_mts_no_subg_{ws_name}"
-                    # cache_f_bn += f"_{sf_cfn_part}.nxs"
+                    cache_f_bn += f"_mts_no_subg"
                     cache_f_bn += ".nxs"
 
                 if ipts is not None:
@@ -211,7 +205,8 @@ def load(ws_name, input_files, group_wksp,
                 else:
                     cache_f_exist = False
 
-                if cache_f_exist and absorption_wksp == '' and not re_cache:
+                cond1 = cache_f_exist
+                if cond1 and cond2 and cond3 and cond4:
                     wksp_tmp = "wksp_tmp_qrb"
                     LoadNexus(
                         OutputWorkspace=wksp_tmp,
@@ -246,7 +241,7 @@ def load(ws_name, input_files, group_wksp,
                         Params=qparams_use,
                         PreserveEvents=align_and_focus_args["PreserveEvents"]
                     )
-                    if ipts is not None:
+                    if ipts is not None and cond4:
                         SaveNexusProcessed(
                             InputWorkspace="wksp_tmp_qrb",
                             Filename=cache_f_fn,
@@ -295,7 +290,8 @@ def load(ws_name, input_files, group_wksp,
             DeleteWorkspace(Workspace=wksp_tmp)
             DeleteWorkspace(Workspace=ws_name + "_tmp")
 
-            if ipts is not None and absorption_wksp == '' and not re_cache:
+            cond1 = ipts is not None
+            if cond1 and cond2 and cond3 and cond4:
                 SaveNexusProcessed(ws_name, cache_sf_fn, Title="cache_summed")
     else:
         for run_i, run in enumerate(run_list):
@@ -304,7 +300,6 @@ def load(ws_name, input_files, group_wksp,
             else:
                 cache_f_bn = f"{instr_name}_{run}_mts_subg"
 
-            cache_f_bn += f"_{ws_name}"
             cache_f_bn += ".nxs"
             if ipts is not None:
                 cache_f_fn = os.path.join(
