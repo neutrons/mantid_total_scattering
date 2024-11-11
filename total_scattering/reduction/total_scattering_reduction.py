@@ -1530,22 +1530,20 @@ def TotalScatteringReduction(config: dict = None):
         new_y = np.nan_to_num(orig_y_tmp, nan=0)
         mtd[van_corrected].setY(i, new_y)
 
-    # After StripVanadiumPeaks, the workspace goes from EventWorkspace ->
-    # Workspace2D
-    StripVanadiumPeaks(
-        InputWorkspace=van_corrected,
-        OutputWorkspace=van_corrected,
-        FWHM=van_ps_fwhm,
-        Tolerance=van_ps_tol,
-        BackgroundType=van_ps_bkg_type,
-        HighBackground=van_ps_hb,
-        PeakPositionTolerance=van_ps_pp_tol)
-
-    # ConvertUnits(
-    #     InputWorkspace=van_corrected,
-    #     OutputWorkspace=van_corrected,
-    #     Target='MomentumTransfer',
-    #     EMode='Elastic')
+    # In case of noisy data, e.g., when reducing data into
+    # large number of groups, the strip operation may fail.
+    try:
+        StripVanadiumPeaks(
+            InputWorkspace=van_corrected,
+            OutputWorkspace=van_corrected,
+            FWHM=van_ps_fwhm,
+            Tolerance=van_ps_tol,
+            BackgroundType=van_ps_bkg_type,
+            HighBackground=van_ps_hb,
+            PeakPositionTolerance=van_ps_pp_tol)
+        strip_success = True
+    except:  # noqa: E722
+        strip_success = False
 
     vanadium_title += '_peaks_stripped'
     if debug_mode:
@@ -1563,19 +1561,20 @@ def TotalScatteringReduction(config: dict = None):
             Binning=binning,
             autored=auto_red)
 
-    ConvertUnits(
-        InputWorkspace=van_corrected,
-        OutputWorkspace=van_corrected,
-        Target='TOF',
-        EMode='Elastic')
+    if strip_success:
+        ConvertUnits(
+            InputWorkspace=van_corrected,
+            OutputWorkspace=van_corrected,
+            Target='TOF',
+            EMode='Elastic')
 
-    FFTSmooth(
-        InputWorkspace=van_corrected,
-        OutputWorkspace=van_corrected,
-        Filter="Butterworth",
-        Params='20,2',
-        IgnoreXBins=True,
-        AllSpectra=True)
+        FFTSmooth(
+            InputWorkspace=van_corrected,
+            OutputWorkspace=van_corrected,
+            Filter="Butterworth",
+            Params='20,2',
+            IgnoreXBins=True,
+            AllSpectra=True)
 
     ConvertUnits(
         InputWorkspace=van_corrected,
@@ -2073,7 +2072,7 @@ def TotalScatteringReduction(config: dict = None):
     # For this, we don't need to worry about the Placzek correction,
     # which will actually be performed later in STEP-7.
     #################################################################
-    if not auto_red:
+    if not auto_red and mtd[sam_corrected].getNumberHistograms() <= 99:
         out_bragg("unnorm", sam_corrected, manual_grouping=manual_grouping)
 
     #################################################################
@@ -2377,11 +2376,12 @@ def TotalScatteringReduction(config: dict = None):
     if auto_red:
         return mtd[sam_corrected_norm]
 
-    out_bragg(
-        "norm",
-        sam_corrected_norm_bragg,
-        manual_grouping=manual_grouping
-    )
+    if mtd[sam_corrected_norm_bragg].getNumberHistograms() <= 99:
+        out_bragg(
+            "norm",
+            sam_corrected_norm_bragg,
+            manual_grouping=manual_grouping
+        )
 
     if final_message:
         log.warning(final_message)
