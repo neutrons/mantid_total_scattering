@@ -235,6 +235,26 @@ One interesting observation is if using the former way (i.e., run `python
 SCRIPT_NAME.py`), the `SavePlot1D` algorithm cannot take the `OutputType` as
 being `plotly-all`, whereas using the latter command will be able to do that.
 
+> N.B. Specifically for the local development on ORNL analysis cluster, the following bash script can be used to
+launch the local dev version. Concerning the full path specified in the script, it may change with the actual mounting
+point so we need to pay attention to it especially when errors occur.
+
+```bash
+#!/bin/bash
+
+source /gpfs/neutronsfs/instruments/NOM/shared/Dev/mantid_total_scattering/.venv/bin/activate
+python /gpfs/neutronsfs/instruments/NOM/shared/Dev/mantid/build/bin/AddPythonPath.py > /dev/null 2>&1
+
+cwd=${PWD}
+
+cd /gpfs/neutronsfs/instruments/NOM/shared/Dev/mantid_total_scattering/
+python setup_local.py develop
+
+cd ${cwd}
+
+mantidtotalscattering $1
+```
+
 Tests
 ===========================================================
 To build and run the tests via [pytest](https://docs.pytest.org), use:
