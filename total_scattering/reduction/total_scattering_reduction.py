@@ -498,9 +498,11 @@ def TotalScatteringReduction(config: dict = None):
     sam_material = sample.get('Material', None)
     sam_material = chem_form_normalizer(sam_material)
 
-    sam_geo_dict = {'Shape': 'Cylinder',
-                    'Radius': config['Sample']['Geometry']['Radius'],
-                    'Height': config['Sample']['Geometry']['Height']}
+    sam_geo_dict = {
+        'Shape': config['Sample']['Geometry']['Shape'],
+        'Radius': config['Sample']['Geometry']['Radius'],
+        'Height': config['Sample']['Geometry']['Height']
+    }
 
     sam_eff_density = sam_mass_density * sam_packing_fraction
     sam_mat_dict = {'ChemicalFormula': sam_material,
