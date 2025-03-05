@@ -788,6 +788,7 @@ def abs_grouping(sam_abs_ws,
 
 
 def create_absorption_wksp(filename, abs_method, geometry, material,
+                           container_geometry={}, container_mateterial={},
                            environment=None, props=None,
                            characterization_files=None,
                            ms_method=None,

@@ -498,22 +498,71 @@ def TotalScatteringReduction(config: dict = None):
     sam_material = sample.get('Material', None)
     sam_material = chem_form_normalizer(sam_material)
 
-    sam_geo_dict = {
-        'Shape': config['Sample']['Geometry']['Shape'],
-        'Radius': config['Sample']['Geometry']['Radius'],
-        'Height': config['Sample']['Geometry']['Height']
-    }
+    sam_shape = config['Sample']['Geometry']['Shape']
+    if sam_shape == 'Cylinder':
+        sam_geo_dict = {
+            'Shape': sam_shape,
+            'Radius': config['Sample']['Geometry']['Radius'],
+            'Height': config['Sample']['Geometry']['Height']
+        }
+    elif sam_shape == 'HollowCylinder':
+        sam_geo_dict = {
+            'Shape': sam_shape,
+            'InnerRadius': config['Sample']['Geometry']['InnerRadius'],
+            'OuterRadius': config['Sample']['Geometry']['OuterRadius'],
+            'Height': config['Sample']['Geometry']['Height'],
+            'Center': [0., 0., 0.]
+        }
+    else:
+        raise RuntimeError("Unknown shape for sample geometry")
+
+    # Get container geometry info if it exists
+    # Length dimension assumed to be cm for the geometry definition.
+    acc_con_mat = [
+        "V", "V1", "Si O2", "Si1 O2"
+    ]
+    if 'Container' in config:
+        con_geo = config['Container']['Geometry']
+        con_mat = config['Container']['Material']
+        # If the container material is not in the list of accepted container
+        # materials, then the container material must have a density defined.
+        if con_mat["ChemicalFormula"] not in acc_con_mat:
+            d_exists = "NumberDensity" in con_mat or "MassDensity" in con_mat
+            if not d_exists:
+                err_msg = "Density is required for container, "
+                err_msg += "either NumberDensity or MassDensity."
+                raise RuntimeError(err_msg)
+        else:
+            cc_form = con_mat["ChemicalFormula"]
+            if cc_form == "V" or cc_form == "V1":
+                con_mat["NumberDensity"] = 0.0721
+            elif cc_form == "Si O2" or cc_form == "Si1 O2":
+                con_mat["MassDensity"] = 2.196
+            else:
+                raise RuntimeError("Container material density undefined.")
+    else:
+        con_geo = {}
+        con_mat = {}
 
     sam_eff_density = sam_mass_density * sam_packing_fraction
-    sam_mat_dict = {'ChemicalFormula': sam_material,
-                    'SampleMassDensity': sam_eff_density}
+    sam_mat_dict = {
+        'ChemicalFormula': sam_material,
+        'SampleMassDensity': sam_eff_density
+    }
 
-    if 'Environment' in config:
-        sam_env_dict = {'Name': config['Environment']['Name'],
-                        'Container': config['Environment']['Container']}
+    if con_geo and con_mat:
+        sam_env_dict = {'Name': 'InAir'}
     else:
-        sam_env_dict = {'Name': 'InAir',
-                        'Container': 'PAC06'}
+        if 'Environment' in config:
+            sam_env_dict = {
+                'Name': config['Environment']['Name'],
+                'Container': config['Environment']['Container']
+            }
+        else:
+            sam_env_dict = {
+                'Name': 'InAir',
+                'Container': 'PAC06'
+            }
 
     # Get normalization info
     van = get_normalization(config)
@@ -836,6 +885,8 @@ def TotalScatteringReduction(config: dict = None):
                     sam_abs_corr["Type"],
                     sam_geo_dict,
                     sam_mat_dict,
+                    con_geo,
+                    con_mat,
                     sam_env_dict,
                     ms_method=sam_ms_method,
                     elementsize=sam_elementsize,
