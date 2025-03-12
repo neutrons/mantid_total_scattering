@@ -52,6 +52,7 @@ from mantid.simpleapi import \
     LoadNexus, \
     RenameWorkspace
 # from mantid.api import AnalysisDataService as ADS
+from mantid.api import IEventWorkspace
 
 from total_scattering.file_handling.load import load, create_absorption_wksp
 from total_scattering.file_handling.save import save_banks
@@ -1525,7 +1526,27 @@ def TotalScatteringReduction(config: dict = None):
         InputWorkspace=van_corrected,
         OutputWorkspace=van_corrected,
         Target='dSpacing',
-        EMode='Elastic')
+        EMode='Elastic'
+    )
+
+    # In case of preserving events setting, here we need to
+    # throw away the events for the next step of setting all
+    # nan's to 0. If we keep the events, the workspace data
+    # setting would fail, since Mantid does not allow changing
+    # the histogrammed data for an event workspace.
+    if isinstance(mtd[van_corrected], IEventWorkspace):
+        ConvertUnits(
+            InputWorkspace=sam_wksp,
+            OutputWorkspace="_sam_wksp_tmp",
+            Target='dSpacing',
+            EMode='Elastic'
+        )
+        RebinToWorkspace(
+            WorkspaceToRebin=van_corrected,
+            WorkspaceToMatch="_sam_wksp_tmp",
+            OutputWorkspace=van_corrected,
+            PreserveEvents=False
+        )
 
     for i in range(mtd[van_corrected].getNumberHistograms()):
         orig_y_tmp = mtd[van_corrected].readY(i)
@@ -1724,6 +1745,21 @@ def TotalScatteringReduction(config: dict = None):
         LHSWorkspace=sam_wksp,
         RHSWorkspace=van_corrected,
         OutputWorkspace=sam_wksp)
+
+    # In case of preserving events setting, here we need to
+    # throw away the events for the next step of setting all
+    # nan's to 0. If we keep the events, the workspace data
+    # setting would fail, since Mantid does not allow changing
+    # the histogrammed data for an event workspace. Here, we
+    # are doing a little trick by rebinning the workspace
+    # to itself while throwing away the events.
+    if isinstance(mtd[sam_wksp], IEventWorkspace):
+        RebinToWorkspace(
+            WorkspaceToRebin=sam_wksp,
+            WorkspaceToMatch=sam_wksp,
+            OutputWorkspace=sam_wksp,
+            PreserveEvents=False
+        )
 
     threshold = 1.E3
     for i in range(mtd[sam_wksp].getNumberHistograms()):
