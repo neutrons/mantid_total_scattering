@@ -30,6 +30,7 @@ from mantid.simpleapi import \
     CloneWorkspace, \
     Plus
 from mantid.utils import absorptioncorrutils
+from mantid.api import IEventWorkspace
 from sklearn.cluster import KMeans
 import numpy as np
 import os
@@ -351,6 +352,14 @@ def load(ws_name, input_files, group_wksp,
                 CloneWorkspace(InputWorkspace="wksp_tmp_qrb",
                                OutputWorkspace=ws_name)
             else:
+                if not isinstance(mtd["wksp_tmp_qrb"], IEventWorkspace):
+                    RebinToWorkspace(
+                        WorkspaceToRebin=ws_name,
+                        WorkspaceToMatch=ws_name,
+                        OutputWorkspace=ws_name,
+                        PreserveEvents=False
+                    )
+
                 RebinToWorkspace(
                     WorkspaceToRebin="wksp_tmp_qrb",
                     WorkspaceToMatch=ws_name,
