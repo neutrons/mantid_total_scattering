@@ -1982,8 +1982,20 @@ def TotalScatteringReduction(config: dict = None):
                                                   "0.7,0.7,0.9,1.5,1.6,1.1")
         tmax_limit = gen_config.config_params.get("TMaxBragg",
                                                   "17,18.5,19,18.5,16.9,17")
-        tmin_limit = [float(item) * 1000. for item in tmin_limit.split(",")]
-        tmax_limit = [float(item) * 1000. for item in tmax_limit.split(",")]
+        tbin = gen_config.config_params.get("TBinBragg", "-0.0008")
+
+        if "," in tmin_limit:
+            tmin_limit = [
+                float(item) * 1000. for item in tmin_limit.split(",")
+            ]
+        else:
+            tmin_limit = [float(tmin_limit) * 1000.]
+        if "," in tmax_limit:
+            tmax_limit = [
+                float(item) * 1000. for item in tmax_limit.split(",")
+            ]
+        else:
+            tmax_limit = [float(tmax_limit) * 1000.]
 
         CloneWorkspace(
             InputWorkspace=out_wksp,
@@ -2038,25 +2050,32 @@ def TotalScatteringReduction(config: dict = None):
             Target="TOF",
             EMode="Elastic")
 
-        xmin, xmax = get_each_spectra_xmin_xmax(mtd["bo_dummy"])
+        if mtd["bo_dummy"].getNumberHistograms() == 1:
+            xmin = tmin_limit[0]
+            xmax = tmax_limit[0]
+            xmin_rebin = xmin
+            xmax_rebin = xmax
+        else:
+            xmin, xmax = get_each_spectra_xmin_xmax(mtd["bo_dummy"])
+            xmin_rebin = min(xmin)
+            xmax_rebin = max(xmax)
 
-        xmin_rebin = min(xmin)
         if "TMin" in alignAndFocusArgs.keys():
             tmin = alignAndFocusArgs["TMin"]
-            info = f"[Info] 'TMin = {tmin}' found in the input config file."
+            info = f"[Info] 'TMin = {tmin}' found in the input file."
             print(info)
             xmin_rebin = max(tmin, xmin_rebin)
-        xmax_rebin = max(xmax)
         if "TMax" in alignAndFocusArgs.keys():
             tmax = alignAndFocusArgs["TMax"]
-            info = f"[Info] 'TMax = {tmax}' found in the input config file."
+            info = f"[Info] 'TMax = {tmax}' found in the input file."
             print(info)
             xmax_rebin = min(xmax_rebin, tmax)
 
         # Note: For the moment, bin size for Bragg output is hard coded.
         # May need to make it user input if necessary.
-        tof_binning = "{xmin},-0.0008,{xmax}".format(
+        tof_binning = "{xmin},{xbin},{xmax}".format(
             xmin=xmin_rebin,
+            xbin=tbin,
             xmax=xmax_rebin
         )
 
@@ -2110,7 +2129,9 @@ def TotalScatteringReduction(config: dict = None):
     # For this, we don't need to worry about the Placzek correction,
     # which will actually be performed later in STEP-7.
     #################################################################
-    if not auto_red and mtd[sam_corrected].getNumberHistograms() <= 99:
+    cd1 = instr == "PG3"
+    cd2 = not auto_red and mtd[sam_corrected].getNumberHistograms() <= 99
+    if cd1 or cd2:
         out_bragg("unnorm", sam_corrected, manual_grouping=manual_grouping)
 
     #################################################################
