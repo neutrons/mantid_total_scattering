@@ -614,24 +614,6 @@ def TotalScatteringReduction(config: dict = None):
     sample['Background']['Runs'] = expand_ints(
         sample['Background'].get('Runs', None))
 
-    '''
-    Currently not implemented:
-    # wkspIndices = merging.get('SumBanks', None)
-    # high_q_linear_fit_range = config['HighQLinearFitRange']
-
-    POWGEN options not used
-    #alignAndFocusArgs['RemovePromptPulseWidth'] = 50
-    # alignAndFocusArgs['CompressTolerance'] use defaults
-    # alignAndFocusArgs['UnwrapRef'] POWGEN option
-    # alignAndFocusArgs['LowResRef'] POWGEN option
-    # alignAndFocusArgs['LowResSpectrumOffset'] POWGEN option
-
-    How much of each bank gets merged has info here in the form of
-    # {"ID", "Qmin", "QMax"}
-    # alignAndFocusArgs['CropWavelengthMin'] from characterizations file
-    # alignAndFocusArgs['CropWavelengthMax'] from characterizations file
-    '''
-
     #################################################################
     # Figure out experimental runs either with run numbers
     # and facility name or retrieve file name from 'config'
@@ -975,8 +957,6 @@ def TotalScatteringReduction(config: dict = None):
     #################################################################
     alignAndFocusArgs = dict()
     alignAndFocusArgs['CalFilename'] = config['Calibration']['Filename']
-    # alignAndFocusArgs['GroupFilename'] don't use
-    # alignAndFocusArgs['Params'] = "0.,0.02,40."
     if facility == "SNS" and instr == "PG3":
         resample_x = gen_config.config_params.get("ResampleX", -8000)
     elif facility == "SNS" and instr == "NOM":
@@ -986,15 +966,10 @@ def TotalScatteringReduction(config: dict = None):
         resample_x = gen_config.config_params.get("ResampleX", -6000)
     alignAndFocusArgs['ResampleX'] = resample_x
     alignAndFocusArgs['Dspacing'] = False
-    alignAndFocusArgs['PreserveEvents'] = False
     alignAndFocusArgs['MaxChunkSize'] = 0
-    pe_tmp = gen_config.config_params["PreserveEvents"]
-    alignAndFocusArgs['PreserveEvents'] = pe_tmp
     qparams = gen_config.config_params["QParamsProcessing"]
 
     # add resonance filter related properties
-    # NOTE:
-    #    the default behaivor is no filtering if not specified.
     if res_filter is not None:
         alignAndFocusArgs['ResonanceFilterUnits'] = res_filter_axis
         alignAndFocusArgs['ResonanceFilterLowerLimits'] = res_filter_lower
@@ -1009,6 +984,9 @@ def TotalScatteringReduction(config: dict = None):
         alignAndFocusArgs['TMin'] = gen_config.config_params["TMIN"]
     if "TMax" not in alignAndFocusArgs:
         alignAndFocusArgs['TMax'] = gen_config.config_params["TMAX"]
+
+    # Set `PreserveEvents` to False anyways.
+    alignAndFocusArgs['PreserveEvents'] = False
 
     # Setup grouping
     output_grouping = False
@@ -2306,9 +2284,14 @@ def TotalScatteringReduction(config: dict = None):
     print('sam:', mtd[sam_corrected].id())
     print('van:', mtd[van_corrected].id())
     if alignAndFocusArgs['PreserveEvents']:
-        CompressEvents(
-            InputWorkspace=sam_corrected,
-            OutputWorkspace=sam_corrected)
+        try:
+            CompressEvents(
+                InputWorkspace=sam_corrected,
+                OutputWorkspace=sam_corrected
+            )
+        except ValueError:
+            msg = "CompressEvents failed due to improper input workspace type."
+            log.notice(msg)
 
     #################################################################
     # STEP 8:  S(Q) and F(Q), bank-by-bank
