@@ -41,6 +41,7 @@ from mantid.simpleapi import \
     Scale, \
     SetSample, \
     SetUncertainties, \
+    StripPeaks, \
     StripVanadiumPeaks, \
     CalculateEfficiencyCorrection, \
     CalculatePlaczek, \
@@ -988,6 +989,12 @@ def TotalScatteringReduction(config: dict = None):
     # Set `PreserveEvents` to False anyways.
     alignAndFocusArgs['PreserveEvents'] = False
 
+    cont_peaks = None
+    if "ContainerPeaks" in config:
+        cont_peaks = config["ContainerPeaks"]
+    else:
+        cont_peaks = gen_config.config_params.get("ContainerPeaks", None)
+
     # Setup grouping
     output_grouping = False
     grp_wksp = "wksp_output_group"
@@ -1346,20 +1353,77 @@ def TotalScatteringReduction(config: dict = None):
             RHSWorkspace=van_bg,
             OutputWorkspace=van_wksp)
 
-    RebinToWorkspace(
-        WorkspaceToRebin=container,
-        WorkspaceToMatch=sam_wksp,
-        OutputWorkspace=container)
     Scale(
         InputWorkspace=container,
         OutputWorkspace=container,
         Factor=cont_scale,
         Operation="Multiply"
     )
+
+    if cont_peaks is not None and cont_peaks != "None":
+        Rebin(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            Params=binning
+        )
+
+        ConvertUnits(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            Target="dSpacing",
+            EMode="Elastic"
+        )
+
+        try:
+            StripPeaks(
+                InputWorkspace=container,
+                OutputWorkspace=container,
+                PeakPositions=cont_peaks,
+                FWHM=7,
+                Tolerance=2,
+                BackgroundType="Quadratic",
+                HighBackground=True,
+                PeakPositionTolerance="0.01"
+            )
+            strip_c_success = True
+        except:  # noqa: E722
+            strip_c_success = False
+
+        if strip_c_success:
+            ConvertUnits(
+                InputWorkspace=container,
+                OutputWorkspace=container,
+                Target='TOF',
+                EMode='Elastic'
+            )
+
+            FFTSmooth(
+                InputWorkspace=container,
+                OutputWorkspace=container,
+                Filter="Butterworth",
+                Params='20,2',
+                IgnoreXBins=True,
+                AllSpectra=True
+            )
+
+        ConvertUnits(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            Target='MomentumTransfer',
+            EMode='Elastic'
+        )
+
+    RebinToWorkspace(
+        WorkspaceToRebin=container,
+        WorkspaceToMatch=sam_wksp,
+        OutputWorkspace=container
+    )
+
     Minus(
         LHSWorkspace=sam_wksp,
         RHSWorkspace=container,
-        OutputWorkspace=sam_wksp)
+        OutputWorkspace=sam_wksp
+    )
 
     # If no absorption correction is to be performed, we don't
     # need to subtract the container bkg. Refer to the note
@@ -1498,6 +1562,15 @@ def TotalScatteringReduction(config: dict = None):
             GroupingWorkspace=grp_wksp,
             Binning=binning,
             autored=auto_red)
+
+    # The over-fine binning for data processing will make the peaks
+    # strip fail. We need to rebin the data to a coarser binning.
+    # TODO: Need to check whether this will impact the final output
+    Rebin(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        Params=binning
+    )
 
     # Smooth Vanadium (strip peaks plus smooth)
     ConvertUnits(
