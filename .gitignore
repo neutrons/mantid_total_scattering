@@ -219,3 +219,5 @@ total_scattering/.vscode
 .linenoteplus
 settings.json
 .vscode/
+
+.token
