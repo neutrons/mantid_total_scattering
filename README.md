@@ -209,6 +209,36 @@ TotalScatteringReduction(config)
 where we need to replace `FULL_PATH_TO_INPUT_JSON_FILE` with the full path to
 our input json file.
 
+Or, we can use the following script inside a general version of `MantidWorkbench`,
+
+```python
+from mantid.simpleapi import *
+import matplotlib.pyplot as plt
+import numpy as np
+
+mts_path = os.path.join(
+    "/gpfs/neutronsfs/instruments/NOM/shared/Dev/mantid_total_scattering"
+)
+sys.path.append(mts_path)
+mts_path = os.path.join(
+    "/gpfs/neutronsfs/instruments/NOM/shared/Dev",
+    "mantid_total_scattering/.venv/lib/python3.10/site-packages"
+)
+sys.path.append(mts_path)
+from total_scattering.reduction.total_scattering_reduction import \
+    TotalScatteringReduction  # noqa: E407
+from total_scattering.reduction.validator import validateConfig  # noqa: E407
+from total_scattering import __version__ as mts_version  # noqa: E407
+from total_scattering.reduction.normalizations import Material  # noqa: E407
+
+import json
+
+with open("/SNS/PG3/IPTS-34378/shared/autoreduce/MTSRed/Input/PG3_59120.json", "r") as f:
+    config = json.load(f)
+
+sofq = TotalScatteringReduction(config)
+```
+
 N. B. To build a local version of `mantid` framework, we can check out
 this link, [https://developer.mantidproject.org/GettingStarted/GettingStartedCondaLinux.html#gettingstartedcondalinux](https://developer.mantidproject.org/GettingStarted/GettingStartedCondaLinux.html#gettingstartedcondalinux).
 
