@@ -22,6 +22,7 @@ from mantid.simpleapi import \
     SetSample, \
     Rebin, \
     RebinToWorkspace, \
+    RemoveSpectra, \
     CreateGroupingWorkspace, \
     SaveDetectorsGrouping, \
     GroupDetectors, \
@@ -31,6 +32,7 @@ from mantid.simpleapi import \
     Plus
 from mantid.utils import absorptioncorrutils
 from mantid.api import IEventWorkspace
+from mantid.api import AnalysisDataService as ADS
 from sklearn.cluster import KMeans
 import numpy as np
 import os
@@ -338,7 +340,7 @@ def load(ws_name, input_files, group_wksp,
                 Rebin(InputWorkspace=wksp_tmp,
                       OutputWorkspace="wksp_tmp_qrb",
                       Params=qparams_use,
-                      PreserveEvents=align_and_focus_args["PreserveEvents"])
+                      PreserveEvents=False)
                 DeleteWorkspace(Workspace="wksp_tmp")
                 SaveNexusProcessed(
                     InputWorkspace="wksp_tmp_qrb",
@@ -363,7 +365,8 @@ def load(ws_name, input_files, group_wksp,
                 RebinToWorkspace(
                     WorkspaceToRebin="wksp_tmp_qrb",
                     WorkspaceToMatch=ws_name,
-                    OutputWorkspace="wksp_tmp_qrb"
+                    OutputWorkspace="wksp_tmp_qrb",
+                    PreserveEvents=False
                 )
                 Plus(LHSWorkspace=ws_name,
                      RHSWorkspace="wksp_tmp_qrb",
@@ -379,16 +382,53 @@ def load(ws_name, input_files, group_wksp,
             Rebin(InputWorkspace=absorption_wksp,
                   OutputWorkspace="absorption_wksp_rb",
                   Params=qparams_use,
-                  PreserveEvents=align_and_focus_args["PreserveEvents"])
+                  PreserveEvents=False)
+
             for i in range(mtd["absorption_wksp_rb"].getNumberHistograms()):
                 orig_y_tmp = mtd["absorption_wksp_rb"].readY(i)
                 new_y = np.nan_to_num(orig_y_tmp, nan=0)
                 new_y[np.abs(new_y) < 1.E-5] = 1.
                 mtd["absorption_wksp_rb"].setY(i, new_y)
-            Divide(LHSWorkspace=mtd[ws_name],
-                   RHSWorkspace="absorption_wksp_rb",
-                   OutputWorkspace=ws_name,
-                   AllowDifferentNumberSpectra=True)
+
+            for tmp_wksp in ADS.getObjectNames():
+                if "tmp" in tmp_wksp:
+                    DeleteWorkspace(Workspace=tmp_wksp)
+
+            CreateDetectorTable(
+                InputWorkspace=ws_name,
+                DetectorTableWorkspace=f"{ws_name}_det"
+            )
+            CreateDetectorTable(
+                InputWorkspace="absorption_wksp_rb",
+                DetectorTableWorkspace="abs_det"
+            )
+
+            spec_nums = list()
+            for itmp in range(mtd[ws_name].getNumberHistograms()):
+                spec_num = mtd[f"{ws_name}_det"].row(itmp)["Spectrum No"]
+                spec_nums.append(spec_num)
+
+            abs_remove = list()
+            for itmp in range(mtd["absorption_wksp_rb"].getNumberHistograms()):
+                snum_tmp = mtd["abs_det"].row(itmp)["Spectrum No"]
+                if snum_tmp not in spec_nums:
+                    abs_remove.append(str(itmp))
+
+            abs_remove_str = ",".join(abs_remove)
+
+            RemoveSpectra(
+                InputWorkspace="absorption_wksp_rb",
+                OutputWorkspace="absorption_wksp_rb_use",
+                WorkspaceIndices=abs_remove_str
+            )
+
+            Divide(
+                LHSWorkspace=ws_name,
+                RHSWorkspace="absorption_wksp_rb_use",
+                OutputWorkspace=ws_name,
+                AllowDifferentNumberSpectra=True,
+                ClearRHSWorkspace=True
+            )
 
         if auto_red:
             min_min = 0

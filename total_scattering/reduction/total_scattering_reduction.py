@@ -1037,6 +1037,23 @@ def TotalScatteringReduction(config: dict = None):
                                 GroupDetectorsBy='All',
                                 OutputWorkspace=grp_wksp)
 
+    if sam_abs_corr:
+        cond1 = sam_abs_corr["Type"] == "SampleOnly"
+        cond2 = sam_abs_corr["Type"] == "SampleAndContainer"
+        if cond1 or cond2:
+            CloneWorkspace(
+                InputWorkspace=sam_abs_ws,
+                OutputWorkspace="sam_abs_ws_for_container"
+            )
+            con_abs_ws = "sam_abs_ws_for_container"
+
+    if container_bg is not None:
+        if sam_abs_corr is not None and not (cond1 or cond2):
+            CloneWorkspace(
+                InputWorkspace=sam_abs_ws,
+                OutputWorkspace="sam_abs_ws_for_bkg"
+            )
+
     #################################################################
     # Load, calibrate and diffraction focus
     # (1) sample  (2) container (3) container background
@@ -1089,9 +1106,6 @@ def TotalScatteringReduction(config: dict = None):
     print("#-----------------------------------#")
     print("# Sample Container")
     print("#-----------------------------------#")
-    if container_bg is not None:
-        con_abs_ws = sam_abs_ws
-
     container = load(
         'container',
         container_scans,
@@ -1142,7 +1156,7 @@ def TotalScatteringReduction(config: dict = None):
         # NOTE: to make life easier
         # alpha_e I_e = alpha_s I_e - alpha_c I_e
         container_bg_fn = container_bg
-        if sam_abs_corr is not None:
+        if sam_abs_corr is not None and not (cond1 or cond2):
             container_bg = load(
                 'container_background',
                 container_bg_fn,
@@ -1151,7 +1165,7 @@ def TotalScatteringReduction(config: dict = None):
                 instr_name=instr,
                 ipts=ipts,
                 group_num=num_regen_groups,
-                absorption_wksp=sam_abs_ws,
+                absorption_wksp="sam_abs_ws_for_bkg",
                 out_group_dict=sg_dict,
                 qparams=qparams,
                 auto_red=auto_red,
@@ -1429,7 +1443,7 @@ def TotalScatteringReduction(config: dict = None):
     # need to subtract the container bkg. Refer to the note
     # in the `Load Sample Container Background` section above
     # for the mechanism being used.
-    if container_bg is not None and sam_abs_corr is not None:
+    if container_bg is not None and sam_abs_corr and not (cond1 or cond2):
         RebinToWorkspace(
             WorkspaceToRebin=container_bg,
             WorkspaceToMatch=sam_wksp,
