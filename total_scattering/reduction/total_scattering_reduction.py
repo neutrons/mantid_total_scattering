@@ -499,6 +499,8 @@ def TotalScatteringReduction(config: dict = None):
     sam_geometry = sample.get('Geometry', None)
     sam_material = sample.get('Material', None)
     sam_material = chem_form_normalizer(sam_material)
+    dummy_info = sample.get('DummyInfo', None)
+    push_pos = sample.get('PushPositiveLevel', 100.)
 
     sam_geo_dict = {
         'Shape': config['Sample']['Geometry']['Shape'],
@@ -2400,7 +2402,14 @@ def TotalScatteringReduction(config: dict = None):
         offset = None
 
     sam_corrected_norm = sam_corrected + '_norm'
-    to_absolute_scale(sam_corrected, sam_corrected_norm)
+    if dummy_info:
+        CloneWorkspace(
+            InputWorkspace=sam_corrected,
+            OutputWorkspace=sam_corrected_norm
+        )
+    else:
+        to_absolute_scale(sam_corrected, sam_corrected_norm)
+
     sam_corrected_norm_bragg = sam_corrected + '_norm_bragg'
     CloneWorkspace(InputWorkspace=sam_corrected_norm,
                    OutputWorkspace=sam_corrected_norm_bragg)
@@ -2417,6 +2426,8 @@ def TotalScatteringReduction(config: dict = None):
                             OutputWorkspace=sam_corrected_norm,
                             Xmin=qmin_limit,
                             Xmax=qmax_limit)
+        if dummy_info:
+            mtd[sam_corrected_norm_bragg] += push_pos
     else:
         qmin_limit = float(qparams.split(",")[0])
         x_data = mtd[sam_corrected_norm].readX(0)
@@ -2434,6 +2445,10 @@ def TotalScatteringReduction(config: dict = None):
                 y_new.append(y_data[closest_index])
             else:
                 y_new.append(y_data[i])
+
+            if dummy_info and offset:
+                y_new[i] = y_new[i] - offset[1] + 1.
+
         mtd[sam_corrected_norm].setY(0, y_new)
 
     save_banks(
