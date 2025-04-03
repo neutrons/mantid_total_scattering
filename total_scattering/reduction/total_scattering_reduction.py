@@ -2096,11 +2096,21 @@ def TotalScatteringReduction(config: dict = None):
         calib_table_tmp.addColumn("float", "difa")
         calib_table_tmp.addColumn("float", "tzero")
 
+        final_difc = gen_config.config_params.get("FinalDIFC", None)
+        if final_difc is not None:
+            if not isinstance(final_difc, list):
+                final_difc = [final_difc]
+
         for i in range(mtd["bo_dummy"].getNumberHistograms()):
+            if final_difc is not None:
+                difc_val = final_difc[i]
+            else:
+                difc_val = mtd["calib_table_init"].row(i)["DIFC"]
+
             calib_table_tmp.addRow(
                 [
                     i,
-                    mtd["calib_table_init"].row(i)["DIFC"],
+                    difc_val,
                     0.,
                     0.
                 ]
