@@ -52,7 +52,8 @@ def save_banks(InputWorkspace, Filename, Title, OutputDir,
 
     # Output to desired level of grouping
     isEventWksp = isinstance(tmp_wksp, IEventWorkspace)
-    if isEventWksp and GroupingWorkspace and yunit == "Counts":
+    single = tmp_wksp.getNumberHistograms() == 1
+    if isEventWksp and GroupingWorkspace and yunit == "Counts" and not single:
         tmp_wksp = DiffractionFocussing(InputWorkspace=tmp_wksp,
                                         GroupingWorkspace=GroupingWorkspace,
                                         PreserveEvents=False)

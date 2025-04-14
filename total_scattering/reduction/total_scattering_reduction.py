@@ -41,6 +41,7 @@ from mantid.simpleapi import \
     Scale, \
     SetSample, \
     SetUncertainties, \
+    StripPeaks, \
     StripVanadiumPeaks, \
     CalculateEfficiencyCorrection, \
     CalculatePlaczek, \
@@ -52,6 +53,7 @@ from mantid.simpleapi import \
     LoadNexus, \
     RenameWorkspace
 # from mantid.api import AnalysisDataService as ADS
+from mantid.api import IEventWorkspace
 
 from total_scattering.file_handling.load import load, create_absorption_wksp
 from total_scattering.file_handling.save import save_banks
@@ -497,6 +499,8 @@ def TotalScatteringReduction(config: dict = None):
     sam_geometry = sample.get('Geometry', None)
     sam_material = sample.get('Material', None)
     sam_material = chem_form_normalizer(sam_material)
+    dummy_info = sample.get('DummyInfo', None)
+    push_pos = sample.get('PushPositiveLevel', 100.)
 
     sam_shape = config['Sample']['Geometry']['Shape']
     if sam_shape == 'Cylinder':
@@ -661,24 +665,6 @@ def TotalScatteringReduction(config: dict = None):
     sample['Runs'] = expand_ints(sample['Runs'])
     sample['Background']['Runs'] = expand_ints(
         sample['Background'].get('Runs', None))
-
-    '''
-    Currently not implemented:
-    # wkspIndices = merging.get('SumBanks', None)
-    # high_q_linear_fit_range = config['HighQLinearFitRange']
-
-    POWGEN options not used
-    #alignAndFocusArgs['RemovePromptPulseWidth'] = 50
-    # alignAndFocusArgs['CompressTolerance'] use defaults
-    # alignAndFocusArgs['UnwrapRef'] POWGEN option
-    # alignAndFocusArgs['LowResRef'] POWGEN option
-    # alignAndFocusArgs['LowResSpectrumOffset'] POWGEN option
-
-    How much of each bank gets merged has info here in the form of
-    # {"ID", "Qmin", "QMax"}
-    # alignAndFocusArgs['CropWavelengthMin'] from characterizations file
-    # alignAndFocusArgs['CropWavelengthMax'] from characterizations file
-    '''
 
     #################################################################
     # Figure out experimental runs either with run numbers
@@ -1025,8 +1011,6 @@ def TotalScatteringReduction(config: dict = None):
     #################################################################
     alignAndFocusArgs = dict()
     alignAndFocusArgs['CalFilename'] = config['Calibration']['Filename']
-    # alignAndFocusArgs['GroupFilename'] don't use
-    # alignAndFocusArgs['Params'] = "0.,0.02,40."
     if facility == "SNS" and instr == "PG3":
         resample_x = gen_config.config_params.get("ResampleX", -8000)
     elif facility == "SNS" and instr == "NOM":
@@ -1036,15 +1020,10 @@ def TotalScatteringReduction(config: dict = None):
         resample_x = gen_config.config_params.get("ResampleX", -6000)
     alignAndFocusArgs['ResampleX'] = resample_x
     alignAndFocusArgs['Dspacing'] = False
-    alignAndFocusArgs['PreserveEvents'] = False
     alignAndFocusArgs['MaxChunkSize'] = 0
-    pe_tmp = gen_config.config_params["PreserveEvents"]
-    alignAndFocusArgs['PreserveEvents'] = pe_tmp
     qparams = gen_config.config_params["QParamsProcessing"]
 
     # add resonance filter related properties
-    # NOTE:
-    #    the default behaivor is no filtering if not specified.
     if res_filter is not None:
         alignAndFocusArgs['ResonanceFilterUnits'] = res_filter_axis
         alignAndFocusArgs['ResonanceFilterLowerLimits'] = res_filter_lower
@@ -1059,6 +1038,15 @@ def TotalScatteringReduction(config: dict = None):
         alignAndFocusArgs['TMin'] = gen_config.config_params["TMIN"]
     if "TMax" not in alignAndFocusArgs:
         alignAndFocusArgs['TMax'] = gen_config.config_params["TMAX"]
+
+    # Set `PreserveEvents` to False anyways.
+    alignAndFocusArgs['PreserveEvents'] = False
+
+    cont_peaks = None
+    if "ContainerPeaks" in config:
+        cont_peaks = config["ContainerPeaks"]
+    else:
+        cont_peaks = gen_config.config_params.get("ContainerPeaks", None)
 
     # Setup grouping
     output_grouping = False
@@ -1101,6 +1089,23 @@ def TotalScatteringReduction(config: dict = None):
         CreateGroupingWorkspace(InstrumentName=instr,
                                 GroupDetectorsBy='All',
                                 OutputWorkspace=grp_wksp)
+
+    if sam_abs_corr:
+        cond1 = sam_abs_corr["Type"] == "SampleOnly"
+        cond2 = sam_abs_corr["Type"] == "SampleAndContainer"
+        if cond1 or cond2:
+            CloneWorkspace(
+                InputWorkspace=sam_abs_ws,
+                OutputWorkspace="sam_abs_ws_for_container"
+            )
+            con_abs_ws = "sam_abs_ws_for_container"
+
+    if container_bg is not None:
+        if sam_abs_corr is not None and not (cond1 or cond2):
+            CloneWorkspace(
+                InputWorkspace=sam_abs_ws,
+                OutputWorkspace="sam_abs_ws_for_bkg"
+            )
 
     #################################################################
     # Load, calibrate and diffraction focus
@@ -1154,9 +1159,6 @@ def TotalScatteringReduction(config: dict = None):
     print("#-----------------------------------#")
     print("# Sample Container")
     print("#-----------------------------------#")
-    if container_bg is not None:
-        con_abs_ws = sam_abs_ws
-
     container = load(
         'container',
         container_scans,
@@ -1207,7 +1209,7 @@ def TotalScatteringReduction(config: dict = None):
         # NOTE: to make life easier
         # alpha_e I_e = alpha_s I_e - alpha_c I_e
         container_bg_fn = container_bg
-        if sam_abs_corr is not None:
+        if sam_abs_corr is not None and not (cond1 or cond2):
             container_bg = load(
                 'container_background',
                 container_bg_fn,
@@ -1216,7 +1218,7 @@ def TotalScatteringReduction(config: dict = None):
                 instr_name=instr,
                 ipts=ipts,
                 group_num=num_regen_groups,
-                absorption_wksp=sam_abs_ws,
+                absorption_wksp="sam_abs_ws_for_bkg",
                 out_group_dict=sg_dict,
                 qparams=qparams,
                 auto_red=auto_red,
@@ -1418,26 +1420,83 @@ def TotalScatteringReduction(config: dict = None):
             RHSWorkspace=van_bg,
             OutputWorkspace=van_wksp)
 
-    RebinToWorkspace(
-        WorkspaceToRebin=container,
-        WorkspaceToMatch=sam_wksp,
-        OutputWorkspace=container)
     Scale(
         InputWorkspace=container,
         OutputWorkspace=container,
         Factor=cont_scale,
         Operation="Multiply"
     )
+
+    if cont_peaks is not None and cont_peaks != "None":
+        Rebin(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            Params=binning
+        )
+
+        ConvertUnits(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            Target="dSpacing",
+            EMode="Elastic"
+        )
+
+        try:
+            StripPeaks(
+                InputWorkspace=container,
+                OutputWorkspace=container,
+                PeakPositions=cont_peaks,
+                FWHM=7,
+                Tolerance=2,
+                BackgroundType="Quadratic",
+                HighBackground=True,
+                PeakPositionTolerance="0.01"
+            )
+            strip_c_success = True
+        except:  # noqa: E722
+            strip_c_success = False
+
+        if strip_c_success:
+            ConvertUnits(
+                InputWorkspace=container,
+                OutputWorkspace=container,
+                Target='TOF',
+                EMode='Elastic'
+            )
+
+            FFTSmooth(
+                InputWorkspace=container,
+                OutputWorkspace=container,
+                Filter="Butterworth",
+                Params='20,2',
+                IgnoreXBins=True,
+                AllSpectra=True
+            )
+
+        ConvertUnits(
+            InputWorkspace=container,
+            OutputWorkspace=container,
+            Target='MomentumTransfer',
+            EMode='Elastic'
+        )
+
+    RebinToWorkspace(
+        WorkspaceToRebin=container,
+        WorkspaceToMatch=sam_wksp,
+        OutputWorkspace=container
+    )
+
     Minus(
         LHSWorkspace=sam_wksp,
         RHSWorkspace=container,
-        OutputWorkspace=sam_wksp)
+        OutputWorkspace=sam_wksp
+    )
 
     # If no absorption correction is to be performed, we don't
     # need to subtract the container bkg. Refer to the note
     # in the `Load Sample Container Background` section above
     # for the mechanism being used.
-    if container_bg is not None and sam_abs_corr is not None:
+    if container_bg is not None and sam_abs_corr and not (cond1 or cond2):
         RebinToWorkspace(
             WorkspaceToRebin=container_bg,
             WorkspaceToMatch=sam_wksp,
@@ -1571,12 +1630,41 @@ def TotalScatteringReduction(config: dict = None):
             Binning=binning,
             autored=auto_red)
 
+    # The over-fine binning for data processing will make the peaks
+    # strip fail. We need to rebin the data to a coarser binning.
+    # TODO: Need to check whether this will impact the final output
+    Rebin(
+        InputWorkspace=van_corrected,
+        OutputWorkspace=van_corrected,
+        Params=binning
+    )
+
     # Smooth Vanadium (strip peaks plus smooth)
     ConvertUnits(
         InputWorkspace=van_corrected,
         OutputWorkspace=van_corrected,
         Target='dSpacing',
-        EMode='Elastic')
+        EMode='Elastic'
+    )
+
+    # In case of preserving events setting, here we need to
+    # throw away the events for the next step of setting all
+    # nan's to 0. If we keep the events, the workspace data
+    # setting would fail, since Mantid does not allow changing
+    # the histogrammed data for an event workspace.
+    if isinstance(mtd[van_corrected], IEventWorkspace):
+        ConvertUnits(
+            InputWorkspace=sam_wksp,
+            OutputWorkspace="_sam_wksp_tmp",
+            Target='dSpacing',
+            EMode='Elastic'
+        )
+        RebinToWorkspace(
+            WorkspaceToRebin=van_corrected,
+            WorkspaceToMatch="_sam_wksp_tmp",
+            OutputWorkspace=van_corrected,
+            PreserveEvents=False
+        )
 
     for i in range(mtd[van_corrected].getNumberHistograms()):
         orig_y_tmp = mtd[van_corrected].readY(i)
@@ -1775,6 +1863,21 @@ def TotalScatteringReduction(config: dict = None):
         LHSWorkspace=sam_wksp,
         RHSWorkspace=van_corrected,
         OutputWorkspace=sam_wksp)
+
+    # In case of preserving events setting, here we need to
+    # throw away the events for the next step of setting all
+    # nan's to 0. If we keep the events, the workspace data
+    # setting would fail, since Mantid does not allow changing
+    # the histogrammed data for an event workspace. Here, we
+    # are doing a little trick by rebinning the workspace
+    # to itself while throwing away the events.
+    if isinstance(mtd[sam_wksp], IEventWorkspace):
+        RebinToWorkspace(
+            WorkspaceToRebin=sam_wksp,
+            WorkspaceToMatch=sam_wksp,
+            OutputWorkspace=sam_wksp,
+            PreserveEvents=False
+        )
 
     threshold = 1.E3
     for i in range(mtd[sam_wksp].getNumberHistograms()):
@@ -1997,8 +2100,20 @@ def TotalScatteringReduction(config: dict = None):
                                                   "0.7,0.7,0.9,1.5,1.6,1.1")
         tmax_limit = gen_config.config_params.get("TMaxBragg",
                                                   "17,18.5,19,18.5,16.9,17")
-        tmin_limit = [float(item) * 1000. for item in tmin_limit.split(",")]
-        tmax_limit = [float(item) * 1000. for item in tmax_limit.split(",")]
+        tbin = gen_config.config_params.get("TBinBragg", "-0.0008")
+
+        if "," in tmin_limit:
+            tmin_limit = [
+                float(item) * 1000. for item in tmin_limit.split(",")
+            ]
+        else:
+            tmin_limit = [float(tmin_limit) * 1000.]
+        if "," in tmax_limit:
+            tmax_limit = [
+                float(item) * 1000. for item in tmax_limit.split(",")
+            ]
+        else:
+            tmax_limit = [float(tmax_limit) * 1000.]
 
         CloneWorkspace(
             InputWorkspace=out_wksp,
@@ -2032,11 +2147,21 @@ def TotalScatteringReduction(config: dict = None):
         calib_table_tmp.addColumn("float", "difa")
         calib_table_tmp.addColumn("float", "tzero")
 
+        final_difc = gen_config.config_params.get("FinalDIFC", None)
+        if final_difc is not None:
+            if not isinstance(final_difc, list):
+                final_difc = [final_difc]
+
         for i in range(mtd["bo_dummy"].getNumberHistograms()):
+            if final_difc is not None:
+                difc_val = final_difc[i]
+            else:
+                difc_val = mtd["calib_table_init"].row(i)["DIFC"]
+
             calib_table_tmp.addRow(
                 [
                     i,
-                    mtd["calib_table_init"].row(i)["DIFC"],
+                    difc_val,
                     0.,
                     0.
                 ]
@@ -2053,25 +2178,32 @@ def TotalScatteringReduction(config: dict = None):
             Target="TOF",
             EMode="Elastic")
 
-        xmin, xmax = get_each_spectra_xmin_xmax(mtd["bo_dummy"])
+        if mtd["bo_dummy"].getNumberHistograms() == 1:
+            xmin = tmin_limit[0]
+            xmax = tmax_limit[0]
+            xmin_rebin = xmin
+            xmax_rebin = xmax
+        else:
+            xmin, xmax = get_each_spectra_xmin_xmax(mtd["bo_dummy"])
+            xmin_rebin = min(xmin)
+            xmax_rebin = max(xmax)
 
-        xmin_rebin = min(xmin)
         if "TMin" in alignAndFocusArgs.keys():
             tmin = alignAndFocusArgs["TMin"]
-            info = f"[Info] 'TMin = {tmin}' found in the input config file."
+            info = f"[Info] 'TMin = {tmin}' found in the input file."
             print(info)
             xmin_rebin = max(tmin, xmin_rebin)
-        xmax_rebin = max(xmax)
         if "TMax" in alignAndFocusArgs.keys():
             tmax = alignAndFocusArgs["TMax"]
-            info = f"[Info] 'TMax = {tmax}' found in the input config file."
+            info = f"[Info] 'TMax = {tmax}' found in the input file."
             print(info)
             xmax_rebin = min(xmax_rebin, tmax)
 
         # Note: For the moment, bin size for Bragg output is hard coded.
         # May need to make it user input if necessary.
-        tof_binning = "{xmin},-0.0008,{xmax}".format(
+        tof_binning = "{xmin},{xbin},{xmax}".format(
             xmin=xmin_rebin,
+            xbin=tbin,
             xmax=xmax_rebin
         )
 
@@ -2125,7 +2257,9 @@ def TotalScatteringReduction(config: dict = None):
     # For this, we don't need to worry about the Placzek correction,
     # which will actually be performed later in STEP-7.
     #################################################################
-    if not auto_red and mtd[sam_corrected].getNumberHistograms() <= 99:
+    cd1 = instr == "PG3"
+    cd2 = not auto_red and mtd[sam_corrected].getNumberHistograms() <= 99
+    if cd1 or cd2:
         out_bragg("unnorm", sam_corrected, manual_grouping=manual_grouping)
 
     #################################################################
@@ -2300,9 +2434,14 @@ def TotalScatteringReduction(config: dict = None):
     print('sam:', mtd[sam_corrected].id())
     print('van:', mtd[van_corrected].id())
     if alignAndFocusArgs['PreserveEvents']:
-        CompressEvents(
-            InputWorkspace=sam_corrected,
-            OutputWorkspace=sam_corrected)
+        try:
+            CompressEvents(
+                InputWorkspace=sam_corrected,
+                OutputWorkspace=sam_corrected
+            )
+        except ValueError:
+            msg = "CompressEvents failed due to improper input workspace type."
+            log.notice(msg)
 
     #################################################################
     # STEP 8:  S(Q) and F(Q), bank-by-bank
@@ -2324,7 +2463,14 @@ def TotalScatteringReduction(config: dict = None):
         offset = None
 
     sam_corrected_norm = sam_corrected + '_norm'
-    to_absolute_scale(sam_corrected, sam_corrected_norm)
+    if dummy_info:
+        CloneWorkspace(
+            InputWorkspace=sam_corrected,
+            OutputWorkspace=sam_corrected_norm
+        )
+    else:
+        to_absolute_scale(sam_corrected, sam_corrected_norm)
+
     sam_corrected_norm_bragg = sam_corrected + '_norm_bragg'
     CloneWorkspace(InputWorkspace=sam_corrected_norm,
                    OutputWorkspace=sam_corrected_norm_bragg)
@@ -2341,6 +2487,8 @@ def TotalScatteringReduction(config: dict = None):
                             OutputWorkspace=sam_corrected_norm,
                             Xmin=qmin_limit,
                             Xmax=qmax_limit)
+        if dummy_info:
+            mtd[sam_corrected_norm_bragg] += push_pos
     else:
         qmin_limit = float(qparams.split(",")[0])
         x_data = mtd[sam_corrected_norm].readX(0)
@@ -2358,6 +2506,10 @@ def TotalScatteringReduction(config: dict = None):
                 y_new.append(y_data[closest_index])
             else:
                 y_new.append(y_data[i])
+
+            if dummy_info and offset:
+                y_new[i] = y_new[i] - offset[1] + 1.
+
         mtd[sam_corrected_norm].setY(0, y_new)
 
     save_banks(
