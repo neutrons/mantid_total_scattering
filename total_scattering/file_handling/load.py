@@ -954,6 +954,8 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             material=material,
             geometry=geometry,
             environment=environment,
+            can_geometry=container_geometry,
+            can_material=container_mateterial,
             find_environment=find_env)
 
         if not (group_wksp_in is None or re_gen_group):

@@ -558,10 +558,21 @@ def TotalScatteringReduction(config: dict = None):
         sam_env_dict = {'Name': 'InAir'}
     else:
         if 'Environment' in config:
-            sam_env_dict = {
-                'Name': config['Environment']['Name'],
-                'Container': config['Environment']['Container']
-            }
+            if 'Container' in config['Environment']:
+                sam_env_dict = {
+                    'Name': config['Environment']['Name'],
+                    'Container': config['Environment']['Container']
+                }
+            else:
+                print(
+                    "[Info] No container specified in environment."
+                    "We will try to grab the container information from the "
+                    "sample log. However, this may not be correct and thus "
+                    "please use caution while proceeding with the reduction."
+                )
+                sam_env_dict = {
+                    'Name': config['Environment']['Name']
+                }
         else:
             sam_env_dict = {
                 'Name': 'InAir',
