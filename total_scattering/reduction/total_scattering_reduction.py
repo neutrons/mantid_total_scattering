@@ -8,7 +8,7 @@ import math
 from scipy.constants import Avogadro
 
 from mantid import mtd
-from mantid.kernel import Logger
+from mantid.kernel import Logger, Property
 from mantid.simpleapi import \
     ApplyDiffCal, \
     CarpenterSampleCorrection, \
@@ -502,6 +502,21 @@ def TotalScatteringReduction(config: dict = None):
     dummy_info = sample.get('DummyInfo', None)
     push_pos = sample.get('PushPositiveLevel', 100.)
 
+    beam_height = config.get('BeamHeight', Property.EMPTY_DBL)
+
+    sam_gvol = sample.get('GaugeVolume', "")
+    if sam_gvol:
+        sam_gvol = os.path.abspath(sam_gvol)
+        try:
+            with open(sam_gvol, "r") as f_handle:
+                sam_gvol = f_handle.read()
+        except:  # noqa: E722
+            print(
+                "[Warning] Failed to read the gauge volume file. "
+                "Set to empty string."
+            )
+            sam_gvol = ""
+
     sam_shape = config['Sample']['Geometry']['Shape']
     if sam_shape == 'Cylinder':
         sam_geo_dict = {
@@ -528,6 +543,7 @@ def TotalScatteringReduction(config: dict = None):
     if 'Container' in config:
         con_geo = config['Container']['Geometry']
         con_mat = config['Container']['Material']
+        con_gvol = config['Container'].get('GaugeVolume', "")
         # If the container material is not in the list of accepted container
         # materials, then the container material must have a density defined.
         if con_mat["ChemicalFormula"] not in acc_con_mat:
@@ -547,6 +563,7 @@ def TotalScatteringReduction(config: dict = None):
     else:
         con_geo = {}
         con_mat = {}
+        con_gvol = ""
 
     sam_eff_density = sam_mass_density * sam_packing_fraction
     sam_mat_dict = {
@@ -587,9 +604,24 @@ def TotalScatteringReduction(config: dict = None):
     van_material = van.get('Material', 'V')
     van_material = chem_form_normalizer(van_material)
 
-    van_geo_dict = {'Shape': 'Cylinder',
-                    'Radius': config['Normalization']['Geometry']['Radius'],
-                    'Height': config['Normalization']['Geometry']['Height']}
+    van_geo_dict = {
+        'Shape': 'Cylinder',
+        'Radius': config['Normalization']['Geometry']['Radius'],
+        'Height': config['Normalization']['Geometry']['Height']
+    }
+
+    van_gvol = van.get('GaugeVolume', "")
+    if van_gvol:
+        van_gvol = os.path.abspath(van_gvol)
+        try:
+            with open(van_gvol, "r") as f_handle:
+                van_gvol = f_handle.read()
+        except:  # noqa: E722
+            print(
+                "[Warning] Failed to read the gauge volume file. "
+                "Set to empty string."
+            )
+            van_gvol = ""
 
     van_eff_density = van_mass_density * van_packing_fraction
     van_mat_dict = {'ChemicalFormula': van_material,
@@ -877,6 +909,7 @@ def TotalScatteringReduction(config: dict = None):
                     group_wksp = LoadDetectorsGroupingFile(InputFile=group_file)
                 else:
                     group_wksp = None
+
                 sam_abs_ws, con_abs_ws, group_wksp_out = create_absorption_wksp(
                     sam_scans,
                     sam_abs_corr["Type"],
@@ -884,7 +917,10 @@ def TotalScatteringReduction(config: dict = None):
                     sam_mat_dict,
                     con_geo,
                     con_mat,
-                    sam_env_dict,
+                    gauge_vol=sam_gvol,
+                    container_gauge_vol=con_gvol,
+                    beam_height=beam_height,
+                    environment=sam_env_dict,
                     ms_method=sam_ms_method,
                     elementsize=sam_elementsize,
                     con_elementsize=con_elementsize,
@@ -893,7 +929,9 @@ def TotalScatteringReduction(config: dict = None):
                     group_out_file=group_file,
                     group_ref_det_out_file=group_det_file,
                     sg_index_f=sg_index_f,
-                    **config)
+                    **config
+                )
+
                 num_regen_groups = 0
                 # Save abs workspaces to cached file
                 if not os.path.exists(os.path.join(gen_config.config_params["CacheDir"],
@@ -995,18 +1033,21 @@ def TotalScatteringReduction(config: dict = None):
             central_cache_f_v = os.path.join(central_cache_dir,
                                              abs_cache_fn_v)
             if not os.path.exists(central_cache_f_v) or re_cache:
-                van_abs_corr_ws, van_con_ws, _ = create_absorption_wksp(
+                van_abs_corr_ws, _, _ = create_absorption_wksp(
                     van_scans,
                     van_abs_corr["Type"],
                     van_geo_dict,
                     van_mat_dict,
+                    gauge_vol=van_gvol,
+                    beam_height=beam_height,
                     ms_method=van_ms_method,
                     elementsize=van_elementsize,
                     group_wksp_in=group_wksp_out_van,
                     num_groups=num_regen_groups,
                     group_ref_det_out_file=group_det_file,
                     sg_index_f=sg_index_f,
-                    **config)
+                    **config
+                )
                 SaveNexus(InputWorkspace=van_abs_corr_ws,
                           Filename=central_cache_f_v)
             else:

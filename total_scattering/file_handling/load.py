@@ -33,6 +33,7 @@ from mantid.simpleapi import \
 from mantid.utils import absorptioncorrutils
 from mantid.api import IEventWorkspace
 from mantid.api import AnalysisDataService as ADS
+from mantid.kernel import Property
 from sklearn.cluster import KMeans
 import numpy as np
 import os
@@ -838,6 +839,8 @@ def abs_grouping(sam_abs_ws,
 
 def create_absorption_wksp(filename, abs_method, geometry, material,
                            container_geometry={}, container_mateterial={},
+                           gauge_vol="", container_gauge_vol="",
+                           beam_height=Property.EMPTY_DBL,
                            environment=None, props=None,
                            characterization_files=None,
                            ms_method=None,
@@ -879,7 +882,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             ReductionProperties="__absreductionprops",
             WaveLengthLogNames="LambdaRequest,lambda,skf12.lambda,"
                                "BL1B:Det:TH:BL:Lambda,freq"
-            )
+        )
         props = PropertyManagerDataService.retrieve("__absreductionprops")
 
     # If neither run characterization properties or files, guess from input
@@ -953,6 +956,8 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             props,
             material=material,
             geometry=geometry,
+            gauge_vol=gauge_vol,
+            beam_height=beam_height,
             environment=environment,
             can_geometry=container_geometry,
             can_material=container_mateterial,
@@ -976,13 +981,17 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             donor_ws,
             abs_method,
             element_size=elementsize,
+            container_gauge_vol=container_gauge_vol,
+            beam_height=beam_height,
             cache_dirs=align_and_focus_args["CacheDir"]
         )
     else:
         abs_s, abs_c = absorptioncorrutils.calc_absorption_corr_using_wksp(
             donor_ws,
             abs_method,
-            element_size=elementsize
+            element_size=elementsize,
+            container_gauge_vol=container_gauge_vol,
+            beam_height=beam_height
         )
 
     if not (group_wksp_in is None or re_gen_group):
