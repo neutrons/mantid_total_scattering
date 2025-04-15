@@ -8,7 +8,7 @@ import math
 from scipy.constants import Avogadro
 
 from mantid import mtd
-from mantid.kernel import Logger
+from mantid.kernel import Logger, Property
 from mantid.simpleapi import \
     ApplyDiffCal, \
     CarpenterSampleCorrection, \
@@ -502,22 +502,99 @@ def TotalScatteringReduction(config: dict = None):
     dummy_info = sample.get('DummyInfo', None)
     push_pos = sample.get('PushPositiveLevel', 100.)
 
-    sam_geo_dict = {
-        'Shape': config['Sample']['Geometry']['Shape'],
-        'Radius': config['Sample']['Geometry']['Radius'],
-        'Height': config['Sample']['Geometry']['Height']
-    }
+    beam_height = config.get('BeamHeight', Property.EMPTY_DBL)
+
+    sam_gvol = sample.get('GaugeVolume', "")
+    if sam_gvol:
+        sam_gvol = os.path.abspath(sam_gvol)
+        try:
+            with open(sam_gvol, "r") as f_handle:
+                sam_gvol = f_handle.read()
+        except:  # noqa: E722
+            print(
+                "[Warning] Failed to read the gauge volume file. "
+                "Set to empty string."
+            )
+            sam_gvol = ""
+
+    sam_shape = config['Sample']['Geometry']['Shape']
+    if sam_shape == 'Cylinder':
+        sam_geo_dict = {
+            'Shape': sam_shape,
+            'Radius': config['Sample']['Geometry']['Radius'],
+            'Height': config['Sample']['Geometry']['Height']
+        }
+    elif sam_shape == 'HollowCylinder':
+        sam_geo_dict = {
+            'Shape': sam_shape,
+            'InnerRadius': config['Sample']['Geometry']['InnerRadius'],
+            'OuterRadius': config['Sample']['Geometry']['OuterRadius'],
+            'Height': config['Sample']['Geometry']['Height'],
+            'Center': [0., 0., 0.]
+        }
+    else:
+        raise RuntimeError("Unknown shape for sample geometry")
+
+    # Get container geometry info if it exists
+    # Length dimension assumed to be cm for the geometry definition.
+    acc_con_mat = [
+        "V", "V1", "Si O2", "Si1 O2"
+    ]
+    if 'Container' in config:
+        con_geo = config['Container']['Geometry']
+        con_mat = config['Container']['Material']
+        con_gvol = config['Container'].get('GaugeVolume', "")
+        # If the container material is not in the list of accepted container
+        # materials, then the container material must have a density defined.
+        if con_mat["ChemicalFormula"] not in acc_con_mat:
+            d_exists = "NumberDensity" in con_mat or "MassDensity" in con_mat
+            if not d_exists:
+                err_msg = "Density is required for container, "
+                err_msg += "either NumberDensity or MassDensity."
+                raise RuntimeError(err_msg)
+        else:
+            cc_form = con_mat["ChemicalFormula"]
+            if cc_form == "V" or cc_form == "V1":
+                con_mat["NumberDensity"] = 0.0721
+            elif cc_form == "Si O2" or cc_form == "Si1 O2":
+                con_mat["MassDensity"] = 2.196
+            else:
+                raise RuntimeError("Container material density undefined.")
+    else:
+        con_geo = {}
+        con_mat = {}
+        con_gvol = ""
 
     sam_eff_density = sam_mass_density * sam_packing_fraction
-    sam_mat_dict = {'ChemicalFormula': sam_material,
-                    'SampleMassDensity': sam_eff_density}
+    sam_mat_dict = {
+        'ChemicalFormula': sam_material,
+        'SampleMassDensity': sam_eff_density
+    }
 
-    if 'Environment' in config:
-        sam_env_dict = {'Name': config['Environment']['Name'],
-                        'Container': config['Environment']['Container']}
+    if con_geo and con_mat:
+        sam_env_dict = {'Name': 'InAir'}
     else:
-        sam_env_dict = {'Name': 'InAir',
-                        'Container': 'PAC06'}
+        if 'Environment' in config:
+            if 'Container' in config['Environment']:
+                sam_env_dict = {
+                    'Name': config['Environment']['Name'],
+                    'Container': config['Environment']['Container']
+                }
+            else:
+                print(
+                    "[Info] No container specified in environment."
+                    "We will try to grab the container information from the "
+                    "sample log. However, this may not be correct and thus "
+                    "please use caution while proceeding with the reduction."
+                )
+                sam_env_dict = {
+                    'Name': config['Environment']['Name']
+                }
+        else:
+            sam_env_dict = {
+                'Name': 'InAir',
+                'Container': 'PAC06'
+            }
 
     # Get normalization info
     van = get_normalization(config)
@@ -527,9 +604,24 @@ def TotalScatteringReduction(config: dict = None):
     van_material = van.get('Material', 'V')
     van_material = chem_form_normalizer(van_material)
 
-    van_geo_dict = {'Shape': 'Cylinder',
-                    'Radius': config['Normalization']['Geometry']['Radius'],
-                    'Height': config['Normalization']['Geometry']['Height']}
+    van_geo_dict = {
+        'Shape': 'Cylinder',
+        'Radius': config['Normalization']['Geometry']['Radius'],
+        'Height': config['Normalization']['Geometry']['Height']
+    }
+
+    van_gvol = van.get('GaugeVolume', "")
+    if van_gvol:
+        van_gvol = os.path.abspath(van_gvol)
+        try:
+            with open(van_gvol, "r") as f_handle:
+                van_gvol = f_handle.read()
+        except:  # noqa: E722
+            print(
+                "[Warning] Failed to read the gauge volume file. "
+                "Set to empty string."
+            )
+            van_gvol = ""
 
     van_eff_density = van_mass_density * van_packing_fraction
     van_mat_dict = {'ChemicalFormula': van_material,
@@ -817,12 +909,18 @@ def TotalScatteringReduction(config: dict = None):
                     group_wksp = LoadDetectorsGroupingFile(InputFile=group_file)
                 else:
                     group_wksp = None
+
                 sam_abs_ws, con_abs_ws, group_wksp_out = create_absorption_wksp(
                     sam_scans,
                     sam_abs_corr["Type"],
                     sam_geo_dict,
                     sam_mat_dict,
-                    sam_env_dict,
+                    con_geo,
+                    con_mat,
+                    gauge_vol=sam_gvol,
+                    container_gauge_vol=con_gvol,
+                    beam_height=beam_height,
+                    environment=sam_env_dict,
                     ms_method=sam_ms_method,
                     elementsize=sam_elementsize,
                     con_elementsize=con_elementsize,
@@ -831,7 +929,9 @@ def TotalScatteringReduction(config: dict = None):
                     group_out_file=group_file,
                     group_ref_det_out_file=group_det_file,
                     sg_index_f=sg_index_f,
-                    **config)
+                    **config
+                )
+
                 num_regen_groups = 0
                 # Save abs workspaces to cached file
                 if not os.path.exists(os.path.join(gen_config.config_params["CacheDir"],
@@ -933,18 +1033,21 @@ def TotalScatteringReduction(config: dict = None):
             central_cache_f_v = os.path.join(central_cache_dir,
                                              abs_cache_fn_v)
             if not os.path.exists(central_cache_f_v) or re_cache:
-                van_abs_corr_ws, van_con_ws, _ = create_absorption_wksp(
+                van_abs_corr_ws, _, _ = create_absorption_wksp(
                     van_scans,
                     van_abs_corr["Type"],
                     van_geo_dict,
                     van_mat_dict,
+                    gauge_vol=van_gvol,
+                    beam_height=beam_height,
                     ms_method=van_ms_method,
                     elementsize=van_elementsize,
                     group_wksp_in=group_wksp_out_van,
                     num_groups=num_regen_groups,
                     group_ref_det_out_file=group_det_file,
                     sg_index_f=sg_index_f,
-                    **config)
+                    **config
+                )
                 SaveNexus(InputWorkspace=van_abs_corr_ws,
                           Filename=central_cache_f_v)
             else:
