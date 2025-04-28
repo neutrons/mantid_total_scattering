@@ -19,6 +19,7 @@ from mantid.simpleapi import \
     PDDetermineCharacterizations, \
     PDLoadCharacterizations, \
     PropertyManagerDataService, \
+    SetBeam, \
     SetSample, \
     Rebin, \
     RebinToWorkspace, \
@@ -841,6 +842,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                            container_geometry={}, container_mateterial={},
                            gauge_vol="", container_gauge_vol="",
                            beam_height=Property.EMPTY_DBL,
+                           beam_geometry="",
                            environment=None, props=None,
                            characterization_files=None,
                            ms_method=None,
@@ -962,6 +964,9 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             can_geometry=container_geometry,
             can_material=container_mateterial,
             find_environment=find_env)
+
+        if beam_geometry:
+            SetBeam(donor_ws, Geometry=beam_geometry)
 
         if not (group_wksp_in is None or re_gen_group):
             mask_list = mask_generator(group_wksp_in, group_ref_det_out_file)

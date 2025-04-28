@@ -560,10 +560,33 @@ def TotalScatteringReduction(config: dict = None):
                 con_mat["MassDensity"] = 2.196
             else:
                 raise RuntimeError("Container material density undefined.")
+
+        if con_gvol:
+            con_gvol = os.path.abspath(con_gvol)
+            try:
+                with open(con_gvol, "r") as f_handle:
+                    con_gvol = f_handle.read()
+            except:  # noqa: E722
+                print(
+                    "[Warning] Failed to read the gauge volume file. "
+                    "Set to empty string."
+                )
+                con_gvol = ""
     else:
         con_geo = {}
         con_mat = {}
         con_gvol = ""
+
+    condt1 = beam_height != Property.EMPTY_DBL
+    condt2 = sam_abs_corr["Type"] == "FullPaalmanPings"
+    if condt1 and condt2:
+        beam_geo = {
+            'Shape': 'Slit',
+            'Width': 20.0,  # cm, arbitrary large value to cover the sample
+            'Height': beam_height  # cm
+        }
+    else:
+        beam_geo = ""
 
     sam_eff_density = sam_mass_density * sam_packing_fraction
     sam_mat_dict = {
@@ -920,6 +943,7 @@ def TotalScatteringReduction(config: dict = None):
                     gauge_vol=sam_gvol,
                     container_gauge_vol=con_gvol,
                     beam_height=beam_height,
+                    beam_geometry=beam_geo,
                     environment=sam_env_dict,
                     ms_method=sam_ms_method,
                     elementsize=sam_elementsize,
