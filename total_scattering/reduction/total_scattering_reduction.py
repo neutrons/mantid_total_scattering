@@ -577,17 +577,6 @@ def TotalScatteringReduction(config: dict = None):
         con_mat = {}
         con_gvol = ""
 
-    condt1 = beam_height != Property.EMPTY_DBL
-    condt2 = sam_abs_corr["Type"] == "FullPaalmanPings"
-    if condt1 and condt2:
-        beam_geo = {
-            'Shape': 'Slit',
-            'Width': 20.0,  # cm, arbitrary large value to cover the sample
-            'Height': beam_height  # cm
-        }
-    else:
-        beam_geo = ""
-
     sam_eff_density = sam_mass_density * sam_packing_fraction
     sam_mat_dict = {
         'ChemicalFormula': sam_material,
@@ -853,6 +842,17 @@ def TotalScatteringReduction(config: dict = None):
         else:
             sam_elementsize = elementsize
             con_elementsize = elementsize
+
+    condt1 = beam_height != Property.EMPTY_DBL
+    condt2 = sam_abs_corr["Type"] == "FullPaalmanPings"
+    if condt1 and condt2:
+        beam_geo = {
+            'Shape': 'Slit',
+            'Width': 20.0,  # cm, arbitrary large value to cover the sample
+            'Height': beam_height  # cm
+        }
+    else:
+        beam_geo = ""
 
     abs_cache_fn = sam_mat_dict["ChemicalFormula"].replace(" ", "_").replace(".", "p")
     tmp_fn = "_md_" + "{0:7.5F}".format(sam_mat_dict['SampleMassDensity']).replace(".", "p")

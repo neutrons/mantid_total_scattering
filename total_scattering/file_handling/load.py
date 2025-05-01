@@ -839,7 +839,7 @@ def abs_grouping(sam_abs_ws,
 
 
 def create_absorption_wksp(filename, abs_method, geometry, material,
-                           container_geometry={}, container_mateterial={},
+                           container_geometry={}, container_material={},
                            gauge_vol="", container_gauge_vol="",
                            beam_height=Property.EMPTY_DBL,
                            beam_geometry="",
@@ -962,7 +962,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
             beam_height=beam_height,
             environment=environment,
             can_geometry=container_geometry,
-            can_material=container_mateterial,
+            can_material=container_material,
             find_environment=find_env)
 
         if beam_geometry:
