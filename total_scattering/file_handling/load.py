@@ -12,6 +12,7 @@ from mantid.simpleapi import \
     Load, \
     LoadDetectorsGroupingFile, \
     LoadDiffCal, \
+    LoadEventNexus, \
     MaskBins, \
     MaskDetectors, \
     MultipleScatteringCorrection, \
@@ -860,7 +861,13 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     if abs_method is None:
         return '', '', ''
 
-    abs_input = Load(filename, MetaDataOnly=True)
+    if isinstance(filename, str):
+        list_filenames = filename.split(",")
+        fn_tmp = list_filenames[0]
+    else:
+        fn_tmp = filename
+
+    abs_input = LoadEventNexus(fn_tmp, MetaDataOnly=True)
 
     # If no run characterization properties given, load any provided files
     if not props and characterization_files:
