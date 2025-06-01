@@ -15,7 +15,7 @@ from mantid.simpleapi import \
     CloneWorkspace, \
     CompressEvents, \
     ConvertToDistribution, \
-    ConvertToHistogram,\
+    ConvertToHistogram, \
     ConvertUnits, \
     CreateDetectorTable, \
     CreateEmptyTableWorkspace, \
@@ -124,7 +124,7 @@ def get_each_spectra_xmin_xmax(wksp):
 
 
 def expand_ints(s):
-    if type(s) == list:
+    if isinstance(s, list):
         return s
     spans = (el.partition('-')[::2] for el in s.split(','))
     ranges = (range(int(s), int(e) + 1 if e else int(s) + 1)
@@ -844,7 +844,7 @@ def TotalScatteringReduction(config: dict = None):
     con_elementsize = 1.0  # mm
     if sam_abs_ms_param:
         elementsize = sam_abs_ms_param.get("ElementSize", 1.0)
-        if type(elementsize) == list:
+        if isinstance(elementsize, list):
             sam_elementsize = elementsize[0]
             con_elementsize = elementsize[1]
         else:
@@ -2169,7 +2169,6 @@ def TotalScatteringReduction(config: dict = None):
         RenameWorkspace(InputWorkspace=sam_wksp,
                         OutputWorkspace=sam_corrected)
 
-
     def out_bragg(form, out_wksp, manual_grouping=False):
         """Internal for Bragg pattern output. For the moment, we decided to
         output both the normalized and unnormalized version of the Bragg
@@ -2334,7 +2333,6 @@ def TotalScatteringReduction(config: dict = None):
                 title + ".xye"
             )
         )
-
 
     #################################################################
     # STEP 5.-1: Output the unnormalized version of the Bragg data

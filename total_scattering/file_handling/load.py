@@ -195,10 +195,10 @@ def load(ws_name, input_files, group_wksp,
                     cache_f_bn = f"{instr_name}_{run}"
 
                 if auto_red:
-                    cache_f_bn += f"_mts_no_subg_sgb"
+                    cache_f_bn += "_mts_no_subg_sgb"
                     cache_f_bn += ".nxs"
                 else:
-                    cache_f_bn += f"_mts_no_subg"
+                    cache_f_bn += "_mts_no_subg"
                     cache_f_bn += ".nxs"
 
                 if ipts is not None:
@@ -711,15 +711,15 @@ def abs_grouping(sam_abs_ws,
     Rebin(InputWorkspace=sam_abs_ws,
           OutputWorkspace="abs_pbp",
           Params="{0:4.2F},0.05,3.0".format(xmin))
-    
+
     # Figure out the number of spectra and monitors
     num_spectra = mtd['abs_pbp'].getNumberHistograms()
     num_monitors = int(np.sum(mtd['abs_pbp'].detectorInfo().detectorIDs() < 0))
-    
+
     (cw_out) = CreateGroupingWorkspace(InputWorkspace="abs_pbp",
                                        GroupDetectorsBy="Group")
     output_group = cw_out[0]
-    spectra_count = cw_out[1]
+    # spectra_count = cw_out[1]
     group_count = cw_out[2]
 
     # Figure out the number of sub groups in each physical bank to meet the
@@ -757,7 +757,7 @@ def abs_grouping(sam_abs_ws,
 
         X = np.array(all_spectra)
         clustering = KMeans(n_clusters=sub_num_clusters, n_init='auto').fit(X)
-    
+
         # For each physical bank, the identified clustering label will be
         # starting from 0. We need to connect continuously the labelling of the
         # subgroups belonging to each of the physical banks one after another.
@@ -769,7 +769,7 @@ def abs_grouping(sam_abs_ws,
 
     n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
     n_noise_ = list(labels).count(-1)
-    
+
     # Save the identified group based on the absorption spectra similarity to
     # grouping file.
     CreateGroupingWorkspace(InputWorkspace="abs_pbp",
@@ -789,7 +789,7 @@ def abs_grouping(sam_abs_ws,
         det_id = all_spectra_id[i]
         det_id = mtd['abs_pbp'].detectorInfo().indexOf(det_id) - num_monitors
         grouping.setY(det_id, [int(label + 1)])
-    
+
     SaveDetectorsGrouping(InputWorkspace=grouping,
                           OutputFile=group_out_file)
 
@@ -821,7 +821,7 @@ def abs_grouping(sam_abs_ws,
                 f.write("{0:d}".format(all_spectra_id[item]))
             else:
                 f.write("{0:d}\n".format(all_spectra_id[item]))
-    
+
     perct_max_tmp = list()
     for i, group in enumerate(labels):
         perct_tmp = list()
@@ -831,7 +831,7 @@ def abs_grouping(sam_abs_ws,
             perct_tmp.append(top / bottom * 100.)
         perct_max_tmp.append(max(perct_tmp))
     perct_max = max(perct_max_tmp)
-    
+
     print(f"[Info] # of clusters: {n_clusters_}")
     print(f"[Info] # of noise: {n_noise_}")
     print("[Info] Maximum percentage difference: {0:6.4F}%".format(perct_max))
