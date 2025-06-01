@@ -1,7 +1,7 @@
 name: mantid_total_scattering_ci
 
 env:
-  PYTHON_MAIN_VERSION: 3.10
+  PYTHON_MAIN_VERSION: 3.11
 
 on:
   workflow_dispatch:
