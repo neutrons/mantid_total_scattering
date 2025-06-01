@@ -477,6 +477,8 @@ def TotalScatteringReduction(config: dict = None):
     if config is None:
         raise RuntimeError('Argument config cannot be None')
 
+    dummy_expt = config.get("DummyExpt", False)
+
     auto_red = config.get('AutoRed', False)
 
     facility = config['Facility']
@@ -780,12 +782,18 @@ def TotalScatteringReduction(config: dict = None):
         sam_scans = ','.join(sample["Filenames"])
         # Grab the IPTS
         base_n = os.path.basename(sam_scans.split(",")[0])
-        ipts = GetIPTS(Instrument=instr,
-                       RunNumber=base_n.split("_")[1])
+        if dummy_expt:
+            ipts = "/SNS/NOM/IPTS-34905/"
+        else:
+            ipts = GetIPTS(Instrument=instr,
+                           RunNumber=base_n.split("_")[1])
     else:
         # Grab the IPTS
-        ipts = GetIPTS(Instrument=instr,
-                       RunNumber=sam_scans.split(",")[0].split("_")[1])
+        if dummy_expt:
+            ipts = "/SNS/NOM/IPTS-34905/"
+        else:
+            ipts = GetIPTS(Instrument=instr,
+                           RunNumber=sam_scans.split(",")[0].split("_")[1])
 
     if ipts[-1] == "/":
         ipts = ipts[:-1]
@@ -844,7 +852,7 @@ def TotalScatteringReduction(config: dict = None):
             con_elementsize = elementsize
 
     condt1 = beam_height != Property.EMPTY_DBL
-    condt2 = sam_abs_corr["Type"] == "FullPaalmanPings"
+    condt2 = sam_abs_corr and sam_abs_corr["Type"] == "FullPaalmanPings"
     if condt1 and condt2:
         beam_geo = {
             'Shape': 'Slit',

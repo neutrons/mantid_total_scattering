@@ -867,7 +867,10 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     else:
         fn_tmp = filename
 
-    abs_input = LoadEventNexus(fn_tmp, MetaDataOnly=True)
+    try:
+        abs_input = LoadEventNexus(fn_tmp, MetaDataOnly=True)
+    except RuntimeError:
+        abs_input = LoadNexus(fn_tmp)
 
     # If no run characterization properties given, load any provided files
     if not props and characterization_files:
