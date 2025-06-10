@@ -547,9 +547,8 @@ def align_focus_mts(out_wksp,
             MaskBins(
                 InputWorkspace=wksp_proc,
                 OutputWorkspace=wksp_proc,
-                Axis=res_filter_axis,
-                Min=xmin,
-                Max=xmax
+                XMin=xmin,
+                XMax=xmax
             )
 
         ConvertUnits(
