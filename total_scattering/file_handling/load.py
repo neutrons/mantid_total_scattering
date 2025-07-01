@@ -867,7 +867,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     else:
         fn_tmp = filename
 
-    mantid.config['datasearch.searcharchive']='hfir,sns'
+    mantid.config['datasearch.searcharchive'] = 'hfir,sns'
 
     try:
         abs_input = LoadEventNexus(fn_tmp, MetaDataOnly=True)
