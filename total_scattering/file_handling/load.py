@@ -32,6 +32,7 @@ from mantid.simpleapi import \
     SaveNexusProcessed, \
     CloneWorkspace, \
     Plus
+import mantid
 from mantid.utils import absorptioncorrutils
 from mantid.api import IEventWorkspace
 from mantid.api import AnalysisDataService as ADS
@@ -865,6 +866,8 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         fn_tmp = list_filenames[0]
     else:
         fn_tmp = filename
+
+    mantid.config['datasearch.searcharchive']='hfir,sns'
 
     try:
         abs_input = LoadEventNexus(fn_tmp, MetaDataOnly=True)
