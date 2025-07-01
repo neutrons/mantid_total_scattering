@@ -648,6 +648,8 @@ def TotalScatteringReduction(config: dict = None):
     abs_cache_fn_v += ("_sp_" + van_geo_dict['Shape'])
     abs_cache_fn_v += ("_r_" + "{0:6.4F}".format(van_geo_dict['Radius']).replace(".", "p"))
     abs_cache_fn_v += ("_h_" + "{0:3.1F}".format(van_geo_dict['Height']).replace(".", "p"))
+    if beam_height != Property.EMPTY_DBL:
+        abs_cache_fn_v += ("_bh_" + "{0:3.1F}".format(beam_height).replace(".", "p"))
     abs_cache_fn_v += ("_env_" + sam_env_dict['Name'])
     # Since there is only one allowed value for the type of absorption
     # correction for vanadium, we don't include its value in the cache file name.
@@ -869,6 +871,8 @@ def TotalScatteringReduction(config: dict = None):
     abs_cache_fn += ("_sp_" + sam_geo_dict['Shape'])
     abs_cache_fn += ("_r_" + "{0:6.4F}".format(sam_geo_dict['Radius']).replace(".", "p"))
     abs_cache_fn += ("_h_" + "{0:3.1F}".format(sam_geo_dict['Height']).replace(".", "p"))
+    if beam_height != Property.EMPTY_DBL:
+        abs_cache_fn += ("_bh_" + "{0:3.1F}".format(beam_height).replace(".", "p"))
     abs_cache_fn += ("_env_" + sam_env_dict['Name'])
     abs_cache_fn += ("_cont_" + sam_env_dict['Container'])
     if sam_abs_corr:
