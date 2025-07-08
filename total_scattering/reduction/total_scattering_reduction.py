@@ -965,6 +965,8 @@ def TotalScatteringReduction(config: dict = None):
                     group_out_file=group_file,
                     group_ref_det_out_file=group_det_file,
                     sg_index_f=sg_index_f,
+                    facility=facility,
+                    instrument=instr,
                     **config
                 )
 
@@ -1082,6 +1084,8 @@ def TotalScatteringReduction(config: dict = None):
                     num_groups=num_regen_groups,
                     group_ref_det_out_file=group_det_file,
                     sg_index_f=sg_index_f,
+                    facility=facility,
+                    instrument=instr,
                     **config
                 )
                 SaveNexus(InputWorkspace=van_abs_corr_ws,

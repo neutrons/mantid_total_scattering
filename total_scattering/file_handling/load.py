@@ -43,6 +43,11 @@ import os
 import re
 import hashlib
 import base64
+import json
+try:
+    from urllib2 import Request, urlopen
+except ImportError:
+    from urllib.request import Request, urlopen
 # from mantid.api import AnalysisDataService as ADS
 
 _shared_shape_keys = ["Shape", "Height", "Center"]
@@ -854,6 +859,8 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
                            group_out_file=None,
                            group_ref_det_out_file=None,
                            sg_index_f=None,
+                           facility=None,
+                           instrument=None,
                            **align_and_focus_args):
     group_wksp_out = group_wksp_in
 
@@ -867,12 +874,69 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     else:
         fn_tmp = filename
 
+    def getJson(endpoint):
+        '''Routine grabbed from `finddata` for fetching the run info
+        from the oncat database.
+    
+        :param endpoint: url endpoint
+        :type endpoint: str
+        :return: Run info
+        :rtype: dict
+        '''
+        BASE_URL = 'https://oncat.ornl.gov/'
+        url = BASE_URL + endpoint
+        req = Request(url)
+        req.add_header('User-Agent', 'Finddata/' + '0+untagged.102.ga19fe84.dirty')
+        handle = urlopen(req)
+        if handle.getcode() != 200:
+            raise RuntimeError('{} returned code={}'.format(url, handle.getcode()))
+        doc = handle.read().decode()
+    
+        return json.loads(doc)
+
+    def getProposal(facility, instrument, run):
+        '''Get the proposal for a given run.
+
+        :param facility: Facility name
+        :type facility: str
+        :param instrument: Instrument name
+        :type instrument: str
+        :param run: Run number
+        :type run: str
+
+        :return: Proposal for a given run
+        :rtype: str
+        '''
+        endpoint = (
+            'api/datafiles'
+            '?facility=%s'
+            '&instrument=%s'
+            '&ranges_q=indexed.run_number:%s'
+            '&sort_by=ingested'
+            '&sort_order=DESCENDING'
+            '&projection=experiment'
+        )
+        doc = getJson(endpoint % (facility, instrument, run))
+        if not doc:
+            return "Failed to find proposal"
+
+        return doc[0]['experiment']
+
+    mantid.config['datasearch.searcharchive'] = ''
     mantid.config['datasearch.searcharchive'] = 'hfir,sns'
 
     try:
         abs_input = LoadEventNexus(fn_tmp, MetaDataOnly=True)
-    except RuntimeError:
-        abs_input = LoadNexus(fn_tmp)
+    except ValueError:
+        try:
+            abs_input = LoadNexus(fn_tmp)
+        except ValueError:
+            proposal = getProposal(facility, instrument, fn_tmp.split("_")[1])
+            fn_tmp = os.path.join(
+                "/", facility, instrument, proposal, "nexus",
+                f"{fn_tmp}.nxs.h5"
+            )
+            abs_input = LoadEventNexus(fn_tmp, MetaDataOnly=True)
 
     # If no run characterization properties given, load any provided files
     if not props and characterization_files:
