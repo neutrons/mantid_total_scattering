@@ -877,7 +877,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     def getJson(endpoint):
         '''Routine grabbed from `finddata` for fetching the run info
         from the oncat database.
-    
+
         :param endpoint: url endpoint
         :type endpoint: str
         :return: Run info
@@ -891,7 +891,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         if handle.getcode() != 200:
             raise RuntimeError('{} returned code={}'.format(url, handle.getcode()))
         doc = handle.read().decode()
-    
+
         return json.loads(doc)
 
     def getProposal(facility, instrument, run):
