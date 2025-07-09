@@ -44,10 +44,11 @@ import re
 import hashlib
 import base64
 import json
-try:
-    from urllib2 import Request, urlopen
-except ImportError:
-    from urllib.request import Request, urlopen
+import requests
+# try:
+#     from urllib2 import Request, urlopen
+# except ImportError:
+#     from urllib.request import Request, urlopen
 # from mantid.api import AnalysisDataService as ADS
 
 _shared_shape_keys = ["Shape", "Height", "Center"]
@@ -876,23 +877,33 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
 
     def getJson(endpoint):
         '''Routine grabbed from `finddata` for fetching the run info
-        from the oncat database.
+        from the Oncat database.
 
-        :param endpoint: url endpoint
+        :param endpoint: URL endpoint
         :type endpoint: str
         :return: Run info
         :rtype: dict
         '''
         BASE_URL = 'https://oncat.ornl.gov/'
-        url = BASE_URL + endpoint
-        req = Request(url)
-        req.add_header('User-Agent', 'Finddata/' + '0+untagged.102.ga19fe84.dirty')
-        handle = urlopen(req)
-        if handle.getcode() != 200:
-            raise RuntimeError('{} returned code={}'.format(url, handle.getcode()))
-        doc = handle.read().decode()
 
-        return json.loads(doc)
+        if not endpoint.startswith('/'):
+            endpoint = '/' + endpoint
+        url = BASE_URL + endpoint
+
+        headers = {'User-Agent': 'Finddata/0+untagged.102.ga19fe84.dirty'}
+
+        try:
+            response = requests.get(url, headers=headers)
+
+            if response.status_code != 200:
+                raise RuntimeError(
+                    '{} returned code={}'.format(url, response.status_code)
+                )
+
+            return response.json()
+
+        except requests.exceptions.RequestException as e:
+            raise RuntimeError('Request failed: {}'.format(e))
 
     def getProposal(facility, instrument, run):
         '''Get the proposal for a given run.
