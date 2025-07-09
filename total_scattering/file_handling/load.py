@@ -892,7 +892,7 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
         headers = {'User-Agent': 'Finddata/0+untagged.102.ga19fe84.dirty'}
 
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=10)
 
             if response.status_code != 200:
                 raise RuntimeError(
