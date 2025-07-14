@@ -4,15 +4,12 @@ import json
 from total_scattering.reduction import TotalScatteringReduction
 from total_scattering.reduction import validateConfig
 from total_scattering import __version__ as mts_version
-from total_scattering import __date__ as mts_date
-from total_scattering import __commit__ as mts_commit
 import sys
 
 info_print = '''\n=======================MantidTotalScattering=======================
 
 Version      => {0:s}
-Time Stamp   => {1:s}
-Commit SHA   => {2:s}
+Release Link => https://github.com/neutrons/mantid_total_scattering/tree/{0:s}
 
 =======================MantidTotalScattering=======================
 
@@ -40,16 +37,14 @@ and the deployed versions on SNS analysis.
 def main(config=None):
 
     version = mts_version
-    up_date = mts_date
-    up_commit = mts_commit
 
     # Read in JSON if not provided to main()
     if not config:
         if len(sys.argv) == 1:
-            print(info_print.format(version, up_date, up_commit))
+            print(info_print.format(version))
             return
         elif sys.argv[1] == "-v" or sys.argv[1] == "--version":
-            print(info_print.format(version, up_date, up_commit))
+            print(info_print.format(version))
             return
 
         import argparse
