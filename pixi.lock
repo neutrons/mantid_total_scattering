@@ -379,7 +379,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/spglib-2.6.0-py311h9e811c2_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/stack_data-0.6.3-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/stevedore-5.4.1-pyhd8ed1ab_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/tbb-2022.1.0-hb60516a_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/tbb-2022.2.0-hb60516a_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/threadpoolctl-3.6.0-pyhecae5ae_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_hd72426e_102.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/toml-0.10.2-pyhd8ed1ab_1.conda
@@ -2611,6 +2611,7 @@ packages:
   - libstdcxx >=14
   - libzlib >=1.3.1,<2.0a0
   license: MIT
+  license_family: MIT
   purls: []
   size: 1802972
   timestamp: 1753107252406
@@ -3086,6 +3087,7 @@ packages:
   - rpds-py >=0.7.1
   - python
   license: MIT
+  license_family: MIT
   purls:
   - pkg:pypi/jsonschema?source=compressed-mapping
   size: 81493
@@ -5662,6 +5664,7 @@ packages:
   constrains:
   - numpy >=1.23
   license: BSD-3-Clause
+  license_family: BSD
   purls:
   - pkg:pypi/pint?source=compressed-mapping
   size: 240361
@@ -5687,6 +5690,7 @@ packages:
   - libgcc >=14
   - libstdcxx >=14
   license: MIT
+  license_family: MIT
   purls: []
   size: 410140
   timestamp: 1753105399719
@@ -6118,6 +6122,7 @@ packages:
   - python >=3.11,<3.12.0a0
   - python_abi 3.11.* *_cp311
   license: Apache-2.0
+  license_family: APACHE
   purls:
   - pkg:pypi/pystack?source=hash-mapping
   size: 440575
@@ -7220,9 +7225,9 @@ packages:
   purls: []
   size: 175954
   timestamp: 1732982638805
-- conda: https://conda.anaconda.org/conda-forge/linux-64/tbb-2022.1.0-hb60516a_1.conda
-  sha256: 5e57c1f6e8b6cee9dc9aa5e984247a05de6266a7eea64c1fe108da72490b0219
-  md5: e923cf4804437f63defade3f49a6cceb
+- conda: https://conda.anaconda.org/conda-forge/linux-64/tbb-2022.2.0-hb60516a_0.conda
+  sha256: 39f1213d6bd25c4da529899d66d559634842aa42288ce7efa7f7fc8556a08f38
+  md5: 14dbfb03c196042efb72df45f036f3aa
   depends:
   - __glibc >=2.17,<3.0.a0
   - libgcc >=14
@@ -7230,8 +7235,8 @@ packages:
   - libstdcxx >=14
   license: Apache-2.0
   purls: []
-  size: 181054
-  timestamp: 1753109867944
+  size: 182946
+  timestamp: 1753179082550
 - conda: https://conda.anaconda.org/conda-forge/linux-64/tbb-devel-2021.13.0-h1f99690_1.conda
   sha256: a4f4d9c17057e047406f855a31093183cb4e30bda221506e024cf826e29f9399
   md5: 0200638907d55c2aadc1ca9d39566316
@@ -7372,8 +7377,8 @@ packages:
   timestamp: 1748003427256
 - pypi: ./
   name: total-scattering
-  version: 1.3.0.dev17+d202507212014
-  sha256: 1c692a8879710088f11132dd7dbd86138da68b1ddd728b269b7435d441eb51ba
+  version: 1.3.0.dev15
+  sha256: 820d157d401365df634ece69b002f332ee616faf7a5d4d04f9ba82033f48330e
   requires_dist:
   - matplotlib
   - pyoncat @ https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl
@@ -7614,6 +7619,7 @@ packages:
   - platformdirs >=3.9.1,<5
   - python >=3.9
   license: MIT
+  license_family: MIT
   purls:
   - pkg:pypi/virtualenv?source=compressed-mapping
   size: 4135484
