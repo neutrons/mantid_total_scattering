@@ -1,0 +1,121 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "versioneer[toml]"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mantid-total-scattering"
+dynamic = ["version"]
+description = "Mantid Total Scattering Reduction"
+readme = "README.md"
+license = {text = "GPL License (version 3)"}
+authors = [
+    {email = "zhangy3@ornl.gov"},
+]
+maintainers = [
+    {email = "zhangy3@ornl.gov"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+requires-python = ">=3.7"
+
+# Dependencies from your requirements.txt files
+dependencies = [
+    "h5py",
+    "matplotlib",
+    "numpy",
+    "scipy",
+    "pyoncat",
+]
+
+[project.optional-dependencies]
+dev = [
+    "anaconda-client",
+    "bandit",
+    "boa",
+    "conda-build",
+    "conda-verify",
+    "flake8",
+    "pytest",
+    "pytest-cov",
+    "tox",
+    "tox-conda",
+    "scikit-learn",
+]
+
+[project.scripts]
+mantidtotalscattering = "total_scattering.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/neutrons/mantid_total_scattering"
+Repository = "https://github.com/neutrons/mantid_total_scattering"
+Issues = "https://github.com/neutrons/mantid_total_scattering/issues"
+
+[tool.setuptools]
+packages = ["total_scattering"]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "total_scattering._version.__version__"}
+
+# Pixi configuration
+[tool.pixi.workspace]
+channels = ["conda-forge", "mantid", "mantid/label/nightly", "neutrons", "oncat"]
+platforms = ["linux-64", "osx-64", "osx-arm64", "win-64"]
+
+[tool.pixi.dependencies]
+python = ">=3.7,<3.12"
+mantidworkbench = ">=6.8"
+h5py = "*"
+matplotlib = "*"
+numpy = "*"
+scipy = "*"
+
+[tool.pixi.feature.dev.dependencies]
+anaconda-client = "*"
+bandit = "*"
+boa = "*"
+libmamba = "*"
+conda-build = "*"
+conda-verify = "*"
+flake8 = "*"
+pytest = "*"
+pytest-cov = "*"
+tox = "*"
+tox-conda = "*"
+scikit-learn = "*"
+
+[tool.pixi.feature.build.dependencies]
+setuptools = ">=45"
+wheel = "*"
+versioneer = "*"
+
+[tool.pixi.environments]
+default = {features = ["dev"], solve-group = "default"}
+build = {features = ["build"], solve-group = "build"}
+test = {features = ["dev"], solve-group = "test"}
+
+[tool.pixi.tasks]
+install = "pip install -e ."
+test = "python setup.py test"
+test-pytest = "pytest"
+build = "python setup.py build"
+clean = "python setup.py clean --all"
+lint = "flake8 total_scattering"
+
+# Versioneer configuration
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "total_scattering/_version.py"
+versionfile_build = "total_scattering/_version.py"
+tag_prefix = "v"
+parentdir_prefix = "mantid-total-scattering-"
