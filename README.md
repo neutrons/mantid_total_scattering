@@ -51,7 +51,7 @@ Mantid Framework Included
 The following will clone the repo and instruct pixi to download and setup the dependencies in a sandboxed environment.
 
 ```bash
-git clone git@github.com:neutrons/mantid_total_scattering.git
+git clone https://github.com/neutrons/mantid_total_scattering.git
 cd mantid_total_scattering
 pixi install
 ```
@@ -59,6 +59,22 @@ pixi install
 To update
 ```bash
 pixi update
+```
+
+> Cheat sheet for running local tasks with pixi,
+
+```bash
+pixi shell  # activate the pixi shell, something analogous to `conda activate`
+mantidtotalscattering input.json  # the command is only available when pixi shell is active
+pytest  # run tests
+flake8 total_scattering/  # format source codes with `flake8`
+exit  # exit the pixi shell
+pixi run mantidtotalscattering input.json  # run application task without activating pixi shell
+pixi run pytest
+pixi run flake8 total_scattering/
+pixi run test  # specifically defined test task
+pixi run link  # specifically defined link task
+pixi shell -e local-mantid  # activate the pixi shell with the `local-mantid` environment
 ```
 
 #### Setup from Anaconda

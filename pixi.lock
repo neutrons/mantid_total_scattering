@@ -7948,8 +7948,8 @@ packages:
   timestamp: 1748003477089
 - pypi: ./
   name: total-scattering
-  version: 1.3.0.dev16+d202507232004
-  sha256: 1577eaf0e5215ac583f8931d7d1d92559c8ada1bb44f38d634cd05922a394c8a
+  version: 1.3.0.dev19
+  sha256: fcf95d33dc91a8a6bb0851f8ba3e04c7d74097c1342e5040776bf3367af115f7
   requires_dist:
   - matplotlib
   - pyoncat @ https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl
