@@ -9,7 +9,7 @@ description = "Mantid Total Scattering Reduction"
 readme = "README.md"
 license = { text = "GPL3.0" }
 authors = [
-    { name = "Yuanpeng Zhang", email = "mcondonnellmd@ornl.gov" },
+    { name = "Yuanpeng Zhang", email = "zhangy3@ornl.gov" },
     { name = "Marshall McDonnell" },
     { name = "Peter Peterson" },
     { name = "Coleman Kendrick" },
