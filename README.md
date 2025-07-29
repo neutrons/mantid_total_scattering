@@ -77,7 +77,7 @@ pixi run link  # specifically defined link task
 pixi shell -e local-mantid  # activate the pixi shell with the `local-mantid` environment
 ```
 
-#### Setup from Anaconda
+#### 2. Setup from Anaconda
 
 ```bash
 conda install -c neutrons mantid-total-scattering
