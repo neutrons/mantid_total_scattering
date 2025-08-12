@@ -39,3 +39,4 @@ jobs:
 
       - name: Build conda package
         run: pixi run build-conda
+        
