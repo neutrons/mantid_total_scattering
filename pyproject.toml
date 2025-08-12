@@ -72,7 +72,6 @@ channels = [ "conda-forge", "https://prefix.dev/pixi-build-backends" ]
 platforms = [ "linux-64",]
 
 [tool.pixi.dependencies]
-python = "*"
 pip = "*"
 matplotlib = "*"
 
@@ -85,6 +84,12 @@ total_scattering = { path = ".", editable = true }
 hatchling = "*"
 versioningit = "*"
 
+[tool.pixi.package.run-dependencies]
+python = ">=3.10"
+mantidworkbench = ">=6.12"
+matplotlib = "*"
+pyoncat = "*"
+scikit-learn = "*"
 
 # ------------------------------- #
 # Pixi Feature Dependencies       #
@@ -94,20 +99,18 @@ versioningit = "*"
 channels = [ "conda-forge", "https://prefix.dev/pixi-build-backends"]
 # NOTE: While these are also defined in `wrapper_pyproject.toml`, they are needed here to be included in the lock file
 #       Otherwise, they would be solved for at build time, which defeats the purpose of the lock file.
-dependencies = { python = "*", pip = "*", matplotlib = "*", scikit-learn = "*", toml = "*", hatchling = "*", versioningit = "*" }
+dependencies = { pip = "*", matplotlib = "*", scikit-learn = "*", toml = "*", hatchling = "*", versioningit = "*" }
 
 [tool.pixi.feature.test]
 channels = [ "conda-forge", "https://prefix.dev/pixi-build-backends", "mantid" ]
 
 [tool.pixi.feature.test.dependencies]
-mantidworkbench = ">=6.12"
 pytest = "*"
 pytest-cov = "*"
 flake8 = "*"
 bandit = "*"
 
 [tool.pixi.feature.package.dependencies]
-mantidworkbench = ">=6.12"
 anaconda-client = "*"
 conda-build = "<24"
 conda-verify = "*"
