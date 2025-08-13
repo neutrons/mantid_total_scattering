@@ -678,16 +678,24 @@ def TotalScatteringReduction(config: dict = None):
         res_filter_lower = res_filter.get('LowerLimits', None)
         res_filter_upper = res_filter.get('UpperLimits', None)
 
+    def valid_keys(in_dict, key1, key2):
+        keys_in_dict = key1 in in_dict and key2 in in_dict
+        values_are_empty = in_dict.get(key1) == "" and in_dict.get(key2) == ""
+
+        return not (keys_in_dict and values_are_empty)
+
     # Grouping
     grouping = merging.get('Grouping', None)
     cache_dir = config.get("CacheDirMTS", None)
     OutputDir = config.get("OutputDir", os.path.abspath('.'))
     manual_grouping = grouping
-    if manual_grouping:
+    if manual_grouping and valid_keys(grouping, "Initial", "Output"):
         # If manual grouping is used, we want to force the absorption
         # correction to be performed pixel by pixel explicitly without
         # any grouping.
         num_regen_groups = 0
+    else:
+        manual_grouping = None
 
     debug_mode = config.get("DebugMode", False)
     if debug_mode:
@@ -1801,13 +1809,28 @@ def TotalScatteringReduction(config: dict = None):
             Target='TOF',
             EMode='Elastic')
 
-        FFTSmooth(
-            InputWorkspace=van_corrected,
-            OutputWorkspace=van_corrected,
-            Filter="Butterworth",
-            Params='20,2',
-            IgnoreXBins=True,
-            AllSpectra=True)
+        try:
+            FFTSmooth(
+                InputWorkspace=van_corrected,
+                OutputWorkspace=van_corrected,
+                Filter="Butterworth",
+                Params='20,2',
+                IgnoreXBins=True,
+                AllSpectra=True)
+        except RuntimeError as _:
+            ConvertUnits(
+                InputWorkspace=van_corrected,
+                OutputWorkspace=van_corrected,
+                Target='MomentumTransfer',
+                EMode='Elastic')
+
+            FFTSmooth(
+                InputWorkspace=van_corrected,
+                OutputWorkspace=van_corrected,
+                Filter="Butterworth",
+                Params='20,2',
+                IgnoreXBins=True,
+                AllSpectra=True)
 
     ConvertUnits(
         InputWorkspace=van_corrected,
