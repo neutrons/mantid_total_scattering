@@ -86,7 +86,7 @@ versioningit = "*"
 
 [tool.pixi.package.run-dependencies]
 python = ">=3.10"
-mantidworkbench = ">=6.12"
+mantidworkbench = ">=6.14"
 matplotlib = "*"
 pyoncat = "*"
 scikit-learn = "*"
@@ -119,7 +119,7 @@ hatch = "*"
 toml = "*"
 
 [tool.pixi.feature.developer.dependencies]
-mantidworkbench = ">=6.12"
+mantidworkbench = ">=6.14"
 pre-commit = "*"
 flake8 = "*"
 bandit = "*"
@@ -140,8 +140,8 @@ LD_LIBRARY_PATH = "${MANTID_BUILD_DIR}/lib:${MANTID_BUILD_DIR}/bin:${LD_LIBRARY_
 
 
 [tool.pixi.feature.local-mantid]
-channels = [ "conda-forge", "https://prefix.dev/pixi-build-backends", "mantid" ]
-dependencies = { mantid-developer =  ">=6.12.20250630.858,<7" }
+channels = [ "conda-forge", "https://prefix.dev/pixi-build-backends", "mantid", "neutrons" ]
+dependencies = { mantid-developer =  ">=6.14,<7"}
 
 [tool.pixi.package]
 name = "total_scattering"
