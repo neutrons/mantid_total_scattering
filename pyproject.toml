@@ -1,5 +1,5 @@
 [project]
-name = "total-scattering"
+name = "mantid-total-scattering"
 dynamic = ["version"]
 description = "Mantid Total Scattering Reduction"
 readme = "README.md"
@@ -81,7 +81,7 @@ matplotlib = "*"
 
 [tool.pixi.pypi-dependencies]
 # PyPI dependencies, including this package to allow local editable installs
-total_scattering = { path = ".", editable = true }
+mantid_total_scattering = { path = ".", editable = true }
 
 
 [tool.pixi.package.host-dependencies]
@@ -151,7 +151,7 @@ channels = [ "conda-forge", "https://prefix.dev/pixi-build-backends", "mantid", 
 dependencies = { mantid-developer =  ">=6.14,<7"}
 
 [tool.pixi.package]
-name = "total_scattering"
+name = "mantid-total-scattering"
 version = "0.0.0"  # placeholder, overwritten by sync-version
 
 [tool.pixi.package.build]
