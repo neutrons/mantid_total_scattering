@@ -95,7 +95,6 @@ toml-cli = "*"
 [tool.pixi.package.run-dependencies]
 python = ">=3.10"
 matplotlib = "*"
-pyoncat = "*"
 scikit-learn = "*"
 
 
