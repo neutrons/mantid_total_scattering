@@ -1939,6 +1939,7 @@ packages:
   - python_abi 3.11.* *_cp311
   - tomli
   license: Apache-2.0
+  license_family: APACHE
   purls:
   - pkg:pypi/coverage?source=hash-mapping
   size: 392305
@@ -3851,6 +3852,7 @@ packages:
   - blas 2.301   openblas
   - liblapacke 3.11.0   1*_openblas
   license: BSD-3-Clause
+  license_family: BSD
   purls: []
   size: 18492
   timestamp: 1763447017981
@@ -4003,6 +4005,7 @@ packages:
   - liblapack  3.11.0   1*_openblas
   - liblapacke 3.11.0   1*_openblas
   license: BSD-3-Clause
+  license_family: BSD
   purls: []
   size: 18491
   timestamp: 1763447025579
@@ -4563,6 +4566,7 @@ packages:
   - blas 2.301   openblas
   - liblapacke 3.11.0   1*_openblas
   license: BSD-3-Clause
+  license_family: BSD
   purls: []
   size: 18486
   timestamp: 1763447033135
@@ -5670,8 +5674,8 @@ packages:
   timestamp: 1761150879856
 - pypi: ./
   name: mantid-total-scattering
-  version: 1.3.0.dev4
-  sha256: 213d9353895ad86102b558c3b8b708d3a3779992178599b461c896ee66ea2d03
+  version: 1.3.0.dev7
+  sha256: 40ac3e6beea758ac464ebcd84e9f3e0ab6ff14aaa0bdbfec37efff7fe965e9dd
   requires_dist:
   - matplotlib
   - pyoncat @ https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl
@@ -6131,6 +6135,7 @@ packages:
   - libzlib >=1.3.1,<2.0a0
   - nspr >=4.38,<5.0a0
   license: MPL-2.0
+  license_family: MOZILLA
   purls: []
   size: 2057773
   timestamp: 1763485556350

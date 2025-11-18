@@ -92,7 +92,6 @@ versioningit = "*"
 python = ">=3.10"
 mantidworkbench = ">=6.14"
 matplotlib = "*"
-pyoncat = "*"
 scikit-learn = "*"
 
 # ------------------------------- #
