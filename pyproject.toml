@@ -1,22 +1,22 @@
 [project]
-name = "mantid-total-scattering-python-wrapper"
+name = "mantid-total-scattering"
 dynamic = ["version"]
 description = "Mantid Total Scattering Reduction"
 readme = "README.md"
 license = { text = "GPL3.0" }
 authors = [
-    { name = "Yuanpeng Zhang", email = "mcondonnellmd@ornl.gov" },
-    { name = "Marshall McDonnell" },
-    { name = "Peter Peterson" },
-    { name = "Coleman Kendrick" },
-    { name = "Jenna DeLozier" },
-    { name = "Elliot Oram" },
-    { name = "Donnie Earnest" },
+  { name = "Yuanpeng Zhang", email = "zhangy3@ornl.gov" },
+  { name = "Marshall McDonnell" },
+  { name = "Peter Peterson" },
+  { name = "Coleman Kendrick" },
+  { name = "Jenna DeLozier" },
+  { name = "Elliot Oram" },
+  { name = "Donnie Earnest" },
 ]
 dependencies = [
-    "matplotlib",
-    "pyoncat @ https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl",
-    "scikit-learn",
+  "matplotlib",
+  "pyoncat @ https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl",
+  "scikit-learn",
 ]
 
 [project.scripts]
@@ -71,67 +71,189 @@ distance-dirty = "{next_version}.dev{distance}"
 file = "total_scattering/_version.py"
 
 [tool.pixi.workspace]
-preview = [ "pixi-build",]
-channels = [ "conda-forge", "https://prefix.dev/pixi-build-backends" ]
-platforms = [ "linux-64",]
+preview = ["pixi-build"]
+channels = ["conda-forge", "https://prefix.dev/pixi-build-backends"]
+platforms = ["linux-64"]
 
 [tool.pixi.dependencies]
-python = "*"
 pip = "*"
 matplotlib = "*"
 
 [tool.pixi.pypi-dependencies]
 # PyPI dependencies, including this package to allow local editable installs
-total_scattering = { path = ".", editable = true }
+mantid_total_scattering = { path = ".", editable = true }
 
 
 [tool.pixi.package.host-dependencies]
 hatchling = "*"
 versioningit = "*"
 
-[tool.pixi.feature.package.pypi-dependencies]
-toml-cli = "*"
-
 [tool.pixi.package.run-dependencies]
 python = ">=3.10"
+mantidworkbench = ">=6.14"
 matplotlib = "*"
 scikit-learn = "*"
-
 
 # ------------------------------- #
 # Pixi Feature Dependencies       #
 # ------------------------------- #
 
-# FEATURE DEFINITION ORDER MATTERS FOR CHANNEL DECLARATION
 [tool.pixi.feature.package-wrapper]
-channels = [ "conda-forge", "https://prefix.dev/pixi-build-backends"]
-dependencies = { python = "*", pip = "*", matplotlib = "*", scikit-learn = "*", toml = "*", hatchling = "*", versioningit = "*" }
+channels = ["conda-forge", "https://prefix.dev/pixi-build-backends"]
+# NOTE: While these are also defined in `wrapper_pyproject.toml`, they are needed here to be included in the lock file
+#       Otherwise, they would be solved for at build time, which defeats the purpose of the lock file.
+dependencies = { pip = "*", matplotlib = "*", scikit-learn = "*", toml = "*", hatchling = "*", versioningit = "*" }
+
+[tool.pixi.feature.test]
+channels = ["conda-forge", "https://prefix.dev/pixi-build-backends", "mantid"]
+
+[tool.pixi.feature.test.dependencies]
+pytest = "*"
+pytest-cov = "*"
+flake8 = "*"
+bandit = "*"
+
+[tool.pixi.feature.package.dependencies]
+anaconda-client = "*"
+conda-build = "<24"
+conda-verify = "*"
+versioningit = "*"
+hatch = "*"
+toml = "*"
+
+[tool.pixi.feature.package.pypi-dependencies]
+toml-cli = "*"
+
+[tool.pixi.feature.developer.dependencies]
+mantidworkbench = ">=6.14"
+pre-commit = "*"
+flake8 = "*"
+bandit = "*"
+python-build = "*"
 
 
-[tool.pixi.package]
-name = "mantid-total-scattering-python-wrapper"
-version = "1.3.0.dev5"  # placeholder, overwritten by sync-version
+# ------------------------------- #
+# Local Mantid Development Feature #
+# ------------------------------- #
+# Environment variables for local Mantid build
+[tool.pixi.feature.local-mantid.activation.env]
+MANTID_BUILD_DIR = "/path/to/your/mantid/build"
+MANTID_SRC_DIR = "/path/to/your/mantid/"
+PYTHONPATH = "${MANTID_SRC_DIR}/Framework/PythonInterface:${MANTID_BUILD_DIR}/bin:${MANTID_BUILD_DIR}/qt/applications/workbench:${MANTID_SRC_DIR}/qt/applications/workbench:${MANTID_SRC_DIR}/qt/python/mantidqt:${MANTID_SRC_DIR}/qt/python/mantidqtinterfaces:${PYTHONPATH}"
+LD_LIBRARY_PATH = "${MANTID_BUILD_DIR}/lib:${MANTID_BUILD_DIR}/bin:${LD_LIBRARY_PATH}"
+# MANTIDPATH = "${MANTID_BUILD_DIR}"
+# MANTID_VERSION_STR="0"
 
-[tool.pixi.package.build]
-backend = { name = "pixi-build-python", version = "0.4.*" }
+
+[tool.pixi.feature.local-mantid]
 channels = [
   "conda-forge",
   "https://prefix.dev/pixi-build-backends",
-  "https://prefix.dev/conda-forge",
+  "mantid",
+  "neutrons",
 ]
+dependencies = { mantid-developer = ">=6.14,<7" }
+
+[tool.pixi.package]
+name = "mantid-total-scattering"
+version = "0.0.0"                # placeholder, overwritten by sync-version
+
+[tool.pixi.package.build]
+backend = { name = "pixi-build-python", version = "0.4.*", channels = [
+  "conda-forge",
+  "https://prefix.dev/pixi-build-backends",
+  "https://prefix.dev/conda-forge",
+] }
+
 
 [tool.pixi.environments]
+default = { features = [
+  "developer",
+  "package",
+  "test",
+], solve-group = "default" }
 package-wrapper = { features = ["package-wrapper"], solve-group = "wrapper" }
+
+# Environment for local Mantid development - excludes conda Mantid packages
+local-mantid = { features = ["local-mantid"], solve-group = "local-mantid" }
 
 # --------------- #
 # Pixi Tasks      #
 # --------------- #
 [tool.pixi.tasks]
+# PyPi packaging tasks
+build-pypi = { cmd = "hatch build", description = "Build the package for PyPI" }
+publish-pypi = { cmd = "twine upload dist/*", description = "Publish the package to PyPI", depends-on = [
+  "build-pypi",
+] }
+publish-pypi-test = { cmd = "twine upload --repository testpypi dist/*", description = "Publish the package to TestPyPI", depends-on = [
+  "build-pypi",
+] }
+clean-pypi = { cmd = "rm -rf dist", description = "Clean the PyPI build artifacts" }
+
+# Conda packaging tasks
+build-conda-command = { cmd = "pixi build", description = "Build the conda package command" }
+build-conda = { description = "Build the conda package", depends-on = [
+  "backup-toml",
+  "sync-version",
+  "build-conda-command",
+  "reset-toml",
+] }
+publish-conda = { cmd = "anaconda upload *.conda", description = "Publish the .conda package to anaconda.org", depends-on = [
+  "build-conda",
+] }
+clean-conda = { cmd = "rm -f *.conda", description = "Clean the local .conda build artifacts" }
+
+# Testing tasks
+test-mantid = { cmd = "python -c \"import sys; print('Python paths:'); [print(f'  {p}') for p in sys.path[:5]]; print('\\nTesting Mantid import...'); import mantid; print(f'✅ Mantid imported from: {mantid.__file__}'); print(f'✅ Mantid version: {mantid.__version__}')\"", description = "Test that local Mantid build can be imported" }
+test-fetch-data = { cmd = "pixi run python tests/data/remote_files.py", description = "Fetch the test data for the total_scattering package" }
+test = { cmd = "pytest --cov=total_scattering --cov-report=xml --cov-report=term ./tests", description = "Run the tests with coverage" }
+
+lint = { cmd = "flake8 total_scattering/ tests/ --count; bandit -r total_scattering/ -x total_scattering/_version.py;", description = "Run flake8 and bandit on codebase." }
+
 # MISC
+clean-all = { description = "Clean all build artifacts", depends-on = [
+  "clean-pypi",
+  "clean-docs",
+  "clean-conda",
+] }
 sync-version = { cmd = 'version=$(python -m versioningit); toml set tool.pixi.package.version "$version" --toml-path pyproject.toml', description = "Sync pyproject.toml version with Git version" }
-[tool.pixi.feature.package-wrapper.tasks]
-prep-channels = { cmd = "pixi workspace channel list", description = "Prepare the conda channels for the package" }
 backup-toml = { cmd = "cp pyproject.toml pyproject.toml.bak", description = "Backup the pyproject.toml file" }
 reset-toml = { cmd = "cp pyproject.toml.bak pyproject.toml; rm pyproject.toml.bak", description = "Reset the pyproject.toml file to the original state" }
+
+# Application tasks
+mantidtotalscattering = { args = [
+  { "arg" = "file" },
+], cmd = "python -m total_scattering.cli {{file}}", description = "Run the total_scattering command line interface" }
+
+[tool.pixi.feature.local-mantid.tasks]
+# Test that local Mantid can be imported
+test-local-mantid = { cmd = "python -c \"import sys; print('Python paths:'); [print(f'  {p}') for p in sys.path[:5]]; print('\\nTesting Mantid import...'); import mantid; print(f'✅ Mantid imported from: {mantid.__file__}'); print(f'✅ Mantid version: {mantid.__version__}')\"", description = "Test that local Mantid build can be imported" }
+# Alternative launch method using module
+workbench-local = { cmd = "cd $MANTID_BUILD_DIR/bin; ./launch_mantidworkbench.sh", description = "Launch local workbench with mantidtotalscattering available" }
+
+[tool.pixi.feature.local-mantid.tasks.mantidtotalscattering-local]
+args = [{ "arg" = "file" }]
+# subprocess is required to retain access files in the current directory as well as the local Mantid build
+cmd = """python -c \"import os;
+import subprocess;
+file = '{{file}}';
+absPath = os.path.abspath(file);
+process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True);
+out, err = process.communicate(f\\"cd $MANTID_BUILD_DIR/bin && python -m total_scattering.cli {absPath}\\n\\" );
+print(out);\"
+"""
+description = "Run the total_scattering command line interface with local Mantid build"
+
+[tool.pixi.feature.package-wrapper.tasks]
+
+replace-toml = { cmd = "cp wrapper_pyproject.toml pyproject.toml", description = "Replace the package name in pyproject.toml for wrapper" }
+
 build-conda-command-wrapper = { cmd = "pixi build", description = "Build the conda package command" }
-build-conda-wrapper = { description = "Build the conda package", depends-on = ["prep-channels", "backup-toml", "sync-version", "build-conda-command-wrapper", "reset-toml"] }
+build-conda-wrapper = { description = "Build the conda package", depends-on = [
+  "backup-toml",
+  "replace-toml",
+  "sync-version",
+  "build-conda-command-wrapper",
+  "reset-toml",
+] }
