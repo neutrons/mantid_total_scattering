@@ -5680,8 +5680,8 @@ packages:
   timestamp: 1761150879856
 - pypi: ./
   name: mantid-total-scattering
-  version: 1.3.0.dev2
-  sha256: f4246f5f41b819c34e0329952eb78b17262b2b63fabfefd9a14b1984d4cedddc
+  version: 1.3.0.dev7
+  sha256: 2b6a5dd9ec229895322db54ecb95a9b01fcd8f61f1194ecd8caa81ec4f06d306
   requires_dist:
   - matplotlib
   - pyoncat @ https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl

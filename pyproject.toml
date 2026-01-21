@@ -3,7 +3,7 @@ name = "mantid-total-scattering"
 dynamic = ["version"]
 description = "Mantid Total Scattering Reduction"
 readme = "README.md"
-license = { text = "GPL3.0" }
+license = { text = "GPL-3.0-only" }
 authors = [
   { name = "Yuanpeng Zhang", email = "zhangy3@ornl.gov" },
   { name = "Marshall McDonnell" },
@@ -94,9 +94,9 @@ mantidworkbench = ">=6.14"
 matplotlib = "*"
 scikit-learn = "*"
 
-# ------------------------------- #
-# Pixi Feature Dependencies       #
-# ------------------------------- #
+# ------------------------- #
+# Pixi Feature Dependencies #
+# ------------------------- #
 
 [tool.pixi.feature.package-wrapper]
 channels = ["conda-forge", "https://prefix.dev/pixi-build-backends"]
@@ -132,9 +132,10 @@ bandit = "*"
 python-build = "*"
 
 
-# ------------------------------- #
+# -------------------------------- #
 # Local Mantid Development Feature #
-# ------------------------------- #
+# -------------------------------- #
+
 # Environment variables for local Mantid build
 [tool.pixi.feature.local-mantid.activation.env]
 MANTID_BUILD_DIR = "/path/to/your/mantid/build"
@@ -177,9 +178,10 @@ package-wrapper = { features = ["package-wrapper"], solve-group = "wrapper" }
 # Environment for local Mantid development - excludes conda Mantid packages
 local-mantid = { features = ["local-mantid"], solve-group = "local-mantid" }
 
-# --------------- #
-# Pixi Tasks      #
-# --------------- #
+# ---------- #
+# Pixi Tasks #
+# ---------- #
+
 [tool.pixi.tasks]
 # PyPi packaging tasks
 build-pypi = { cmd = "hatch build", description = "Build the package for PyPI" }

@@ -3,20 +3,20 @@ name = "mantid-total-scattering-python-wrapper"
 dynamic = ["version"]
 description = "Mantid Total Scattering Reduction"
 readme = "README.md"
-license = { text = "GPL3.0" }
+license = { text = "GPL-3.0-only" }
 authors = [
-    { name = "Yuanpeng Zhang", email = "mcondonnellmd@ornl.gov" },
-    { name = "Marshall McDonnell" },
-    { name = "Peter Peterson" },
-    { name = "Coleman Kendrick" },
-    { name = "Jenna DeLozier" },
-    { name = "Elliot Oram" },
-    { name = "Donnie Earnest" },
+  { name = "Yuanpeng Zhang", email = "zhangy3@ornl.gov" },
+  { name = "Marshall McDonnell", email = "mcondonnellmd@ornl.gov" },
+  { name = "Peter Peterson" },
+  { name = "Coleman Kendrick" },
+  { name = "Jenna DeLozier" },
+  { name = "Elliot Oram" },
+  { name = "Donnie Earnest" },
 ]
 dependencies = [
-    "matplotlib",
-    "pyoncat @ https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl",
-    "scikit-learn",
+  "matplotlib",
+  "pyoncat @ https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl",
+  "scikit-learn",
 ]
 
 [project.scripts]
@@ -71,9 +71,9 @@ distance-dirty = "{next_version}.dev{distance}"
 file = "total_scattering/_version.py"
 
 [tool.pixi.workspace]
-preview = [ "pixi-build",]
-channels = [ "conda-forge", "https://prefix.dev/pixi-build-backends" ]
-platforms = [ "linux-64",]
+preview = ["pixi-build"]
+channels = ["conda-forge", "https://prefix.dev/pixi-build-backends"]
+platforms = ["linux-64"]
 
 [tool.pixi.dependencies]
 python = "*"
@@ -104,21 +104,21 @@ scikit-learn = "*"
 
 # FEATURE DEFINITION ORDER MATTERS FOR CHANNEL DECLARATION
 [tool.pixi.feature.package-wrapper]
-channels = [ "conda-forge", "https://prefix.dev/pixi-build-backends"]
+channels = ["conda-forge", "https://prefix.dev/pixi-build-backends"]
 dependencies = { python = "*", pip = "*", matplotlib = "*", scikit-learn = "*", toml = "*", hatchling = "*", versioningit = "*" }
 
 
 [tool.pixi.package]
 name = "mantid-total-scattering-python-wrapper"
-version = "0.0.0"  # placeholder, overwritten by sync-version
+version = "0.0.0"                               # placeholder, overwritten by sync-version
 
 [tool.pixi.package.build]
-backend = { name = "pixi-build-python", version = "0.1.*" }
-channels = [
+backend = { name = "pixi-build-python", version = "0.4.*", channels = [
   "conda-forge",
   "https://prefix.dev/pixi-build-backends",
   "https://prefix.dev/conda-forge",
-]
+] }
+
 
 [tool.pixi.environments]
 package-wrapper = { features = ["package-wrapper"], solve-group = "wrapper" }
@@ -134,4 +134,10 @@ prep-channels = { cmd = "pixi workspace channel list", description = "Prepare th
 backup-toml = { cmd = "cp pyproject.toml pyproject.toml.bak", description = "Backup the pyproject.toml file" }
 reset-toml = { cmd = "cp pyproject.toml.bak pyproject.toml; rm pyproject.toml.bak", description = "Reset the pyproject.toml file to the original state" }
 build-conda-command-wrapper = { cmd = "pixi build", description = "Build the conda package command" }
-build-conda-wrapper = { description = "Build the conda package", depends-on = ["prep-channels", "backup-toml", "sync-version", "build-conda-command-wrapper", "reset-toml"] }
+build-conda-wrapper = { description = "Build the conda package", depends-on = [
+  "prep-channels",
+  "backup-toml",
+  "sync-version",
+  "build-conda-command-wrapper",
+  "reset-toml",
+] }
