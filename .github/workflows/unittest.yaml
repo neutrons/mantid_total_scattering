@@ -5,29 +5,33 @@ on:
   pull_request:
   push:
     branches: [next, qa, main]
-    tags: ['v*']
+    tags: ["v*"]
+
+# cancel previous job if new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
 
       - name: Setup pixi
-        uses: prefix-dev/setup-pixi@v0.8.10
+        uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          pixi-version: v0.49.0
           manifest-path: pyproject.toml
 
       - name: lint
         run: pixi run lint
 
       - name: Run unit tests
-        run: | 
+        run: |
           sudo apt-get install libglu1-mesa
           pixi run test
 
@@ -39,4 +43,3 @@ jobs:
 
       - name: Build conda package
         run: pixi run build-conda
-        
