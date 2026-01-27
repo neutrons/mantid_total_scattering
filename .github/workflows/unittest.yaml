@@ -12,6 +12,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PKG_NAME: mantid-total-scattering
+
 jobs:
   linux:
     runs-on: ubuntu-latest
