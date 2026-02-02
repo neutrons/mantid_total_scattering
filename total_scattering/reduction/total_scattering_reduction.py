@@ -2267,7 +2267,7 @@ def TotalScatteringReduction(config: dict = None):
                 final_difc = [final_difc]
 
         for i in range(mtd["bo_dummy"].getNumberHistograms()):
-            if final_difc is not None:
+            if final_difc is not None and not manual_grouping:
                 difc_val = final_difc[i]
             else:
                 difc_val = mtd["calib_table_init"].row(i)["DIFC"]
