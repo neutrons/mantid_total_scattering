@@ -222,3 +222,5 @@ settings.json
 
 .token
 total_scattering/_version.py
+setup_local.py
+versioneer.py
