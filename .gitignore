@@ -221,3 +221,4 @@ settings.json
 .vscode/
 
 .token
+total_scattering/_version.py

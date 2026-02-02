@@ -5,23 +5,28 @@ on:
   pull_request:
   push:
     branches: [qa, main]
-    tags: ['v*']
+    tags: ["v*"]
+
+# cancel previous job if new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PKG_NAME: mantid-total-scattering
 
 jobs:
   linux-package:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
 
       - name: Setup Pixi
-        uses: prefix-dev/setup-pixi@v0.8.10
-        with:
-          pixi-version: v0.49.0
-          manifest-path: pyproject.toml
+        uses: prefix-dev/setup-pixi@v0.9.3
 
       - name: Build conda package
         run: pixi run build-conda
@@ -36,21 +41,19 @@ jobs:
           CONDA_LABEL="main"
           if [ "${IS_RC}" = "true" ]; then CONDA_LABEL="rc"; fi
           echo pushing ${{ github.ref }} with label $CONDA_LABEL
-          pixi run anaconda upload --label $CONDA_LABEL --user neutrons total_scattering-*.conda
+          pixi run anaconda upload --label $CONDA_LABEL --user neutrons ${{ env.PKG_NAME }}-*.conda
+
   linux-wrapper:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
 
       - name: Setup Pixi
-        uses: prefix-dev/setup-pixi@v0.8.10
-        with:
-          pixi-version: v0.49.0
-          manifest-path: pyproject.toml
+        uses: prefix-dev/setup-pixi@v0.9.3
 
       - name: Build conda package
         run: pixi run build-conda-wrapper
@@ -65,5 +68,4 @@ jobs:
           CONDA_LABEL="main"
           if [ "${IS_RC}" = "true" ]; then CONDA_LABEL="rc"; fi
           echo pushing ${{ github.ref }} with label $CONDA_LABEL
-          pixi run anaconda upload --label $CONDA_LABEL --user neutrons mantid-total-scattering-python-wrapper-*.conda
-          
+          pixi run anaconda upload --label $CONDA_LABEL --user neutrons ${{ env.PKG_NAME }}-python-wrapper-*.conda
