@@ -729,9 +729,12 @@ def TotalScatteringReduction(config: dict = None):
         van_ps_pp_tol = 0.01
 
     # Create Nexus file basenames
-    sample['Runs'] = expand_ints(sample['Runs'])
-    sample['Background']['Runs'] = expand_ints(
-        sample['Background'].get('Runs', None))
+    if "Runs" in sample:
+        sample['Runs'] = expand_ints(sample['Runs'])
+    if "Runs" in sample['Background']:
+        sample['Background']['Runs'] = expand_ints(
+            sample['Background'].get('Runs', None)
+        )
 
     #################################################################
     # Figure out experimental runs either with run numbers
@@ -747,10 +750,12 @@ def TotalScatteringReduction(config: dict = None):
     else:
         facility_file_format = '%s%d'
 
-    sam_scans = ','.join([facility_file_format % (instr, num)
-                          for num in sample['Runs']])
-    container_scans = ','.join([facility_file_format % (instr, num)
-                                for num in sample['Background']["Runs"]])
+    if "Runs" in sample:
+        sam_scans = ','.join([facility_file_format % (instr, num)
+                              for num in sample['Runs']])
+    if "Runs" in sample['Background']:
+        container_scans = ','.join([facility_file_format % (instr, num)
+                                    for num in sample['Background']["Runs"]])
     container_bg = None
     if "Background" in sample['Background']:
         sample['Background']['Background']['Runs'] = expand_ints(
@@ -760,32 +765,39 @@ def TotalScatteringReduction(config: dict = None):
         if len(container_bg) == 0:
             container_bg = None
 
-    van['Runs'] = expand_ints(van['Runs'])
-    van_scans = ','.join([facility_file_format % (instr, num)
-                          for num in van['Runs']])
+    if "Runs" in van:
+        van['Runs'] = expand_ints(van['Runs'])
+        van_scans = ','.join([facility_file_format % (instr, num)
+                              for num in van['Runs']])
 
     van_bg_scans = None
     if 'Background' in van:
-        van_bg_scans = van['Background']['Runs']
-        van_bg_scans = expand_ints(van_bg_scans)
-        van_bg_scans_bak = expand_ints(van_bg_scans)
-        van_bg_scans = ','.join([facility_file_format %
-                                 (instr, num) for num in van_bg_scans])
+        if "Runs" in van["Background"]:
+            van_bg_scans = van['Background']['Runs']
+            van_bg_scans = expand_ints(van_bg_scans)
+            van_bg_scans_bak = expand_ints(van_bg_scans)
+            van_bg_scans = ','.join([facility_file_format %
+                                     (instr, num) for num in van_bg_scans])
 
-    sample['Runs'] = compress_ints(sample['Runs'])
-    sample['Background']["Runs"] = compress_ints(sample['Background']["Runs"])
+    if "Runs" in sample:
+        sample['Runs'] = compress_ints(sample['Runs'])
+    if "Runs" in sample['Background']:
+        sample['Background']["Runs"] = compress_ints(sample['Background']["Runs"])
     if "Background" in sample['Background']:
-        list_tmp = sample['Background']['Background']['Runs']
-        sample['Background']['Background']['Runs'] = compress_ints(list_tmp)
+        if "Runs" in sample['Background']['Background']:
+            list_tmp = sample['Background']['Background']['Runs']
+            sample['Background']['Background']['Runs'] = compress_ints(list_tmp)
     # Worry about the potential over subtraction of container.
     if "Scale" in sample['Background']:
         cont_scale = sample['Background']["Scale"]
     else:
         cont_scale = 1.
 
-    van['Runs'] = compress_ints(van['Runs'])
+    if "Runs" in van:
+        van['Runs'] = compress_ints(van['Runs'])
     if 'Background' in van:
-        van['Background']['Runs'] = compress_ints(van_bg_scans_bak)
+        if "Runs" in van['Background']:
+            van['Background']['Runs'] = compress_ints(van_bg_scans_bak)
 
     # Override Nexus file basename with Filenames if present
     if "Filenames" in sample:
@@ -795,8 +807,11 @@ def TotalScatteringReduction(config: dict = None):
         if dummy_expt:
             ipts = "/SNS/NOM/IPTS-34905/"
         else:
-            ipts = GetIPTS(Instrument=instr,
-                           RunNumber=base_n.split("_")[1])
+            try:
+                ipts = GetIPTS(Instrument=instr,
+                               RunNumber=base_n.split("_")[1])
+            except ValueError:
+                ipts = "/SNS/NOM/IPTS-34905/"
     else:
         # Grab the IPTS
         if dummy_expt:
