@@ -153,7 +153,7 @@ jobs:
           module-name: ${{ env.MODULE_NAME }}
           local-channel: /tmp/local-channel
           python-version: 3.11
-          extra-channels: conda-forge mantid neutrons
+          extra-channels: conda-forge
 
       - name: Upload conda package as artifact
         uses: actions/upload-artifact@v7
