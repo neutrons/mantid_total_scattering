@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: [qa, main]
+    branches: [next, qa, main]
     tags: ["v*"]
 
 # cancel previous job if new commit is pushed
