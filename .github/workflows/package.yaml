@@ -14,7 +14,7 @@ concurrency:
 
 env:
   PKG_NAME: mantid-total-scattering
-  MODULE_NAME: mantid-total-scattering
+  MODULE_NAME: total_scattering
 
 jobs:
   conda-build:
