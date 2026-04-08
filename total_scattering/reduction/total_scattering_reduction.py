@@ -2225,10 +2225,16 @@ def TotalScatteringReduction(config: dict = None):
                 unnormalized version.
             out_wksp (str): Name of the Mantid workspace to output.
         """
-        tmin_limit = gen_config.config_params.get("TMinBragg",
-                                                  "0.7,0.7,0.9,1.5,1.6,1.1")
-        tmax_limit = gen_config.config_params.get("TMaxBragg",
-                                                  "17,18.5,19,18.5,16.9,17")
+        tmin_limit = gen_config.config_params.get(
+            "TMinBragg",
+            "0.7,0.7,0.9,1.5,1.6,1.1"
+        )
+        tmin_limit = str(tmin_limit)
+        tmax_limit = gen_config.config_params.get(
+            "TMaxBragg",
+            "17,18.5,19,18.5,16.9,17"
+        )
+        tmax_limit = str(tmax_limit)
         tbin = gen_config.config_params.get("TBinBragg", "-0.0008")
 
         if "," in tmin_limit:

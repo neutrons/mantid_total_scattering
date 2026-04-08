@@ -225,7 +225,7 @@ reset-toml = { cmd = "cp pyproject.toml.bak pyproject.toml; rm pyproject.toml.ba
 
 # Application tasks
 mantidtotalscattering = { args = [
-  { "arg" = "file" },
+  { "arg" = "file", "default" = "" },
 ], cmd = "python -m total_scattering.cli {{file}}", description = "Run the total_scattering command line interface" }
 
 [tool.pixi.feature.local-mantid.tasks]
@@ -235,7 +235,7 @@ test-local-mantid = { cmd = "python -c \"import sys; print('Python paths:'); [pr
 workbench-local = { cmd = "cd $MANTID_BUILD_DIR/bin; ./launch_mantidworkbench.sh", description = "Launch local workbench with mantidtotalscattering available" }
 
 [tool.pixi.feature.local-mantid.tasks.mantidtotalscattering-local]
-args = [{ "arg" = "file" }]
+args = [{ "arg" = "file", "default" = "" }]
 # subprocess is required to retain access files in the current directory as well as the local Mantid build
 cmd = """python -c \"import os;
 import subprocess;
