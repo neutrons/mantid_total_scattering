@@ -6022,7 +6022,7 @@ packages:
 - pypi: ./
   name: mantid-total-scattering
   version: 1.3.0.dev1
-  sha256: 16c2c7fc418c61b37950f70f8c4a0b0d1d0895eb8c6d8a972ea33946b32142fe
+  sha256: 50705b7833321e311f58caea5694ca810c14be0059f25eeb369f1658246923c8
   requires_dist:
   - matplotlib
   - pyoncat @ https://oncat.ornl.gov/packages/pyoncat-1.5.1-py3-none-any.whl
