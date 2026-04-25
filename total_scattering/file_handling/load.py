@@ -327,8 +327,11 @@ def load(ws_name, input_files, group_wksp,
             # was ever initialized and only in such cases will we
             # move ahead to load in the existing cache file.
             if cache_f_exist and group_num == 0 and not re_cache:
-                wksp_tmp = "wksp_tmp_qrb"
-                LoadNexus(OutputWorkspace=wksp_tmp, Filename=cache_f_fn)
+                size_in_bytes = os.path.getsize(cache_f_fn)
+                size_in_mb = size_in_bytes / (1024 * 1024)
+                if size_in_mb >50:
+                    wksp_tmp = "wksp_tmp_qrb"
+                    LoadNexus(OutputWorkspace=wksp_tmp, Filename=cache_f_fn)
             else:
                 wksp_tmp = "wksp_tmp"
 
