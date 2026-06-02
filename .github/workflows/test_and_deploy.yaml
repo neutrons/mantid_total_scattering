@@ -76,9 +76,6 @@ jobs:
           mkdir -p /tmp/local-channel/linux-64
           cp *.conda /tmp/local-channel/linux-64
 
-    - name: Setup micromamba
-        uses: mamba-org/setup-micromamba@v2
-
       - name: Verify conda package
         uses: neutrons/conda-actions/pkg-verify@main
         with:
@@ -202,9 +199,6 @@ jobs:
           pixi run build-conda-wrapper
           mkdir -p /tmp/local-channel/linux-64
           cp *.conda /tmp/local-channel/linux-64
-
-      - name: Setup micromamba
-        uses: mamba-org/setup-micromamba@v2
 
       - name: Verify conda package
         uses: neutrons/conda-actions/pkg-verify@main
