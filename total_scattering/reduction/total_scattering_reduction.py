@@ -721,12 +721,16 @@ def TotalScatteringReduction(config: dict = None):
         van_ps_bkg_type = van_ps.get("BackgroundType", "Quadratic")
         van_ps_hb = van_ps.get("HighBackground", True)
         van_ps_pp_tol = van_ps.get("PeakPositionTolerance", 0.01)
+        van_smooth_filter = van_ps.get("FFTSmoothFilter", "Butterworth")
+        van_smooth_params = van_ps.get("FFTSmoothParams", "20,2")
     else:
         van_ps_fwhm = 7
         van_ps_tol = 4
         van_ps_bkg_type = "Quadratic"
         van_ps_hb = True
         van_ps_pp_tol = 0.01
+        van_smooth_filter = "Butterworth"
+        van_smooth_params = "20,2"
 
     # Create Nexus file basenames
     if "Runs" in sample:
@@ -1828,8 +1832,8 @@ def TotalScatteringReduction(config: dict = None):
             FFTSmooth(
                 InputWorkspace=van_corrected,
                 OutputWorkspace=van_corrected,
-                Filter="Butterworth",
-                Params='20,2',
+                Filter=van_smooth_filter,
+                Params=van_smooth_params,
                 IgnoreXBins=True,
                 AllSpectra=True)
         except RuntimeError as _:
@@ -1842,8 +1846,8 @@ def TotalScatteringReduction(config: dict = None):
             FFTSmooth(
                 InputWorkspace=van_corrected,
                 OutputWorkspace=van_corrected,
-                Filter="Butterworth",
-                Params='20,2',
+                Filter=van_smooth_filter,
+                Params=van_smooth_params,
                 IgnoreXBins=True,
                 AllSpectra=True)
 
