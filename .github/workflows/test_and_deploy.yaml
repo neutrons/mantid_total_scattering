@@ -77,7 +77,12 @@ jobs:
           cp *.conda /tmp/local-channel/linux-64
 
       - name: Setup micromamba
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
+
+      - name: Create test environment
+        run: |
+          micromamba create -n pkg-test python=3.11 -c /tmp/local-channel -c conda-forge -c mantid -c neutrons ${{ env.PKG_NAME }} -y
+        shell: bash -el {0}
 
       - name: Verify conda package
         uses: neutrons/conda-actions/pkg-verify@main
@@ -205,7 +210,12 @@ jobs:
           cp *.conda /tmp/local-channel/linux-64
 
       - name: Setup micromamba
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
+
+      - name: Create test environment
+        run: |
+          micromamba create -n pkg-test python=3.11 -c /tmp/local-channel -c conda-forge -c mantid -c neutrons ${{ env.PKG_NAME }} -y
+        shell: bash -el {0}
 
       - name: Verify conda package
         uses: neutrons/conda-actions/pkg-verify@main
