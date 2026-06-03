@@ -87,7 +87,7 @@ jobs:
           local-channel: /tmp/local-channel
           python-version: 3.11
           extra-channels: conda-forge mantid neutrons
-          env-name: pkg-test
+          conda-env-name: pkg-test
 
       - name: Upload conda package as artifact
         uses: actions/upload-artifact@v7
@@ -215,7 +215,7 @@ jobs:
           local-channel: /tmp/local-channel
           python-version: 3.11
           extra-channels: conda-forge
-          env-name: pkg-test-wrapper
+          conda-env-name: pkg-test-wrapper
 
       - name: Upload conda package as artifact
         uses: actions/upload-artifact@v7
