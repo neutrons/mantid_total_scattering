@@ -87,6 +87,7 @@ jobs:
         shell: bash -el {0}
 
       - name: Verify conda package
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: neutrons/conda-actions/pkg-verify@main
         with:
           package-name: ${{ env.PKG_NAME }}
@@ -222,6 +223,7 @@ jobs:
         shell: bash -el {0}
 
       - name: Verify conda package
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: neutrons/conda-actions/pkg-verify@main
         with:
           package-name: ${{ env.PKG_NAME }}-python-wrapper
