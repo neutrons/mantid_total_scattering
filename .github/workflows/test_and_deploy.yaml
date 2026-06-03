@@ -208,14 +208,14 @@ jobs:
         uses: mamba-org/setup-micromamba@v2
 
       - name: Verify conda package
-      uses: neutrons/conda-actions/pkg-verify@main
-      with:
-        package-name: ${{ env.PKG_NAME }}-python-wrapper
-        module-name: ${{ env.MODULE_NAME }}
-        local-channel: /tmp/local-channel
-        python-version: 3.11
-        extra-channels: conda-forge
-        env-name: pkg-test-wrapper
+        uses: neutrons/conda-actions/pkg-verify@main
+        with:
+          package-name: ${{ env.PKG_NAME }}-python-wrapper
+          module-name: ${{ env.MODULE_NAME }}
+          local-channel: /tmp/local-channel
+          python-version: 3.11
+          extra-channels: conda-forge
+          env-name: pkg-test-wrapper
 
       - name: Upload conda package as artifact
         uses: actions/upload-artifact@v7
