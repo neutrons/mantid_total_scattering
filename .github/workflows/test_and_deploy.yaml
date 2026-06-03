@@ -74,7 +74,9 @@ jobs:
         run: |
           pixi run build-conda
           mkdir -p /tmp/local-channel/linux-64
+          mkdir -p /tmp/local-channel/noarch
           cp *.conda /tmp/local-channel/linux-64
+          echo '{"info": {}, "packages": {}, "packages.conda": {}, "repodata_version": 1}' > /tmp/local-channel/noarch/repodata.json
 
       - name: Setup micromamba
         uses: mamba-org/setup-micromamba@v2
@@ -207,7 +209,9 @@ jobs:
         run: |
           pixi run build-conda-wrapper
           mkdir -p /tmp/local-channel/linux-64
+          mkdir -p /tmp/local-channel/noarch
           cp *.conda /tmp/local-channel/linux-64
+          echo '{"info": {}, "packages": {}, "packages.conda": {}, "repodata_version": 1}' > /tmp/local-channel/noarch/repodata.json
 
       - name: Setup micromamba
         uses: mamba-org/setup-micromamba@v2
