@@ -1,19 +1,38 @@
-# Install mantid image
-FROM mantidproject/mantid:nightly_ubuntu16.04_python3
+# Start from a clean conda-forge base image with mamba installed
+FROM condaforge/miniforge3:latest
 
-# Copy git content from current branch
-COPY . /root/mantid_total_scattering
+# Install system dependencies required for Mantid and other tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    libgl1 \
+    libglu1-mesa \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Add Mantid to python path
-ENV MANTIDPATH         /opt/mantidnightly/bin
-ENV TSREPO             /root/mantid_total_scattering
-ENV PYTHONPATH         ${MANTIDPATH}:${TSREPO}:${PYTHONPATH}
+# Install pixi
+RUN curl -fsSL https://pixi.sh/install.sh | sh
 
-# Install python dependencies
-RUN apt-get update && \
-    apt-get -y upgrade && \
-    apt-get install python3-pip curl git -y && \
-    pip3 install pytest codecov
+# Add pixi to PATH
+ENV PATH="/root/.pixi/bin:${PATH}"
 
-# Move to work directory
-WORKDIR $TSREPO
+# Set working directory
+WORKDIR /app
+
+# Copy the project first (before pixi install)
+COPY . .
+
+# Install dependencies using pixi
+# This will use the pixi.lock file if present, and install all features
+# including mantidworkbench (>=6.14) and test dependencies
+RUN pixi install --locked
+
+# Activate pixi environment for all subsequent operations
+# The pixi environment is already in PATH after 'pixi install'
+ENV PATH="/app/.pixi/envs/default/bin:${PATH}"
+
+# Set environment variables for mantid total scattering
+ENV PYTHONPATH="/app:${PYTHONPATH}"
+
+# Define the default command to run pytest
+CMD ["pixi", "run", "mantidtotalscattering", "--help"]

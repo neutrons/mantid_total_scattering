@@ -44,6 +44,79 @@ jobs:
         if: github.actor != 'dependabot[bot]'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+  docker-build-push:
+    name: Build and push Docker image
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/next' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/qa'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version and generate tags
+        id: meta
+        run: |
+          # Get the image name
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/mantid-total-scattering"
+          
+          # Initialize tags with SHA
+          TAGS="${IMAGE_NAME}:${{ github.sha }}"
+          
+          # If this is a tag push, extract version tags
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Extract version from tag (e.g., v1.2.9 or v1.2.9rc1)
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"  # Remove 'v' prefix
+            
+            # Extract major.minor.patch (e.g., 1.2.9 from 1.2.9rc1)
+            if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+              MAJOR="${BASH_REMATCH[1]}"
+              MINOR="${BASH_REMATCH[2]}"
+              PATCH="${BASH_REMATCH[3]}"
+              
+              # Add version tags: v1.2.9, v1.2, v1
+              TAGS="${TAGS},${IMAGE_NAME}:v${MAJOR}.${MINOR}.${PATCH}"
+              TAGS="${TAGS},${IMAGE_NAME}:v${MAJOR}.${MINOR}"
+              TAGS="${TAGS},${IMAGE_NAME}:v${MAJOR}"
+            fi
+          fi
+          
+          # Always add branch-specific tags
+          if [[ "${{ github.ref }}" == "refs/heads/next" ]]; then
+            TAGS="${TAGS},${IMAGE_NAME}:nightly"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            TAGS="${TAGS},${IMAGE_NAME}:latest"
+          elif [[ "${{ github.ref }}" == "refs/heads/qa" ]]; then
+            TAGS="${TAGS},${IMAGE_NAME}:qa"
+          fi
+          
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "image_name=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   conda-build:
     name: Build conda package
     runs-on: ubuntu-latest
@@ -57,7 +130,7 @@ jobs:
       - name: Setup pixi
         uses: prefix-dev/setup-pixi@v0.9.4
         with:
-          pixi-version: v0.62.2
+          pixi-version: v0.72.0
           manifest-path: pyproject.toml
           # Workaround: Dynamic versioning (versioningit) causes lock file version mismatch.
           # We skip the editable package install and do it separately with pip.
@@ -118,7 +191,7 @@ jobs:
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.4
         with:
-          pixi-version: v0.62.2
+          pixi-version: v0.72.0
           manifest-path: pyproject.toml
           # Workaround: Dynamic versioning (versioningit) causes lock file version mismatch.
           # We skip the editable package install and do it separately with pip.
@@ -190,7 +263,7 @@ jobs:
       - name: Setup pixi
         uses: prefix-dev/setup-pixi@v0.9.4
         with:
-          pixi-version: v0.62.2
+          pixi-version: v0.72.0
           manifest-path: pyproject.toml
           # Workaround: Dynamic versioning (versioningit) causes lock file version mismatch.
           # We skip the editable package install and do it separately with pip.
@@ -254,7 +327,7 @@ jobs:
         - name: Setup Pixi
           uses: prefix-dev/setup-pixi@v0.9.4
           with:
-            pixi-version: v0.62.2
+            pixi-version: v0.72.0
             manifest-path: pyproject.toml
             # Workaround: Dynamic versioning (versioningit) causes lock file version mismatch.
             # We skip the editable package install and do it separately with pip.

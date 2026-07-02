@@ -88,6 +88,24 @@ To update
 conda update -c neutrons mantid-total-scattering
 ```
 
+#### 3. Setup via Docker
+
+A pre-built Docker image with all dependencies is available on GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/neutrons/mantid-total-scattering:latest
+docker run --rm -v $(pwd):/data ghcr.io/neutrons/mantid-total-scattering:latest \
+  pixi run mantidtotalscattering /data/input.json
+```
+
+To build the image locally:
+
+```bash
+docker build -t mantid-total-scattering:latest .
+docker run --rm -v $(pwd):/data mantid-total-scattering:latest \
+  pixi run mantidtotalscattering /data/input.json
+```
+
 #### Notes
 
 If you have an error (see below for example) related to the `libGL` library, you may not have it installed for the Mantid Framework to work. See instructions [here](https://github.com/mantidproject/conda-recipes/#gl-and-glu-libs) for installing the necessary libraries for different OS
@@ -223,5 +241,14 @@ git push origin v1.0.8rc1  # push the tag to remote to kick off the deploy step
 ```
 
 This will kick off the pipeline action to push the release candidate to the `neutrons` Anaconda channel.
+
+#### Docker Images
+
+Docker images are automatically built and pushed to GitHub Container Registry (ghcr.io) for all releases and branch pushes. Images are tagged with:
+- Commit SHA hash
+- Full version (e.g., `v1.0.7`)
+- Major.minor version (e.g., `v1.0`)
+- Major version (e.g., `v1`)
+- Branch tag (`latest` for main, `nightly` for next, `qa` for qa)
 
 Releases will be deployed on the Analysis Cluster via a seperate deployment pipeline.
