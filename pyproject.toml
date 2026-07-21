@@ -89,8 +89,8 @@ hatchling = "*"
 versioningit = "*"
 
 [tool.pixi.package.run-dependencies]
-python = ">=3.10"
-mantidworkbench = ">=6.14"
+python = ">=3.12.13"
+mantidworkbench = ">=6.16, <6.17"
 matplotlib = "*"
 scikit-learn = "*"
 
@@ -115,8 +115,7 @@ bandit = "*"
 
 [tool.pixi.feature.package.dependencies]
 anaconda-client = "*"
-conda-build = "<24"
-conda-verify = "*"
+conda-build = "*"
 versioningit = "*"
 hatch = "*"
 toml = "*"
@@ -125,7 +124,7 @@ toml = "*"
 toml-cli = "*"
 
 [tool.pixi.feature.developer.dependencies]
-mantidworkbench = ">=6.14"
+mantidworkbench = ">=6.16, <6.17"
 pre-commit = "*"
 flake8 = "*"
 bandit = "*"
