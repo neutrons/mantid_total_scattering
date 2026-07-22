@@ -83,7 +83,7 @@ jobs:
 
       - name: Create test environment
         run: |
-          micromamba create -n pkg-test python=3.11 -c /tmp/local-channel -c conda-forge -c mantid -c neutrons ${{ env.PKG_NAME }} -y
+          micromamba create -n pkg-test python=3.12 -c /tmp/local-channel -c conda-forge -c mantid -c neutrons ${{ env.PKG_NAME }} -y
         shell: bash -el {0}
 
       - name: Verify conda package
@@ -93,7 +93,7 @@ jobs:
           package-name: ${{ env.PKG_NAME }}
           module-name: ${{ env.MODULE_NAME }}
           local-channel: /tmp/local-channel
-          python-version: 3.11
+          python-version: 3.12
           extra-channels: conda-forge mantid neutrons
           conda-env-name: pkg-test
 
@@ -219,7 +219,7 @@ jobs:
 
       - name: Create test environment
         run: |
-          micromamba create -n pkg-test python=3.11 -c /tmp/local-channel -c conda-forge -c mantid -c neutrons ${{ env.PKG_NAME }} -y
+          micromamba create -n pkg-test python=3.12 -c /tmp/local-channel -c conda-forge -c mantid -c neutrons ${{ env.PKG_NAME }} -y
         shell: bash -el {0}
 
       - name: Verify conda package
@@ -229,7 +229,7 @@ jobs:
           package-name: ${{ env.PKG_NAME }}-python-wrapper
           module-name: ${{ env.MODULE_NAME }}
           local-channel: /tmp/local-channel
-          python-version: 3.11
+          python-version: 3.12
           extra-channels: conda-forge
           conda-env-name: pkg-test-wrapper
 
