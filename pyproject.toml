@@ -43,6 +43,7 @@ artifacts = [
   "total_scattering/**/*.yml",
   "total_scattering/**/*.yaml",
   "total_scattering/**/*.ini",
+  "total_scattering/config/**/*.json",
 ]
 
 [tool.hatch.metadata]

@@ -844,6 +844,45 @@ def abs_grouping(sam_abs_ws,
     return sam_abs_grouped, con_abs_grouped, grouping
 
 
+def load_abs_metadata(filename, load_event_nexus, load_nexus,
+                      resolve_archive_path,
+                      output_workspace="abs_metadata_input"):
+    """Load the run metadata the absorption correction is built from.
+
+    A raw event NeXus is read metadata-only. A processed NeXus - a saved
+    workspace, or a run produced by a simulator - has no ``/entry`` group and
+    is read with ``LoadNexus`` instead. Only when neither of those works is
+    the name treated as a bare run to be resolved on the archive.
+
+    The loaders are passed in so that this can be exercised without Mantid.
+
+    @param filename: str, file path or bare run name
+    @param load_event_nexus: callable(filename, MetaDataOnly, OutputWorkspace)
+    @param load_nexus: callable(filename, OutputWorkspace)
+    @param resolve_archive_path: callable(filename) -> str
+    @param output_workspace: str, name for the loaded workspace. simpleapi
+        normally infers this from the assignment target at the call site,
+        which does not exist inside a helper, so it is passed explicitly.
+
+    @return: the loaded workspace
+    """
+    # Mantid's simpleapi re-raises loader failures as RuntimeError, so both
+    # exception types have to be caught for the fallbacks to be reachable.
+    try:
+        return load_event_nexus(filename, MetaDataOnly=True,
+                                OutputWorkspace=output_workspace)
+    except (ValueError, RuntimeError):
+        pass
+
+    try:
+        return load_nexus(filename, OutputWorkspace=output_workspace)
+    except (ValueError, RuntimeError):
+        pass
+
+    return load_event_nexus(resolve_archive_path(filename), MetaDataOnly=True,
+                            OutputWorkspace=output_workspace)
+
+
 def create_absorption_wksp(filename, abs_method, geometry, material,
                            container_geometry={}, container_material={},
                            gauge_vol="", container_gauge_vol="",
@@ -935,18 +974,13 @@ def create_absorption_wksp(filename, abs_method, geometry, material,
     mantid.config['datasearch.searcharchive'] = ''
     mantid.config['datasearch.searcharchive'] = 'hfir,sns'
 
-    try:
-        abs_input = LoadEventNexus(fn_tmp, MetaDataOnly=True)
-    except ValueError:
-        try:
-            abs_input = LoadNexus(fn_tmp)
-        except ValueError:
-            proposal = getProposal(facility, instrument, fn_tmp.split("_")[1])
-            fn_tmp = os.path.join(
-                "/", facility, instrument, proposal, "nexus",
-                f"{fn_tmp}.nxs.h5"
-            )
-            abs_input = LoadEventNexus(fn_tmp, MetaDataOnly=True)
+    def archive_path(name):
+        proposal = getProposal(facility, instrument, name.split("_")[1])
+        return os.path.join(
+            "/", facility, instrument, proposal, "nexus", f"{name}.nxs.h5")
+
+    abs_input = load_abs_metadata(
+        fn_tmp, LoadEventNexus, LoadNexus, archive_path)
 
     # If no run characterization properties given, load any provided files
     if not props and characterization_files:

@@ -123,6 +123,63 @@ def get_each_spectra_xmin_xmax(wksp):
 # Ex. "1-3, 8-9, 12" -> [1,2,3,8,9,12]
 
 
+def container_background_scans(sample_background, instr, facility_file_format):
+    """Resolve the container background's NeXus basenames from run numbers.
+
+    Like every other section of the input, the container background may be
+    given either as ``Runs`` or as explicit ``Filenames``; the latter is
+    applied further downstream, so here it simply means there is nothing to
+    build from run numbers.
+
+    @param sample_background: dict, the ``Sample.Background`` section
+    @param instr: str, instrument name
+    @param facility_file_format: str, e.g. ``'%s_%d'`` for SNS
+
+    @return: str of comma separated basenames, or None when there is no
+        container background to load from run numbers
+    """
+    background = sample_background.get("Background", None)
+    if background is None or "Runs" not in background:
+        return None
+
+    background["Runs"] = expand_ints(background["Runs"])
+    scans = ','.join([facility_file_format % (instr, num)
+                      for num in background["Runs"]])
+
+    return scans if scans else None
+
+
+def load_group_index(sg_index_f):
+    """Read the sub-group index that sits next to the facility config.
+
+    The file is only present on the analysis cluster, where absorption
+    correction uses it to regroup detectors. Everywhere else it is missing and
+    the reduction simply runs without sub-grouping.
+
+    @param sg_index_f: str, path to ``group_index.txt``
+
+    @return: dict of group name -> [start, stop], or None if the file
+        is not there
+    """
+    if not os.path.isfile(sg_index_f):
+        return None
+
+    sg_dict = dict()
+    with open(sg_index_f, "r") as f_handle:
+        # The first line is a header and is skipped.
+        line_tmp = f_handle.readline()
+        while line_tmp:
+            line_tmp = f_handle.readline()
+            if line_tmp.strip():
+                line_tmp = line_tmp.strip()
+                key_tmp = line_tmp.split()[0]
+                start_tmp = int(line_tmp.split()[1])
+                stop_tmp = int(line_tmp.split()[2])
+                sg_dict[key_tmp] = [start_tmp, stop_tmp]
+
+    return sg_dict
+
+
 def expand_ints(s):
     if isinstance(s, list):
         return s
@@ -485,8 +542,10 @@ def TotalScatteringReduction(config: dict = None):
     title = config['Title']
     instr = config['Instrument']
 
-    # Load in common params
-    gen_config = params.ParamsLoader(facility, instr)
+    # Load in common params. 'AutoConfigFile' lets a caller that is not on the
+    # analysis cluster point at its own facility configuration.
+    gen_config = params.ParamsLoader(
+        facility, instr, config_file=config.get("AutoConfigFile", None))
 
     # Get an instance to Mantid's logger
     log = Logger("TotalScatteringReduction")
@@ -760,14 +819,8 @@ def TotalScatteringReduction(config: dict = None):
     if "Runs" in sample['Background']:
         container_scans = ','.join([facility_file_format % (instr, num)
                                     for num in sample['Background']["Runs"]])
-    container_bg = None
-    if "Background" in sample['Background']:
-        sample['Background']['Background']['Runs'] = expand_ints(
-            sample['Background']['Background']['Runs'])
-        container_bg = ','.join([facility_file_format % (
-            instr, num) for num in sample['Background']['Background']['Runs']])
-        if len(container_bg) == 0:
-            container_bg = None
+    container_bg = container_background_scans(
+        sample['Background'], instr, facility_file_format)
 
     if "Runs" in van:
         van['Runs'] = expand_ints(van['Runs'])
@@ -916,7 +969,9 @@ def TotalScatteringReduction(config: dict = None):
     # Compute the absorption correction on the sample if it was provided
     sam_abs_ws = ''
     con_abs_ws = ''
-    gen_config_dir = os.path.dirname(params.config_loc[facility][instr])
+    # The grouping helpers live alongside whichever configuration file we
+    # actually loaded, which is not necessarily the analysis cluster share.
+    gen_config_dir = gen_config.config_dir
     group_file = os.path.join(gen_config_dir, "abs_grouping.xml")
     group_det_file = os.path.join(gen_config_dir, "abs_grouping_ref_dets.txt")
     sg_index_f = os.path.join(gen_config_dir, "group_index.txt")
@@ -924,17 +979,11 @@ def TotalScatteringReduction(config: dict = None):
         sg_dict = None
         auto_red = True
     else:
-        sg_dict = dict()
-        with open(sg_index_f, "r") as f_handle:
-            line_tmp = f_handle.readline()
-            while line_tmp:
-                line_tmp = f_handle.readline()
-                if line_tmp:
-                    line_tmp = line_tmp.strip()
-                    key_tmp = line_tmp.split()[0]
-                    start_tmp = int(line_tmp.split()[1])
-                    stop_tmp = int(line_tmp.split()[2])
-                    sg_dict[key_tmp] = [start_tmp, stop_tmp]
+        sg_dict = load_group_index(sg_index_f)
+        if sg_dict is None:
+            log.warning(
+                "No sub-group index found at {}. Continuing without detector "
+                "sub-grouping.".format(sg_index_f))
 
     if sam_abs_corr:
         if sam_abs_corr["Type"] in new_abs_methods:

@@ -1,0 +1,13 @@
+{
+    "_comment": "Off-cluster fallback for SNS NOMAD. Mirrors the defaults hard coded in the reduction; the authoritative copy lives at /SNS/NOM/shared/autoreduce/configs/auto_config.json.",
+    "QParamsProcessing": "0.01,0.001,40.0",
+    "TMIN": 300.0,
+    "TMAX": 16667.0,
+    "ResampleX": -6000,
+    "CacheDir": "/tmp/mts_cache",
+    "ReGenerateGrouping": 0,
+    "QMaxByBank": "35,25,40,40,40,20",
+    "TMinBragg": "0.7,0.7,0.9,1.5,1.6,1.1",
+    "TMaxBragg": "17,18.5,19,18.5,16.9,17",
+    "TBinBragg": "-0.0008"
+}

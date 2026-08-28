@@ -1,0 +1,9 @@
+{
+    "_comment": "Facility level fallback used when an instrument has no packaged configuration of its own. Values are deliberately generic; override with MTS_CONFIG_DIR or 'AutoConfigFile' for production reductions.",
+    "QParamsProcessing": "0.01,0.001,40.0",
+    "TMIN": 300.0,
+    "TMAX": 16667.0,
+    "CacheDir": "/tmp/mts_cache",
+    "ReGenerateGrouping": 0,
+    "TBinBragg": "-0.0008"
+}
