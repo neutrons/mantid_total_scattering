@@ -1,0 +1,43 @@
+# Pixi environment. It is installed inside the container by
+# 'pixi install --locked'; copying the host's in defeats that - the install
+# finds the environment already present, exits in a couple of seconds, and the
+# image ships a 5 GB host-built environment instead of a reproducible one.
+.pixi/
+
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Testing and coverage output
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local build leftovers
+build.log
+*.bak
+
+# Environment files
+.env
+.env.local
+
+# Deliberately NOT ignored, unlike the version removed in a53111e - each of
+# these breaks the build or the shipped package:
+#   .git   - versioningit derives the package version from it ('dynamic = ["version"]')
+#   *.md   - pyproject declares readme = "README.md"
+#   *.xml  - examples/sns/groupings/*.xml ships as reduction input
