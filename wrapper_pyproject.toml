@@ -82,7 +82,7 @@ matplotlib = "*"
 
 [tool.pixi.pypi-dependencies]
 # PyPI dependencies, including this package to allow local editable installs
-total_scattering = { path = ".", editable = true }
+mantid_total_scattering_python_wrapper = { path = ".", editable = true }
 
 
 [tool.pixi.package.host-dependencies]
