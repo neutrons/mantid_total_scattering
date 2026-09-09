@@ -196,7 +196,7 @@ jobs:
         run: pixi run replace-toml
 
       - name: Install dependencies (skip local package)
-        run: pixi install --frozen --skip ${{ env.PKG_NAME }}-python-wrapper
+        run: pixi install --frozen --skip ${{ env.PKG_NAME }}
 
       - name: Install local package
         run: pixi run pip install --no-deps -e .
