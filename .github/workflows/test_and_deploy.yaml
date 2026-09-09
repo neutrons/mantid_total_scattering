@@ -194,7 +194,7 @@ jobs:
           run-install: false
 
       - name: setup wrapper toml
-        run: pixi run 
+        run: pixi run replace-toml
 
       - name: Install dependencies (skip local package)
         run: pixi install --frozen --skip ${{ env.PKG_NAME }}
@@ -215,7 +215,7 @@ jobs:
 
       - name: Create test environment
         run: |
-          micromamba create -n pkg-test python=3.12 -c /tmp/local-channel -c conda-forge -c mantid -c neutrons ${{ env.PKG_NAME }} -y
+          micromamba create -n pkg-test-wrapper python=3.12 -c /tmp/local-channel -c conda-forge -c mantid -c neutrons ${{ env.PKG_NAME }}-python-wrapper -y
         shell: bash -el {0}
 
       - name: Verify conda package
