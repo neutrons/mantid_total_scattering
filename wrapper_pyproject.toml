@@ -79,18 +79,18 @@ platforms = ["linux-64"]
 python = "*"
 pip = "*"
 matplotlib = "*"
+versioningit = "*"
+toml = "*"
 
 [tool.pixi.pypi-dependencies]
 # PyPI dependencies, including this package to allow local editable installs
-total_scattering = { path = ".", editable = true }
+mantid_total_scattering_python_wrapper = { path = ".", editable = true }
+toml-cli = "*"
 
 
 [tool.pixi.package.host-dependencies]
 hatchling = "*"
 versioningit = "*"
-
-[tool.pixi.feature.package.pypi-dependencies]
-toml-cli = "*"
 
 [tool.pixi.package.run-dependencies]
 python = ">=3.10"
@@ -113,11 +113,7 @@ name = "mantid-total-scattering-python-wrapper"
 version = "0.0.0"                               # placeholder, overwritten by sync-version
 
 [tool.pixi.package.build]
-backend = { name = "pixi-build-python", version = "0.4.*", channels = [
-  "conda-forge",
-  "https://prefix.dev/pixi-build-backends",
-  "https://prefix.dev/conda-forge",
-] }
+backend = { name = "pixi-build-python", version = "*" }
 
 
 [tool.pixi.environments]
@@ -133,7 +129,7 @@ sync-version = { cmd = 'version=$(python -m versioningit); toml set tool.pixi.pa
 prep-channels = { cmd = "pixi workspace channel list", description = "Prepare the conda channels for the package" }
 backup-toml = { cmd = "cp pyproject.toml pyproject.toml.bak", description = "Backup the pyproject.toml file" }
 reset-toml = { cmd = "cp pyproject.toml.bak pyproject.toml; rm pyproject.toml.bak", description = "Reset the pyproject.toml file to the original state" }
-build-conda-command-wrapper = { cmd = "pixi build", description = "Build the conda package command" }
+build-conda-command-wrapper = { cmd = "pixi publish --target-channel ./local-channel", description = "Build the conda package command" }
 build-conda-wrapper = { description = "Build the conda package", depends-on = [
   "prep-channels",
   "backup-toml",

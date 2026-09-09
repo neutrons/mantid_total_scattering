@@ -184,9 +184,8 @@ jobs:
           fetch-tags: true
 
       - name: Setup pixi
-        uses: prefix-dev/setup-pixi@v0.9.4
+        uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
-          pixi-version: v0.62.2
           manifest-path: pyproject.toml
           # Workaround: Dynamic versioning (versioningit) causes lock file version mismatch.
           # We skip the editable package install and do it separately with pip.
@@ -194,7 +193,7 @@ jobs:
           run-install: false
 
       - name: setup wrapper toml
-        run: pixi run 
+        run: pixi run replace-toml
 
       - name: Install dependencies (skip local package)
         run: pixi install --frozen --skip ${{ env.PKG_NAME }}
@@ -205,29 +204,27 @@ jobs:
       - name: Build conda package
         run: |
           pixi run build-conda-wrapper
-          mkdir -p /tmp/local-channel/linux-64
-          mkdir -p /tmp/local-channel/noarch
-          cp *.conda /tmp/local-channel/linux-64
-          echo '{"info": {}, "packages": {}, "packages.conda": {}, "repodata_version": 1}' > /tmp/local-channel/noarch/repodata.json
 
-      - name: Setup micromamba
-        uses: mamba-org/setup-micromamba@v2
+          # Copy conda package to workspace root so it can be uploaded as an artifact.
+          find local-channel -name "*.conda" -exec cp {} . \;
 
-      - name: Create test environment
-        run: |
-          micromamba create -n pkg-test python=3.12 -c /tmp/local-channel -c conda-forge -c mantid -c neutrons ${{ env.PKG_NAME }} -y
-        shell: bash -el {0}
+      - name: Install built conda package
+        id: install
+        uses: neutrons/gh-actions/pkg-install@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
+        with:
+          package-name: ${{ env.PKG_NAME }}-python-wrapper
+          local-channel: ./local-channel
+          extra-channels: mantid neutrons
 
       - name: Verify conda package
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: neutrons/conda-actions/pkg-verify@main
+        uses: neutrons/gh-actions/pkg-verify@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
         with:
           package-name: ${{ env.PKG_NAME }}-python-wrapper
           module-name: ${{ env.MODULE_NAME }}
-          local-channel: /tmp/local-channel
+          conda-env-name: ${{ steps.install.outputs.conda-env }}
           python-version: 3.12
-          extra-channels: conda-forge
-          conda-env-name: pkg-test-wrapper
+          extra-channels: conda-forge mantid neutrons
 
       - name: Upload conda package as artifact
         uses: actions/upload-artifact@v7
