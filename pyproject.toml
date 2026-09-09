@@ -193,7 +193,7 @@ publish-pypi-test = { cmd = "twine upload --repository testpypi dist/*", descrip
 clean-pypi = { cmd = "rm -rf dist", description = "Clean the PyPI build artifacts" }
 
 # Conda packaging tasks
-build-conda-command = { cmd = "pixi build", description = "Build the conda package command" }
+build-conda-command = { cmd = "pixi publish --target-channel ./local-channel", description = "Build the conda package command" }
 build-conda = { description = "Build the conda package", depends-on = [
   "backup-toml",
   "sync-version",
