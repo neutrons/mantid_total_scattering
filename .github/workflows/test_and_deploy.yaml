@@ -72,7 +72,7 @@ jobs:
 
       - name: Build conda package
         run: |
-          pixi run conda-build
+          pixi run build-conda
 
           # Copy conda package to workspace root so it can be uploaded as an artifact.
           find local-channel -name "*.conda" -exec cp {} . \;
