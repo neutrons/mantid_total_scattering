@@ -158,12 +158,9 @@ dependencies = { mantid-developer = ">=6.14,<7" }
 name = "mantid-total-scattering"
 version = "0.0.0"                # placeholder, overwritten by sync-version
 
+
 [tool.pixi.package.build]
-backend = { name = "pixi-build-python", version = "0.4.*", channels = [
-  "conda-forge",
-  "https://prefix.dev/pixi-build-backends",
-  "https://prefix.dev/conda-forge",
-] }
+backend = { name = "pixi-build-python", version = "*" }
 
 
 [tool.pixi.environments]
@@ -193,7 +190,7 @@ publish-pypi-test = { cmd = "twine upload --repository testpypi dist/*", descrip
 clean-pypi = { cmd = "rm -rf dist", description = "Clean the PyPI build artifacts" }
 
 # Conda packaging tasks
-build-conda-command = { cmd = "pixi build", description = "Build the conda package command" }
+build-conda-command = { cmd = "pixi publish --target-channel ./local-channel", description = "Build the conda package command" }
 build-conda = { description = "Build the conda package", depends-on = [
   "backup-toml",
   "sync-version",
