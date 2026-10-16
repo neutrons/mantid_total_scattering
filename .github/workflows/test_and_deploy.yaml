@@ -78,20 +78,19 @@ jobs:
 
       - name: Install built conda package
         id: install
-        uses: neutrons/gh-actions/pkg-install@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
+        uses: neutrons/gh-actions/pkg-install@46e28a74c8872901c571e0493d26871afe2662fb # v2.1
         with:
           package-name: ${{ env.PKG_NAME }}
           local-channel: ./local-channel
+          python-version: 3.12
           extra-channels: mantid neutrons
 
       - name: Verify conda package
-        uses: neutrons/gh-actions/pkg-verify@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
+        uses: neutrons/gh-actions/pkg-verify@46e28a74c8872901c571e0493d26871afe2662fb # v2.1
         with:
           package-name: ${{ env.PKG_NAME }}
           module-name: ${{ env.MODULE_NAME }}
           conda-env-name: ${{ steps.install.outputs.conda-env }}
-          python-version: 3.12
-          extra-channels: conda-forge mantid neutrons
 
       - name: Upload conda package as artifact
         uses: actions/upload-artifact@v7
@@ -130,7 +129,7 @@ jobs:
           name: artifact-conda-package
 
       - name: Upload package to anaconda
-        uses: neutrons/conda-actions/publish@main
+        uses: neutrons/gh-actions/publish@46e28a74c8872901c571e0493d26871afe2662fb # v2.1
         with:
           anaconda-token: ${{ secrets.ANACONDA_TOKEN }}
           organization: neutrons
@@ -138,11 +137,11 @@ jobs:
 
       - name: Remove old packages
         if: github.ref == 'refs/heads/next'
-        uses: neutrons/conda-actions/pkg-remove@v1
+        uses: neutrons/gh-actions/pkg-remove@46e28a74c8872901c571e0493d26871afe2662fb # v2.1
         with:
-          anaconda_token: ${{ secrets.ANACONDA_TOKEN }}
+          anaconda-token: ${{ secrets.ANACONDA_TOKEN }}
           organization: neutrons
-          package_name: ${{ env.PKG_NAME }}
+          package-name: ${{ env.PKG_NAME }}
           label: ${{ env.CONDA_LABEL }}
           keep: 5
 
@@ -152,7 +151,7 @@ jobs:
     if: github.ref == 'refs/heads/next'
     steps:
       - name: Get Environment Name
-        uses: neutrons/branch-mapper@main
+        uses: neutrons/gh-actions/branch-mapper@46e28a74c8872901c571e0493d26871afe2662fb # v2.1
         id: env_name
         with:
           prefix: ${{ env.PKG_NAME }}
@@ -210,21 +209,20 @@ jobs:
 
       - name: Install built conda package
         id: install
-        uses: neutrons/gh-actions/pkg-install@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
+        uses: neutrons/gh-actions/pkg-install@46e28a74c8872901c571e0493d26871afe2662fb # v2.1
         with:
           package-name: ${{ env.PKG_NAME }}-python-wrapper
           local-channel: ./local-channel
+          python-version: 3.12
           extra-channels: mantid neutrons
 
       - name: Verify conda package
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: neutrons/gh-actions/pkg-verify@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
+        uses: neutrons/gh-actions/pkg-verify@46e28a74c8872901c571e0493d26871afe2662fb # v2.1
         with:
           package-name: ${{ env.PKG_NAME }}-python-wrapper
           module-name: ${{ env.MODULE_NAME }}
           conda-env-name: ${{ steps.install.outputs.conda-env }}
-          python-version: 3.12
-          extra-channels: conda-forge mantid neutrons
 
       - name: Upload conda package as artifact
         uses: actions/upload-artifact@v7
@@ -263,7 +261,7 @@ jobs:
             name: artifact-wrapper-conda-package
 
         - name: Upload package to anaconda
-          uses: neutrons/conda-actions/publish@main
+          uses: neutrons/gh-actions/publish@46e28a74c8872901c571e0493d26871afe2662fb # v2.1
           with:
             anaconda-token: ${{ secrets.ANACONDA_TOKEN }}
             organization: neutrons
@@ -271,10 +269,10 @@ jobs:
 
         - name: Remove old packages
           if: github.ref == 'refs/heads/next'
-          uses: neutrons/conda-actions/pkg-remove@v1
+          uses: neutrons/gh-actions/pkg-remove@46e28a74c8872901c571e0493d26871afe2662fb # v2.1
           with:
-            anaconda_token: ${{ secrets.ANACONDA_TOKEN }}
+            anaconda-token: ${{ secrets.ANACONDA_TOKEN }}
             organization: neutrons
-            package_name: ${{ env.PKG_NAME }}-python-wrapper
+            package-name: ${{ env.PKG_NAME }}-python-wrapper
             label: ${{ env.CONDA_LABEL }}
             keep: 5
