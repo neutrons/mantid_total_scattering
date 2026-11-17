@@ -90,7 +90,7 @@ versioningit = "*"
 
 [tool.pixi.package.run-dependencies]
 python = ">=3.12.13"
-mantidworkbench = ">=6.16, <6.17"
+mantidworkbench = ">=7.0, <7.1"
 matplotlib = "*"
 scikit-learn = "*"
 
@@ -124,7 +124,7 @@ toml = "*"
 toml-cli = "*"
 
 [tool.pixi.feature.developer.dependencies]
-mantidworkbench = ">=6.16, <6.17"
+mantidworkbench = ">=7.0, <7.1"
 pre-commit = "*"
 flake8 = "*"
 bandit = "*"
