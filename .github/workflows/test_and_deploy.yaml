@@ -84,7 +84,7 @@ jobs:
         with:
           package-name: ${{ env.PKG_NAME }}
           local-channel: ./local-channel
-          python-version: 3.12
+          python-version: 3.13
           extra-channels: mantid neutrons
 
       - name: Verify conda package
@@ -216,7 +216,7 @@ jobs:
         with:
           package-name: ${{ env.PKG_NAME }}-python-wrapper
           local-channel: ./local-channel
-          python-version: 3.12
+          python-version: 3.13
           extra-channels: mantid neutrons
 
       - name: Verify conda package
